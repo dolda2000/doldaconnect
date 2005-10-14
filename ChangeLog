@@ -1,0 +1,62 @@
+2005-07-09  Fredrik Tolf  <fredrik@dolda2000.com>
+
+	* Cleaned up CVS heavily.
+
+2004-08-13  gettextize  <bug-gnu-gettext@gnu.org>
+
+	* Makefile.am (SUBDIRS): Add m4.
+	(ACLOCAL_AMFLAGS): New variable.
+	(EXTRA_DIST): New variable.
+	* configure.in (AC_OUTPUT): Add po/Makefile.in,
+
+2004-05-11  dolda2000  <dolda2000@pc7.dolda2000.com>
+
+	* utils.h: Removed the format warnings, since they didn't work with %N.
+
+	* transfer.h, transfer.c, fnet-dc.c: Transfer system rewrite.
+
+	* net.c, net.h, sysevents.h, transfer.c, transfer.h, utils.c:
+	Initial import.
+
+	* net.c, net.h, sysevents.h, transfer.c, transfer.h, utils.c: New file.
+
+	* filenet.h, log.c, module.h: Initial import.
+
+	* filenet.h, log.c, module.h: New file.
+
+	* conf.h, fnet-dc.c, log.h: Initial import.
+
+	* conf.h, fnet-dc.c, log.h: New file.
+
+	* client.c, client.h, conf.c, filenet.c: Initial import.
+
+	* client.c, client.h, conf.c, filenet.c: New file.
+
+	* auth-pam.c: Initial import.
+
+	* auth-pam.c: New file.
+
+	* auth.c, auth.h: Initial import.
+
+	* auth.c, auth.h: New file.
+
+	* Makefile: Initial import.
+
+	* Makefile: New file.
+
+	* Makefile.in: Initial import.
+
+	* Makefile.in: New file.
+
+	* ui.c, uiretref, utils.h: Initial import.
+
+	* ui.c, uiretref, utils.h: New file.
+
+	* main.c: Initial import.
+
+	* main.c: New file.
+
+	* Makefile.am, emacs-local: Initial import.
+
+	* Makefile.am, emacs-local: New file.
+

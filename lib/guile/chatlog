@@ -1,0 +1,149 @@
+#!/usr/bin/guile -s
+!#
+
+(use-modules (dolcon ui))
+(use-modules (ice-9 pretty-print))
+
+(define fnetnodes '())
+
+(define (make-getopt opts optdesc)
+  (let ((arg opts) (curpos 0) (rest '()))
+    (lambda ()
+      (if (eq? arg '()) rest
+	  (let ((ret #f))
+	    (while (not ret)
+		   (if (= curpos 0)
+		       (if (eq? (string-ref (car arg) 0) #\-)
+			   (set! curpos 1)
+			   (begin
+			     (set! rest (append rest (list (car arg))))
+			     (set! arg (cdr arg))
+			     (if (eq? arg '())
+				 (set! ret #t)))))
+		   (if (> curpos 0)
+		       (if (< curpos (string-length (car arg)))
+			   (begin (set! ret (string-ref (car arg) curpos)) (set! curpos (+ curpos 1)))
+			   (begin (set! curpos 0) (set! arg (cdr arg)) (if (eq? arg '()) (set! ret #t))))))
+	    (if (eq? ret #t) rest
+		(let ((opt (string-index optdesc ret)))
+		  (if (eq? opt #f) (throw 'illegal-option ret)
+		      (if (and (< opt (- (string-length optdesc) 1)) (eq? (string-ref optdesc (+ opt 1)) #\:))
+			  (let ((ret
+				 (cons ret (let ((optarg
+						  (if (< curpos (string-length (car arg)))
+						      (substring (car arg) curpos)
+						      (begin (set! arg (cdr arg)) (if (eq? arg '()) (throw 'requires-argument ret)) (car arg)))))
+					     (set! arg (cdr arg)) optarg))))
+			    (set! curpos 0)
+			    ret)
+			  (list ret))))))))))
+
+(define (fn-getnames)
+  (let ((resp (dc-ecmd "lsnodes")) (er #f))
+    (if (and resp (begin (set! er (dc-extract resp)) er) (= (cdr (assoc 'code er)) 200))
+	(let ((ires #f))
+	  (while (begin (set! ires (dc-intresp resp)) ires)
+		 (if (assoc (car ires) fnetnodes)
+		     (set-cdr! (assoc (car ires) fnetnodes) (caddr ires))
+		     (set! fnetnodes (cons (cons (car ires) (caddr ires)) fnetnodes))))))))
+
+(define (fn-getname id)
+  (if (not (assoc id fnetnodes))
+      (fn-getnames))
+  (if (assoc id fnetnodes)
+      (cdr (assoc id fnetnodes))
+      (number->string id)))
+
+;(define (fn-getname id)
+;  (let ((resp (dc-ecmd "lsnodes")) (er #f))
+;    (if (and resp (begin (set! er (dc-extract resp)) er) (= (cdr (assoc 'code er)) 200))
+;	(begin
+;	  (catch 'found
+;		 (lambda ()
+;		   (let ((ires #f))
+;		     (while (begin (set! ires (dc-intresp resp)) ires)
+;			    (if (= (car ires) id)
+;				(throw 'found (caddr ires)))
+;			    ))
+;		   (number->string id)
+;		   )
+;		 (lambda (key ret)
+;		   ret)))
+;	(number->string id)))
+;  )
+
+(define (chatlog-main args)
+  (let ((dc-server #f) (log-dir #f) (last-fn #f))
+    (let ((getopt (make-getopt (cdr args) "hs:S:e:")) (arg #f))
+      (do ((arg (getopt) (getopt))) ((not (and (pair? arg) (char? (car arg)))) (set! args arg))
+	(cond ((eq? (car arg) #\h)
+	       (begin (display "usage: chatlog [-s server] [-d log-dir]\n" (current-error-port))
+		      (display "       chatlog -h\n" (current-error-port))
+		      (exit 0)))
+	      ((eq? (car arg) #\s)
+	       (set! dc-server (cdr arg)))
+	      ((eq? (car arg) #\d)
+	       (set! log-dir (cdr arg)))
+	      )
+	)
+      )
+    (if (not dc-server) (set! dc-server (getenv "DCSERVER")))
+    (if (not dc-server) (set! dc-server "localhost"))
+    (if (not log-dir) (set! log-dir (string-append (getenv "HOME") "/dc/chatlog")))
+
+    (dc-c&l #t dc-server #t)
+    (dc-ecmd-assert 200 "notify" "fn:chat" "on" "fn:act" "on")
+
+    (while #t
+	   (dc-select 10000)
+	   (while (let ((resp (dc-getresp)))
+		    (if resp
+			(begin
+			  (let* ((er (dc-extract resp)) (code (cdr (assoc 'code er))) (cmd (cdr (assoc 'cmd er))))
+			    (cond
+			     ((equal? cmd ".notify")
+			      (case code
+				((600)
+				 (let ((ires (list->vector (dc-intresp resp))))
+				   (if ires
+				       (let ((p (open-file
+						 (string-append log-dir "/"
+								(let ((fixedname (list->string
+										  (map (lambda (c) (if (eq? c #\/) #\_ c))
+										       (string->list (fn-getname (vector-ref ires 0)))))))
+								  (if (= (string-length fixedname) 0) "noname" fixedname)))
+						 "a")))
+					 (if (not (eq? (vector-ref ires 0) last-fn))
+					     (begin (write-line (string-append " -- " (fn-getname (vector-ref ires 0)) ":"))
+						    (set! last-fn (vector-ref ires 0))))
+					 (for-each
+					  (lambda (p)
+					    (write-line (string-append (strftime "%H:%M:%S" (localtime (current-time))) ": <" (vector-ref ires 3) "> " (vector-ref ires 4)) p))
+					  (list p (current-output-port)))
+					 (close-port p))
+				       ))
+				 )
+				((602)
+				 (let ((ires (dc-intresp resp)))
+				   (if ires
+				       (let ((ent (assoc (car ires) fnetnodes)))
+					 (if ent
+					     (set-cdr! ent (cadr ires))
+					     (set! fnetnodes (cons (cons (car ires) (cadr ires)) fnetnodes)))))))
+				
+				)
+			      )
+				       
+			     )
+			    )
+			  #t)
+			#f)
+		    )
+		  #t
+		  )
+	   
+	   )
+    )
+  )
+
+(chatlog-main (command-line))

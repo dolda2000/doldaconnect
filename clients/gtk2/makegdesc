@@ -1,0 +1,422 @@
+#!/usr/bin/perl
+
+$tempvar = 0;
+
+sub printwidgets
+{
+    my($widget, $sl, $p, $sig, $cb, $data, $pf, $cpf, $mod, $key, @delayedlines);
+    $sl = $_[1];
+    $p = "    " . (" " x $sl);
+    $cpf = $_[2];
+    @delayedlines = ();
+    foreach $widget (@{$_[0]})
+    {
+	if($widget->{"type"} eq "wnd")
+	{
+	    print "${p}stack[$sl] = gtk_window_new(GTK_WINDOW_TOPLEVEL);\n";
+	    if($options{"hasaccels"}) {
+		print "${p}gtk_window_add_accel_group(GTK_WINDOW(stack[$sl]), accel_group);\n";
+	    }
+	    if($widget->{"title"}) {
+		print "${p}gtk_window_set_title(GTK_WINDOW(stack[$sl]), \"" . $widget->{"title"} . "\");\n";
+	    }
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_container_add(GTK_CONTAINER(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+	    }
+	} elsif($widget->{"type"} =~ /[hv]box/) {
+	    print "${p}stack[$sl] = gtk_" . $widget->{"type"} . "_new(";
+	    print $widget->{"homo"}?"TRUE, ":"FALSE, ";
+	    print $widget->{"spacing"} || "0";
+	    print ");\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_box_pack_start(GTK_BOX(stack[" . ($sl - 1) . "]), stack[$sl], ";
+		print (($widget->{"expand"} || $widget->{"parent"}->{"dexpand"})?"TRUE, ":"FALSE, ");
+		print (($widget->{"fill"} || $widget->{"parent"}->{"dfill"})?"TRUE, ":"FALSE, ");
+		print $widget->{"pad"} || "0";
+		print ");\n";
+	    }
+	} elsif($widget->{"type"} eq "table") {
+	    print "${p}stack[$sl] = gtk_table_new(" . $widget->{"rows"} . ", " . $widget->{"cols"};
+	    print ", " . (($widget->{"homo"} eq "TRUE")?"TRUE":"FALSE");
+	    print ");\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_table_attach(GTK_TABLE(stack[" . ($sl - 1) . "]), stack[$sl]";
+		print ", " . $widget->{"tx"};
+		print ", " . ($widget->{"tx"} + (defined($widget->{"tw"})?$widget->{"tw"}:1));
+		print ", " . $widget->{"ty"};
+		print ", " . ($widget->{"ty"} + (defined($widget->{"th"})?$widget->{"th"}:1));
+		if($widget->{"fill"} eq "y") {
+		    $widget->{"fillx"} = "y";
+		    $widget->{"filly"} = "y";
+		}
+		if($widget->{"shrink"} eq "y") {
+		    $widget->{"shrinkx"} = "y";
+		    $widget->{"shrinky"} = "y";
+		}
+		if($widget->{"expand"} eq "y") {
+		    $widget->{"expandx"} = "y";
+		    $widget->{"expandy"} = "y";
+		}
+		print ", 0";
+		print " | GTK_FILL" if $widget->{"fillx"} eq "y";
+		print " | GTK_SHRINK" if $widget->{"shrinkx"} eq "y";
+		print " | GTK_EXPAND" if $widget->{"expandx"} eq "y";
+		print ", 0";
+		print " | GTK_FILL" if $widget->{"filly"} eq "y";
+		print " | GTK_SHRINK" if $widget->{"shrinky"} eq "y";
+		print " | GTK_EXPAND" if $widget->{"expandy"} eq "y";
+		print ", " . (defined($widget->{"padx"})?$widget->{"padx"}:"0");
+		print ", " . (defined($widget->{"pady"})?$widget->{"pady"}:"0");
+		print ");\n";
+	    }
+	} elsif($widget->{"type"} eq "btn") {
+	    $widget->{"label"} || die("Can't have button without label\n");
+	    print "${p}stack[$sl] = gtk_button_new_with_mnemonic(_(\"" . $widget->{"label"} . "\"));\n";
+	} elsif($widget->{"type"} eq "chk") {
+	    $widget->{"label"} || die("Can't have check button without label\n");
+	    print "${p}stack[$sl] = gtk_check_button_new_with_mnemonic(_(\"" . $widget->{"label"} . "\"));\n";
+	} elsif($widget->{"type"} eq "sbtn") {
+	    $widget->{"stock"} || die("Can't have button without stock\n");
+	    print "${p}stack[$sl] = gtk_button_new_from_stock(GTK_STOCK_" . $widget->{"stock"} . ");\n";
+	} elsif($widget->{"type"} eq "simg") {
+	    $widget->{"stock"} || die("Can't have image without stock\n");
+	    $widget->{"size"} || die("Can't have image without size\n");
+	    print "${p}stack[$sl] = gtk_image_new_from_stock(GTK_STOCK_" . $widget->{"stock"} . ", GTK_ICON_SIZE_" . $widget->{"size"} . ");\n";
+	} elsif($widget->{"type"} eq "lbl") {
+	    $widget->{"label"} || die("Can't have label without label\n");
+	    print "${p}stack[$sl] = gtk_label_new(_(\"" . $widget->{"label"} . "\"));\n";
+	} elsif($widget->{"type"} eq "mlbl") {
+	    $widget->{"label"} || die("Can't have label without label\n");
+	    print "${p}stack[$sl] = gtk_label_new_with_mnemonic(_(\"" . $widget->{"label"} . "\"));\n";
+	    if(defined($widget->{"mwidget"}))
+	    {
+		if($widget->{"var"} ne "y") {
+		    $widget->{"var"} = "l";
+		}
+		if(!defined($widget->{"name"})) {
+		    $widget->{"name"} = "temp" . $tempvar++;
+		}
+		$str = "gtk_label_set_mnemonic_widget(GTK_LABEL(";
+		if($widget->{"var"} eq "y") {
+		    $str .= $options{"prefix"};
+		}
+		$str .= $widget->{"name"};
+		$str .= "), " . $options{"prefix"} . $widget->{"mwidget"} . ");";
+		push @delayedlines, ($str);
+	    }
+	} elsif($widget->{"type"} eq "text") {
+	    print "${p}stack[$sl] = gtk_entry_new();\n";
+	    if($widget->{"default"}) {
+		print "${p}gtk_entry_set_text(GTK_ENTRY(stack[$sl]), \"" . $widget->{"default"} . "\");\n";
+	    }
+	} elsif($widget->{"type"} eq "menubar") {
+	    print "${p}stack[$sl] = gtk_menu_bar_new();\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_menu_shell_append(GTK_MENU_SHELL(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+	    }
+	} elsif($widget->{"type"} eq "menuitem") {
+	    print "${p}stack[$sl] = gtk_menu_item_new_with_mnemonic(_(\"" . $widget->{"label"} . "\"));\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_menu_item_set_submenu(GTK_MENU_ITEM(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+	    }
+	} elsif($widget->{"type"} eq "smenuitem") {
+	    print "${p}stack[$sl] = gtk_image_menu_item_new_from_stock(GTK_STOCK_" . $widget->{"stock"} . ", accel_group);\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_menu_item_set_submenu(GTK_MENU_ITEM(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+	    }
+	} elsif($widget->{"type"} eq "menusep") {
+	    print "${p}stack[$sl] = gtk_separator_menu_item_new();\n";
+	} elsif($widget->{"type"} eq "menu") {
+	    print "${p}stack[$sl] = gtk_menu_new();\n";
+	    if($options{"hasaccels"}) {
+		print "${p}gtk_menu_set_accel_group(GTK_MENU(stack[$sl]), accel_group);\n";
+	    }
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_menu_shell_append(GTK_MENU_SHELL(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+	    };
+	    $widget->{"noshow"} = 1;
+	} elsif($widget->{"type"} =~ /^[hv]paned$/) {
+	    print "${p}stack[$sl] = gtk_" . $widget->{"type"} . "_new();\n";
+	    $widget->{"cur"} = 1;
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_paned_pack" . ($widget->{"parent"}->{"cur"}) . "(GTK_PANED(stack[" . ($sl - 1) . "]), stack[$sl]";
+		print ", " . ((index($widget->{"parent"}->{"resize"}, $widget->{"parent"}->{"cur"}) < 0)?"FALSE":"TRUE");
+		print ", " . ((index($widget->{"parent"}->{"shrink"}, $widget->{"parent"}->{"cur"}) < 0)?"FALSE":"TRUE");
+		print ");\n";
+		$widget->{"parent"}->{"cur"}++;
+	    }
+	} elsif($widget->{"type"} eq "notebook") {
+	    print "${p}stack[$sl] = gtk_notebook_new();\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_notebook_append_page(GTK_NOTEBOOK(stack[" . ($sl - 1) . "]), stack[$sl]";
+		print ", gtk_label_new_with_mnemonic(_(\"" . $widget->{"nblabel"} . "\"))";
+		print ");\n";
+	    }
+	} elsif($widget->{"type"} eq "sw") {
+	    print "${p}stack[$sl] = gtk_scrolled_window_new(NULL, NULL);\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_container_add(GTK_CONTAINER(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+	    }
+	} elsif($widget->{"type"} eq "frame") {
+	    print "${p}stack[$sl] = gtk_frame_new(_(\"" . $widget->{"label"} . "\"));\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_container_add(GTK_CONTAINER(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+	    }
+	} elsif($widget->{"type"} eq "exp") {
+	    print "${p}stack[$sl] = gtk_expander_new_with_mnemonic(_(\"" . $widget->{"label"} . "\"));\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_container_add(GTK_CONTAINER(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+	    }
+	} elsif($widget->{"type"} eq "treeview") {
+	    print "${p}stack[$sl] = gtk_tree_view_new();\n";
+	    if(defined($widget->{"hvis"})) {
+		print "${p}gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(stack[$sl]), " . $widget->{"hvis"} . ");\n";
+	    }
+	    if(defined($widget->{"rules"})) {
+		print "${p}gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(stack[$sl]), " . $widget->{"rules"} . ");\n";
+	    }
+	    if(defined($widget->{"searchcol"})) {
+		print "${p}gtk_tree_view_set_search_column(GTK_TREE_VIEW(stack[$sl]), " . $widget->{"searchcol"} . ");\n";
+		print "${p}gtk_tree_view_set_enable_search(GTK_TREE_VIEW(stack[$sl]), TRUE);\n";
+	    }
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_tree_view_append_column(GTK_TREE_VIEW(stack[" . ($sl - 1) . "]), column);\n";
+		if($widget->{"expander"} eq "y") {
+		    print "${p}gtk_tree_view_set_expander_column(GTK_TREE_VIEW(stack[" . ($sl - 1) . "]), column);\n";
+		}
+	    }
+	} elsif($widget->{"type"} eq "tvcol") {
+	    if(!defined($widget->{"subwidgets"}))
+	    {
+		print "${p}column = gtk_tree_view_column_new_with_attributes(";
+		print "_(\"" . $widget->{"title"} . "\")";
+		print ", gtk_cell_renderer_text_new()";
+		if(defined($widget->{"text"})) {
+		    print ", \"text\", " . $widget->{"text"};
+		}
+		print ", NULL);\n";
+	    } else {
+		print "${p}column = gtk_tree_view_column_new();\n";
+		print "${p}gtk_tree_view_column_set_title(column, _(\"" . $widget->{"title"} . "\"));\n";
+	    }
+	    if(defined($widget->{"sortcol"})) {
+		print "${p}gtk_tree_view_column_set_sort_column_id(column, " . $widget->{"sortcol"} . ");\n";
+	    }
+	    if(defined($widget->{"resizable"})) {
+		print "${p}gtk_tree_view_column_set_resizable(column, " . $widget->{"resizable"} . ");\n";
+	    }
+	    $widget->{"noshow"} = 1;
+	    $pf = sub
+	    {
+	    }
+	} elsif($widget->{"type"} eq "textrend") {
+	    print "${p}renderer = gtk_cell_renderer_text_new();\n";
+	    print "${p}gtk_tree_view_column_pack_start(column, renderer, " . (defined($widget->{"expand"})?$widget->{"expand"}:"TRUE") . ");\n";
+	    if(defined($widget->{"text"})) {
+		print "${p}gtk_tree_view_column_add_attribute(column, renderer, \"text\", " . $widget->{"text"} . ");\n";
+	    }
+	    if(defined($widget->{"func"})) {
+		print "${p}gtk_tree_view_column_set_cell_data_func(column, renderer, " . $widget->{"func"} . ", " . ($widget->{"funcdata"} || "NULL") . ", NULL);\n";
+	    }
+	    $widget->{"noshow"} = 1;
+	} elsif($widget->{"type"} eq "custrend") {
+	    print "${p}renderer = GTK_CELL_RENDERER(" . $widget->{"newfunc"} . "());\n";
+	    print "${p}gtk_tree_view_column_pack_start(column, renderer, " . (defined($widget->{"expand"})?$widget->{"expand"}:"FALSE") . ");\n";
+	    foreach $attr (keys %{$widget})
+	    {
+		if($attr =~ /attr\((\S+)\)/)
+		{
+		    print "${p}gtk_tree_view_column_add_attribute(column, renderer, \"" . $1 . "\", " . $widget->{$attr} . ");\n";
+		}
+	    }
+	    $widget->{"noshow"} = 1;
+	} elsif($widget->{"type"} eq "pixbufrend") {
+	    print "${p}renderer = gtk_cell_renderer_pixbuf_new();\n";
+	    print "${p}gtk_tree_view_column_pack_start(column, renderer, FALSE);\n";
+	    if(defined($widget->{"stock_id"})) {
+		print "${p}gtk_tree_view_column_add_attribute(column, renderer, \"stock_id\", " . $widget->{"stock_id"} . ");\n";
+	    }
+	    $widget->{"noshow"} = 1;
+	} elsif($widget->{"type"} eq "textview") {
+	    print "${p}stack[$sl] = gtk_text_view_new();\n";
+	    if(defined($widget->{"editable"})) {
+		print "${p}gtk_text_view_set_editable(GTK_TEXT_VIEW(stack[$sl]), " . $widget->{"editable"} . ");\n";
+	    }
+	} elsif($widget->{"type"} eq "hr") {
+	    print "${p}stack[$sl] = gtk_hseparator_new();\n";
+	} elsif($widget->{"type"} eq "sbar") {
+	    print "${p}stack[$sl] = gtk_statusbar_new();\n";
+	    if($widget->{"grip"} eq "n") {
+		print "${p}gtk_statusbar_set_has_resize_grip(GTK_STATUSBAR(stack[$sl]), FALSE);\n";
+	    }
+	} else {
+	    print STDERR "Unknown widget: " . $widget->{"type"} ."\n";
+	}
+	if($widget->{"sensitive"}) {
+	    print "${p}gtk_widget_set_sensitive(stack[$sl], " . $widget->{"sensitive"} . ");\n";
+	}
+	if($widget->{"var"} eq "y") {
+	    print $p . $options{"prefix"} . $widget->{"name"} . " = stack[$sl];\n";
+	}
+	if($widget->{"var"} eq "l") {
+	    print $p . "GtkWidget *" . $widget->{"name"} . " = stack[$sl];\n";
+	}
+	if($widget->{"sig"})
+	{
+	    while($widget->{"sig"} =~ /\G([\w_]+),?/g) {
+		print "${p}g_signal_connect(G_OBJECT(stack[$sl]), \"$1\", G_CALLBACK(cb_" . $options{"prefix"} . $widget->{"name"} . "_" . $1 . "), (gpointer)NULL);\n";
+	    }
+	}
+	if($widget->{"accel"})
+	{
+	    $mod = "";
+	    while($widget->{"accel"} =~ /\G(\w+)\+/gc)
+	    {
+		$mod .= " | " if($mod);
+		$mod = $mod . "GDK_" . $1 . "_MASK";
+	    }
+	    $mod || ($mod = "0");
+	    $widget->{"accel"} =~ /\G(\w+)/g;
+	    $key = $1;
+	    print "${p}gtk_widget_add_accelerator(stack[$sl], \"activate\", accel_group, GDK_$key, $mod, GTK_ACCEL_VISIBLE);\n";
+	}
+	foreach $attr (keys %{$widget})
+	{
+	    if($attr =~ /^sig\((\S+)\)/)
+	    {
+		$sig = $1;
+		if($widget->{$attr} =~ /([^,]*),(.*)/)
+		{
+		    $cb = $1;
+		    $data = $2;
+		} else {
+		    $cb = $widget->{$attr};
+		    $data = "NULL";
+		}
+		print "${p}g_signal_connect(G_OBJECT(stack[$sl]), \"$1\", G_CALLBACK($cb), (gpointer)$data);\n";
+	    }
+	}
+	if($widget->{"subwidgets"})
+	{
+	    print "$p\n";
+	    printwidgets($widget->{"subwidgets"}, $sl + 1, $pf);
+	}
+	if($sl > 0)
+	{
+	    &$cpf($widget, $p, $sl);
+	    if(!$widget->{"noshow"}) {
+		print "${p}gtk_widget_show(stack[$sl]);\n";
+	    }
+	}
+	print "$p\n";
+    }
+    foreach $line (@delayedlines)
+    {
+	print $p . $line . "\n";
+    }
+}
+
+sub printvars
+{
+    my($widget);
+    foreach $widget (@{$_[0]})
+    {
+	if($widget->{"var"})
+	{
+	    print "GtkWidget *" . $options{"prefix"} . $widget->{"name"} .";\n";
+	}
+	printvars($widget->{"subwidgets"}) if($widget->{"subwidgets"});
+    }
+}
+
+sub dequote
+{
+    my($text);
+    ($text) = @_;
+    $text =~ s/([^\\]|^)\"/$1/g;
+    $text =~ s/\\(.)/$1/g;
+    return $text;
+}
+
+$rootwidgets = [];
+@estack = ($rootwidgets);
+@wstack = ();
+$curwidget = 0;
+$maxstack = 1;
+
+while(<>)
+{
+    chomp;
+    s/(^|\s+)\#.*$//;
+    s/^\s*//;
+    if(/^;\s*(\w+)\s*:\s*(\w.*)/)
+    {
+	$options{$1} = $2;
+    } elsif(/^([:\$])\s*(\w+)/g) {
+	$curwidget = {"type" => $2};
+	push @{$estack[0]}, $curwidget;
+	if((scalar @wstack) > 0) {
+	    $curwidget->{"parent"} = $wstack[0];
+	}
+	if($1 eq ":")
+	{
+	    unshift @estack, ($curwidget->{"subwidgets"} = []);
+	    unshift @wstack, $curwidget;
+	}
+	$maxstack = (scalar @estack) if((scalar @estack) > $maxstack);
+	while(/\G\s*(\S+)\s*:\s*((\w+|\"([^\\\"]+|\\.)*([^\\]|)\"|\\.)+)/g)
+	{
+	    $curwidget->{$1} = dequote($2);
+	}
+    } elsif(/^%\s*(\S+)\s*:\s*((\w+|\"([^\\\"]+|\\.)*([^\\]|)\"|\\.)+)/) {
+	$curwidget || die("No current widget\n");
+	$curwidget->{$1} = dequote($2);
+    } elsif(/^end/) {
+	shift @estack;
+	shift @wstack;
+	$curwidget = $wstack[0] if((scalar @wstack) > 0);
+    } elsif(!$_) {
+    } else {
+	print STDERR "Invalid construct: $_\n";
+    }
+}
+
+printvars $rootwidgets;
+print "\n";
+print "GtkWidget *create_" . $options{"prefix"} . "wnd(void)\n";
+print "{\n";
+print "    GtkWidget *stack[$maxstack];\n";
+print "    GtkAccelGroup *accel_group;\n" if $options{"hasaccels"};
+print "    GtkTreeViewColumn *column;\n" if $options{"hascolumns"};
+print "    GtkCellRenderer *renderer;\n" if $options{"hasrenderers"};
+print "    \n";
+print "    accel_group = gtk_accel_group_new();\n" if $options{"hasaccels"};
+printwidgets $rootwidgets, 0;
+print "    return(stack[0]);\n";
+print "}\n";

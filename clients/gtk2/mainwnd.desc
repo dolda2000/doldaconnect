@@ -1,0 +1,176 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+;prefix: main_
+;hasaccels: y
+;hascolumns: y
+;hasrenderers: y
+:wnd name: wnd title: "Dolda Connect" var: y sig(delete_event):initdeath
+	:vbox
+		:menubar
+			:menuitem label: _Main
+				:menu
+					$menuitem name: connmenu label: _Connect sig: activate accel: "CONTROL+C" var: y
+					$menuitem name: dconnmenu label: _Disconnect sig: activate accel: "CONTROL+D" var: y sensitive: FALSE
+					$menusep
+					$menuitem name: sdmenu label: "_Shut down daemon" sig: activate 
+					$smenuitem stock: QUIT sig(activate):initdeath
+				end
+			end
+			:menuitem label: Op_tions
+				:menu
+					$smenuitem name: prefmenu stock: PREFERENCES sig: activate
+				end
+			end
+		end
+		:vpaned name: pane1 var: y expand: TRUE fill: TRUE resize: 1
+			:notebook
+				:vpaned name: pane2 var: y nblabel: "_Hub connections" resize: 2
+					:vbox
+						$mlbl label: "Connected hu_bs" mwidget: fnetnodes
+						:sw expand: TRUE fill: TRUE
+							:treeview name: fnetnodes var: y rules: TRUE
+								:tvcol title: "Hub name" sortcol: 1 resizable: TRUE
+									$pixbufrend stock_id: 4
+									$textrend text: 1
+								end
+								$tvcol title: "# users" text: 3 sortcol: 3 resizable: TRUE
+							end
+						end
+						$btn name: dcnctbtn label: "D_isconnect" sig: clicked
+					end
+					:vbox
+						$mlbl label: "_Public hub list" mwidget: phublist
+						:sw expand: TRUE fill: TRUE
+							:treeview name: phublist var: y rules: TRUE searchcol: 0 sig(cursor-changed): cb_main_phublist_cchange sig(row-activated): cb_main_phublist_activate
+								$tvcol title: "# users" text: 3 sortcol: 3 resizable: TRUE
+								$tvcol title: "Name" text: 0 sortcol: 0 resizable: TRUE
+								$tvcol title: "Description" text: 2 sortcol: 2 resizable: TRUE
+							end
+						end
+						:table rows: 2 cols: 3 fill: TRUE
+							$mlbl label: "_Filter:" tx: 0 ty: 0 mwidget: pubhubfilter
+							$text name: pubhubfilter var: y expand: y fill: y sig: activate tx: 1 ty: 0
+							$btn label: "_Get public hub list" sig(clicked): cb_main_pubhubfilter_activate tx: 2 ty: 0
+							$mlbl label: "_Address:" tx: 0 ty: 1 mwidget: fnaddr
+							$text name: fnaddr var: y expand: y fill: y sig: activate tx: 1 ty: 1
+							$btn label: "C_onnect" sig(clicked): cb_main_fnaddr_activate tx: 2 ty: 1
+						end
+					end
+				end
+				:vpaned name: pane3 var: y nblabel: "_Chat" resize: 2
+					:vbox
+						$mlbl label: "Hu_bs" mwidget: chatnodes
+						:sw fill: TRUE expand: TRUE
+							:treeview name: chatnodes var: y rules: TRUE sig(row-activated): cb_main_chatnodes_activate
+								:tvcol title: "Hub name" sortcol: 1
+									$pixbufrend stock_id: 5
+									$textrend text: 1
+								end
+							end
+						end
+					end
+					:vbox
+						:sw fill: TRUE expand: TRUE
+							$textview name: chatview var: y editable: FALSE
+						end
+						:hbox
+							$mlbl label: "Chat st_ring:" mwidget: chatstr
+							$text name: chatstr var: y expand: TRUE fill: TRUE sig: activate
+							$btn label: "S_end" sig(clicked): cb_main_chatstr_activate
+						end
+					end
+				end
+				:vbox nblabel: "_Search"
+					:hbox
+						$mlbl label: "S_imple search:" mwidget: simplesrch
+						$text name: simplesrch var: y expand: TRUE fill: TRUE sig: changed sig(activate): cb_main_srchbtn_clicked
+						$btn name: srchbtn var: y label: "S_earch" sig: clicked
+						$btn name: srchcanbtn var: y label: "C_ancel" sig: clicked sensitive: FALSE
+					end
+					$chk name: filternoslots var: y label: "Displa_y results with free slots only" sig: toggled
+					:exp label: "Ad_vanced" name: advexp var: y
+						:table rows: 2 cols: 2
+							$mlbl tx: 0 ty: 0 label: "C_omplete search expression:" mwidget: realsrch
+							$text tx: 1 ty: 0 name: realsrch var: y expand: y fill: y sig: changed sig(activate): cb_main_srchbtn_clicked
+							$mlbl tx: 0 ty: 1 label: "Filter ar_gument:" mwidget: dlarg
+							$text tx: 1 ty: 1 name: dlarg var: y expand: y fill: y
+						end
+					end
+					$lbl name: srchstatus var: y label: "Ready to search" fill: TRUE
+					$hr pad: 5
+					$mlbl label: "Search _results:" mwidget: srchres
+					:sw expand: TRUE fill: TRUE
+						:treeview name: srchres var: y rules: TRUE searchcol: 3 sig(row-activated): cb_main_srchres_activate
+							:tvcol title: "#" sortcol: 7 resizable: FALSE
+								$textrend func: hidezerofunc funcdata: "(gpointer)7"
+							end
+							$tvcol title: "Peer name" text: 2 sortcol: 2 resizable: TRUE
+							$tvcol title: "File name" text: 3 sortcol: 3 resizable: TRUE expander: y
+							:tvcol title: "Size" sortcol: 4 resizable: TRUE
+								$textrend func: transnicebytefunc funcdata: "(gpointer)4"
+							end
+							$tvcol title: "Slots" text: 5 sortcol: 5 resizable: TRUE
+							:tvcol title: "Known speed" sortcol: 8 resizable: TRUE
+								$textrend func: speedtimefunc
+							end
+							$tvcol title: "Rsp. time" text: 6 sortcol: 6 resizable: TRUE
+						end
+					end
+				end
+			end
+			:notebook
+				:vbox nblabel: "_Downloads"
+					$mlbl label: "_List of downloads:" mwidget: downloads
+					:sw fill: TRUE expand: TRUE
+						:treeview name: downloads var: y sig(key-press-event): cb_main_trlist_keypress
+							:tvcol title: "User Name"
+								$pixbufrend stock_id: 8
+								$textrend text: 4
+							end
+							$tvcol title: "File Name" text: 5
+							:tvcol title: "Size"
+								$textrend func: transnicebytefunc funcdata: "(gpointer)6"
+							end
+							:tvcol title: "Position"
+#ifdef ENABLE_GTK2PBAR
+								$custrend newfunc: custom_cell_renderer_progress_new attr(percentage): 9
+#else
+								$textrend func: percentagefunc funcdata: "(gpointer)9" expand: FALSE
+#endif
+								$textrend func: transnicebytefunc funcdata: "(gpointer)7"
+							end
+							:tvcol title: "Error"
+								$textrend func: transerrorinfo
+							end
+						end
+					end
+				end
+				:vbox nblabel: "_Uploads"
+					$mlbl label: "_List of uploads:" mwidget: uploads
+					:sw fill: TRUE expand: TRUE
+						:treeview name: uploads var: y sig(key-press-event): cb_main_trlist_keypress
+							:tvcol title: "User Name"
+								$pixbufrend stock_id: 8
+								$textrend text: 4
+							end
+							$tvcol title: "File Name" text: 5
+							:tvcol title: "Size"
+								$textrend func: transnicebytefunc funcdata: "(gpointer)6"
+							end
+							:tvcol title: "Position"
+#ifdef ENABLE_GTK2PBAR
+								$custrend newfunc: custom_cell_renderer_progress_new attr(percentage): 9
+#else
+								$textrend func: percentagefunc funcdata: "(gpointer)9" expand: FALSE
+#endif
+								$textrend func: transnicebytefunc funcdata: "(gpointer)7"
+							end
+						end
+					end
+				end
+			end
+		end
+	$sbar var: y name: statusbar
+	end
+end

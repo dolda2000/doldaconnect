@@ -1,0 +1,7 @@
+clients/gtk2/main.c
+clients/gtk2/inpdialog.gtk
+clients/gtk2/mainwnd.gtk
+clients/gtk2/pref.gtk
+clients/gnome-trans-applet/dolcon-trans-applet.c
+clients/gnome-trans-applet/conduit.c
+clients/gnome-trans-applet/conduit-pipe.c

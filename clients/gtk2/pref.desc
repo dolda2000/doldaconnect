@@ -1,0 +1,10 @@
+;prefix: pref_
+:table rows: 4 cols: 2
+	$mlbl label: "_Public hub list URL:" tx: 0 ty: 0 mwidget: pubhuburl
+	$text name: pubhuburl var: y expand: y fill: y tx: 1 ty: 0
+	$mlbl label: "_Dolda connect user name:" tx: 0 ty: 1 mwidget: connectas
+	$text name: connectas var: y expand: y fill: y tx: 1 ty: 1
+	$mlbl label: "Dolda Connect _server:" tx: 0 ty: 2 mwidget: dcserver
+	$text name: dcserver var: y expand: y fill: y tx: 1 ty: 2
+	$chk name: autoconn var: y label: "Connect _automatically on startup" tx: 0 ty: 3 tw: 2
+end

@@ -1,0 +1,3 @@
+#! /bin/sh
+
+autopoint && aclocal$AUTOMAKE_VERSION -I m4 && autoheader && libtoolize --copy --force && automake$AUTOMAKE_VERSION --add-missing --copy && autoconf

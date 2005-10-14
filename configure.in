@@ -1,0 +1,213 @@
+AC_INIT(daemon/main.c)
+AM_INIT_AUTOMAKE([doldaconnect], [0.1])
+AM_CONFIG_HEADER(config.h)
+
+AC_PROG_CC
+AC_PROG_INSTALL
+
+AM_GNU_GETTEXT_VERSION(0.12.1)
+AM_GNU_GETTEXT([external])
+AM_PROG_LIBTOOL
+
+AC_CHECK_LIB(pam, pam_start, , AC_MSG_ERROR([*** must have PAM]))
+AC_CHECK_LIB(dl, dlopen, , AC_MSG_ERROR([*** PAM requires a working dynamic loader (libdl)]))
+AC_CHECK_LIB(z, deflate, , AC_MSG_ERROR([*** must have zlib]))
+AC_CHECK_LIB(bz2, BZ2_bzWriteOpen, , AC_MSG_ERROR([*** must have bzlib]))
+
+clients=
+extlibs=
+experimental=no
+
+AC_CHECK_PROG([PKG_CONFIG], pkg-config, yes, no)
+
+AC_ARG_WITH(gtk2, [  --with-gtk2             Enable GTK2 support])
+if test "$with_gtk2" = no; then
+	HAS_GTK2=no
+fi
+if test "$HAS_GTK2" != no; then
+	if test "$PKG_CONFIG" = yes; then
+		AC_MSG_CHECKING([for GTK2 package information])
+		if pkg-config --modversion gtk+-2.0 >/dev/null 2>&1; then
+			AC_MSG_RESULT(yes)
+        	else
+			AC_MSG_RESULT(no)
+        		HAS_GTK2=no
+        	fi
+		if test "$HAS_GTK2" != no; then
+	                AC_CHECK_LIB(gtk-x11-2.0, gtk_init, [HAS_GTK2=yes], [HAS_GTK2=no], `pkg-config --libs gtk+-2.0`)
+		fi
+        	if test "$HAS_GTK2" = yes; then
+        		cpp_bak="$CPPFLAGS"
+        		CPPFLAGS="$CPPFLAGS `pkg-config --cflags gtk+-2.0`"
+        		AC_CHECK_HEADER(gtk/gtk.h, [], [HAS_GTK2=no])
+        		CPPFLAGS="$cpp_bak"
+        	fi
+	else
+		HAS_GTK2=no
+        fi
+fi
+if test "$with_gtk2" = yes -a "$HAS_GTK2" = no; then
+	AC_MSG_ERROR([*** cannot find GTK2 on this system])
+fi
+
+gtk2ui_msg=No
+AC_ARG_ENABLE(gtk2ui, [  --enable-gtk2ui         Enable the GTK2 user interface])
+if test "$enable_gtk2ui" = yes -a "$HAS_GTK2" = no; then
+	AC_MSG_ERROR([*** cannot build the GTK2 UI without a GTK2 library])
+fi
+if test "$enable_gtk2ui" != no -a "$HAS_GTK2" = yes; then
+	clients="$clients gtk2"
+	gtk2ui_msg=Yes
+fi
+
+gtk2pbar_msg=No
+AH_TEMPLATE(ENABLE_GTK2PBAR, [define to compile GTK2 progress bars (experimental)])
+AC_ARG_ENABLE(gtk2pbar, [  --enable-gtk2pbar       Enable GTK2 progress bars (experimental)])
+if test "$enable_gtk2pbar" = yes; then
+	if test "$HAS_GTK2" = no; then
+		AC_MSG_ERROR([*** cannot build GTK2 progress bars without GTK2])
+	fi
+	experimental=yes
+	gtk2pbar_msg=Yes
+	AC_DEFINE(ENABLE_GTK2PBAR)
+fi
+
+gnometrapplet_msg=No
+AC_ARG_ENABLE(gnomeapplet, [  --enable-gnomeapplet    Enable GNOME transfer applet (experimental)])
+if test "$enable_gnomeapplet" = yes; then
+	experimental=yes
+	gnometrapplet_msg=Yes
+	clients="$clients gnome-trans-applet"
+fi
+
+guile_msg=No
+if test "$with_guile" = yes; then
+	GUILE_FLAGS
+	extlibs="$extlibs guile"
+	guile_msg=Yes
+fi
+
+krb_msg=No
+AH_TEMPLATE(HAVE_KRB5, [define to compile support for Kerberos 5 (not GSS-API) authentication])
+AC_ARG_WITH(krb5, [  --with-krb5[=PATH]        Enable Kerberos 5 (not GSSAPI) authentication])
+if test "$with_krb5" != no; then
+	cpp_bak="$CPPFLAGS"
+	ld_bak="$LDFLAGS"
+	if test "$with_krb5" != yes; then
+		CPPFLAGS="$CPPFLAGS -I${with_krb5}/include"
+		LDFLAGS="$LDFLAGS -L${with_krb5}/lib"
+	fi
+	AC_CHECK_LIB(krb5, krb5_init_context, [HAS_KRB5=yes], [HAS_KRB5=no])
+	if test "$HAS_KRB5" = yes; then
+		AC_CHECK_HEADER(com_err.h, [HAS_COMERR=yes], [HAS_COMERR=no])
+		if test "$HAS_COMERR" = no; then
+			AC_CHECK_HEADER(et/com_err.h, [HAS_COMERR=yes; CPPFLAGS="$CPPFLAGS -I/usr/include/et"], [])
+		fi
+	fi
+	if test "$HAS_COMERR" = no; then
+		HAS_KRB5=no
+	fi
+	if test "$HAS_KRB5" = no; then
+		CPPFLAGS="$cpp_bak"
+		LDFLAGS="$ld_bak"
+	fi
+fi
+KRB5_LDADD=
+if test -n "$with_krb5" -a "$with_krb5" != no -a "$HAS_KRB5" != yes; then
+	AC_MSG_ERROR([*** cannot find Kerberos 5 on this system - try passing --with-krb5=/path/to/kerberos])
+fi
+if test "$with_krb5" != no -a "$HAS_KRB5" = yes; then
+	AC_DEFINE(HAVE_KRB5)
+	KRB5_LDADD=-lkrb5
+	krb_msg=Yes
+fi
+AC_SUBST([KRB5_LDADD])
+
+AC_CHECK_FUNC(vswprintf, , AC_MSG_ERROR([*** must have vswprintf]))
+AH_TEMPLATE(HAVE_WCSCASECMP, [define if your system implements wcscasecmp])
+AC_CHECK_FUNC(wcscasecmp, [ AC_DEFINE(HAVE_WCSCASECMP) ])
+
+AH_TEMPLATE(HAVE_LINUX_SOCKIOS_H, [define if you have linux/sockios.h on your system])
+AC_CHECK_HEADER([linux/sockios.h], [ AC_DEFINE(HAVE_LINUX_SOCKIOS_H) ])
+
+AH_TEMPLATE(HAVE_IPV6, [define if your system supports IPv6 and you wish to compile with support for it])
+AC_CHECK_MEMBER(struct sockaddr_in6.sin6_family, [ AC_DEFINE(HAVE_IPV6) ], , [#include <netinet/in.h>])
+
+AH_TEMPLATE(HAVE_RESOLVER, [define if your system supports the res_* functions to fetch DNS RRs])
+AC_CHECK_LIB(resolv, res_query, [ AC_DEFINE(HAVE_RESOLVER)
+				  LDFLAGS="$LDFLAGS -lresolv" ])
+
+AC_HEADER_STDC
+AC_HEADER_DIRENT
+AC_HEADER_SYS_WAIT
+
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+AC_TYPE_SIGNAL
+
+CPPFLAGS="-I\$(top_srcdir)/include $CPPFLAGS"
+
+AC_SUBST([clients extlibs])
+AC_OUTPUT([
+Makefile
+daemon/Makefile
+lib/Makefile
+lib/guile/Makefile
+lib/guile/dolcon/Makefile
+clients/Makefile
+clients/gtk2/Makefile
+clients/gnome-trans-applet/Makefile
+include/Makefile
+po/Makefile.in
+config/Makefile
+autopackage/dolcon.apspec
+])
+
+echo
+echo "Dolda Connect has been configured with the following settings:"
+echo
+echo "    Kerberos 5 support:      $krb_msg"
+echo "    GTK2 user interface:     $gtk2ui_msg"
+echo "    GTK2 progress bars:      $gtk2pbar_msg"
+echo "    Guile extension library: $guile_msg"
+echo "    GNOME transfer applet:   $gnometrapplet_msg"
+echo
+
+if tput bold >/dev/null 2>&1 && tty <&2 >/dev/null 2>&1; then
+	hastput=y
+fi
+if test "$HAS_GTK2" = no -a "$with_gtk2" != no -a "$enable_gtk2ui" != no; then
+	if test "$hastput" = y; then
+		tput bold
+		tput setf 4 2>/dev/null
+	fi
+	echo -n "    Warning: " >&2
+	if test "$hastput" = y; then
+		tput sgr0
+	fi
+	echo "Could not find a GTK2 development installation on this system." >&2
+	echo "             That means you won't get a UI." >&2
+	echo "             Make absolutely sure this is what you want!" >&2
+	if test "$hastput" = y; then
+		tput bel
+	fi
+	sleep 1
+fi
+if test "$experimental" = yes; then
+	if test "$hastput" = y; then
+		tput bold
+		tput setf 4 2>/dev/null
+	fi
+	echo -n "    Warning: " >&2
+	if test "$hastput" = y; then
+		tput sgr0
+	fi
+	echo "You have enabled one or more experimental features!" >&2
+	echo "             Please don't complain that it doesn't work, unless" >&2
+	echo "             you have something constructive to add about the situation." >&2
+	if test "$hastput" = y; then
+		tput bel
+	fi
+	sleep 1
+fi

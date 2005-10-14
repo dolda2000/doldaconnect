@@ -1,0 +1,93 @@
+#!/usr/bin/guile \
+--debug -s
+!#
+
+(use-modules (dolcon ui))
+(use-modules (ice-9 popen))
+(use-modules (ice-9 pretty-print))
+
+(define (flush port)
+  (force-output port))
+
+(define idlist '())
+(define filter '())
+(define (filtered tag filter)
+  (and (pair? filter)
+       (or (equal? (car filter) (substring tag 0 (min (string-length (car filter)) (string-length tag))))
+	   (filtered tag (cdr filter)))))
+(catch 'system-error
+       (lambda ()
+	 (let ((port (open-input-file (string-append (getenv "HOME") "/.dctrmon-defines"))) (form #f))
+	   (while (begin (set! form (read port)) (not (eof-object? form)))
+		  (primitive-eval form))))
+       (lambda args
+	 #f))
+
+
+(define krbcc (string-append "/tmp/krb5cc_dcmon_" (number->string (getuid)) "_XXXXXX"))
+(close-port (mkstemp! krbcc))
+(setenv "KRB5CCNAME" (string-append "FILE:" krbcc))
+(sigaction SIGCHLD SIG_DFL)
+(define pid (primitive-fork))
+(if (= pid 0)
+    (begin (execlp "kinit" "kinit" "-f" "-r" "10d" "-k" "-t" (string-append (getenv "HOME") "/.myprinc.keytab") (string-append (passwd:name (getpwuid (getuid))) "/dcview"))
+	   (exit 1))
+    (if (not (= (cdr (waitpid pid)) 0))
+	(exit 1)))
+(dc-c&l #f (getenv "DCSERVER") #t)
+(delete-file krbcc)
+
+(dc-ecmd-assert 200 "notify" "all" "on")
+
+(display "C\n")
+
+(let ((resp (dc-ecmd-assert '(200 201) "lstrans")))
+  (if (and resp (= (cdr (assoc 'code (dc-extract resp))) 200))
+      (for-each (lambda (o)
+		  (if (= (cadr o) 2)
+		      (catch 'bad-return
+			     (lambda ()
+			       (for-each (lambda (a)
+					   (if (and (equal? (car a) "tag") (filtered (cadr a) filter))
+					       (begin
+						 (display (string-append "N\t" (cadr a) "\t" (number->string (list-ref o 6)) "\t" (number->string (list-ref o 7)) "\n"))
+						 (set! idlist (append idlist (list (cons (car o) (cadr a))))))))
+					 (dc-intall (dc-ecmd-assert 200 "lstrarg" (car o)))))
+			     (lambda args #f))))
+		(dc-intall resp))))
+
+(flush (current-output-port))
+
+(while #t
+       (dc-select 10000)
+       (while (let ((resp (dc-getresp)))
+		(if resp
+		    (begin
+		      (let* ((er (dc-extract resp)) (code (cdr (assoc 'code er))) (cmd (cdr (assoc 'cmd er))) (ir (dc-intresp resp)))
+			(if (equal? cmd ".notify")
+			    (case code
+			      ((610)
+			       (let* ((id (car ir)) (ir2 (dc-intall (dc-ecmd-assert '(200 201) "lstrarg" id))) (tag (if (eq? (car ir2) '()) #f (assoc "tag" ir2))))
+				 (if (and tag (filtered (cadr tag) filter))
+				     (begin (display (string-append "N\t" (cadr tag) "\t-1\t-1\n"))
+					    (flush (current-output-port))
+					    (set! idlist (append idlist (list (cons (car ir) (cadr tag)))))))))
+			      ((613)
+			       (let ((id (car ir)))
+				 (if (assoc id idlist)
+				     (begin (display (string-append "S\t" (cdr (assoc id idlist)) "\t" (number->string (cadr ir)) "\n"))
+					    (flush (current-output-port))))))
+			      ((615)
+			       (let ((id (car ir)))
+				 (if (assoc id idlist)
+				     (begin (display (string-append "P\t" (cdr (assoc id idlist)) "\t" (number->string (cadr ir)) "\n"))
+					    (flush (current-output-port))))))
+			      ((617)
+			       (let ((id (car ir)))
+				 (if (assoc id idlist)
+				     (begin (display (string-append "D\t" (cdr (assoc id idlist)) "\n"))
+					    (flush (current-output-port)))))))))
+		      #t)
+		    #f)) #f))
+
+(dc-disconnect)

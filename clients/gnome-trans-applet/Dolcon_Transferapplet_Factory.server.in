@@ -1,0 +1,21 @@
+<oaf_info>
+    <oaf_server iid="OAFIID:Dolcon_Transferapplet_Factory" type="exe" location="@LIBEXECDIR@/dolcon-trans-applet">
+        <oaf_attribute name="repo_ids" type="stringv">
+	    <item value="IDL:Bonobo/GenericFactory:1.0" />
+	    <item value="IDL:Bonobo/Unknown:1.0" />
+	</oaf_attribute>
+	<oaf_attribute name="name" type="string" value="Doldaconnect Transfer Viewer Factory" />
+	<oaf_attribute name="description" type="string" value="Factory for creating Doldaconnect Transfer Viewer applets" />
+    </oaf_server>
+    
+    <oaf_server iid="OAFIID:Dolcon_Transferapplet" type="factory" location="OAFIID:Dolcon_Transferapplet_Factory">
+        <oaf_attribute name="repo_ids" type="stringv">
+	    <item value="IDL:GNOME/Vertigo/PanelAppletShell:1.0" />
+	    <item value="IDL:Bonobo/Control:1.0" />
+	    <item value="IDL:Bonobo/Unknown:1.0" />
+	</oaf_attribute>
+	<oaf_attribute name="name" type="string" value="Doldaconnect Transfer Viewer" />
+	<oaf_attribute name="description" type="string" value="Easily grasp the current status of your Doldaconnect transfers" />
+	<oaf_attribute name="panel:icon" type="string" value="hellodolda.jpg" />
+    </oaf_server>
+</oaf_info>

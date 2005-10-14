@@ -1,0 +1,42 @@
+#!/bin/sh
+cmd="$1"
+shift
+
+if [ "$cmd" = userspeeda ]; then
+    while [ $# -gt 0 ]; do
+	peerfile="$(tr / _ <<<"$1")"
+	if [ -r "$HOME/dc/users/$peerfile" ]; then
+	    speed="$((read num; read max; read nent; avg=0; for i in $(seq 1 $nent); do read ent; let avg+=$ent; done; let avg/=$nent; echo $avg) < "$HOME/dc/users/$peerfile")"
+	    echo $speed
+	else
+	    echo -1
+	fi
+	shift
+    done
+fi
+
+if [ "$cmd" = userspeedm ]; then
+    while [ $# -gt 0 ]; do
+	peerfile="$(tr / _ <<<"$1")"
+	if [ -r "$HOME/dc/users/$peerfile" ]; then
+	    speed="$((read num; read max; echo $max) < "$HOME/dc/users/$peerfile")"
+	    echo $speed
+	else
+	    echo -1
+	fi
+	shift
+    done
+fi
+
+if [ "$cmd" = rmtag ]; then
+    for f in "$HOME"/dc/resume/*.info; do
+	if [ ! -e "${f%.info}.lock" ]; then
+	    unset dcarg_tag
+	    . "$f"
+	    if [ "$dcarg_tag" = "$1" ]; then
+		rm "$f"
+		rm "${f%.info}"
+	    fi
+	fi
+    done
+fi

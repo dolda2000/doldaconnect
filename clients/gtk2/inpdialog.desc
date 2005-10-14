@@ -1,0 +1,8 @@
+;prefix: inpdialog_
+:hbox
+	$simg stock: DIALOG_QUESTION size: DIALOG
+	:vbox
+		$lbl name: prompt label: " " var: y
+		$text name: entry var: y sig: activate
+	end
+end

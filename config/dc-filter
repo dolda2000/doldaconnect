@@ -1,0 +1,99 @@
+#!/bin/sh
+trap "" SIGHUP SIGPIPE
+if [ ! -d $HOME/dc ]; then mkdir $HOME/dc; fi
+if [ ! -d $HOME/dc/done ]; then mkdir $HOME/dc/done; fi
+if [ ! -d $HOME/dc/resume ]; then mkdir $HOME/dc/resume; fi
+if [ ! -d $HOME/dc/users ]; then mkdir $HOME/dc/users; fi
+exec 2>>$HOME/dc/filterlog
+cd $HOME/dc
+unset speedrec
+for dir in /usr/libexec /usr/local/libexec; do
+    if [ -x "${dir}/speedrec" ]; then
+	speedrec="${dir}/speedrec"
+    fi
+done
+if [ -z "$speedrec" ]; then
+    echo "could not find speedrec - using cat instead" >&2
+fi
+maxsize=0
+unset resfile
+unset infofile
+found=y
+while [ -z "$resfile" -a "$found" = y ]; do
+    unset found
+    for file in resume/*.info; do
+	if [ ! -r "$file" ]; then continue; fi
+	. "$file"
+	if [ "$filesize" -eq "$2" ]; then
+	    thisfile="${file%.info}"
+	    if [ ! -e "${thisfile}.lock" ]; then
+		size="$(wc -c <"$thisfile")"
+		found=y
+		if [ "$size" -gt "$maxsize" ]; then
+		    maxsize="$size"
+		    resfile="$thisfile"
+		    infofile="$file"
+		fi
+	    fi
+	fi
+    done
+    if [ -n "$resfile" ]; then
+	if ! locktouch "${resfile}.lock"; then
+	    unset resfile
+	fi
+    fi
+done
+unset "${!dcarg_@}"
+if [ -n "$resfile" ]; then
+    . "${resfile}.info"
+fi
+origname="$1"
+shift
+filesize="$1"
+shift
+peername="$1"
+shift
+while [ $# -gt 1 ]; do
+    rec="$1"
+    shift
+    val="$1"
+    shift
+    declare "dcarg_$rec"="$val"
+done
+if [ -z "$resfile" ]; then
+    resfile="$(mktemp resume/resXXXXXX)"
+    chmod 644 "$resfile"
+    maxsize=0
+    >"${resfile}.lock"
+fi
+declare -p origname filesize "${!dcarg_@}" >"${resfile}.info"
+echo "resume $maxsize"
+if [ -z "$speedrec" ]; then
+    cat >>"$resfile"
+else
+    peerfile="$(tr / _ <<<"$peername")"
+    "$speedrec" "$HOME/dc/users/$peerfile" >>"$resfile"
+fi
+size="$(wc -c <"$resfile")"
+if [ "$size" -eq 0 ]; then
+    rm -f "$resfile" "${resfile}.info" "${resfile}.lock"
+    exit 1
+fi
+rm -f "${resfile}.lock"
+if [ "$size" -lt "$filesize" ]; then
+    exit 1   # Exit code != 0 means restart transfer
+fi
+rm -f "${resfile}.info"
+
+destdir="$HOME/dc/done"
+
+newname="$destdir"/"$origname"
+if [ -e "$newname" ]; then
+    newname="$(mktemp "${newname}XXXXXX")"
+fi
+mv "$resfile" "$newname"
+if [ -x $HOME/dc/complete ]; then
+    export "${!dcarg_@}"
+    exec $HOME/dc/complete "$newname"
+fi
+exit 0

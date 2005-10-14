@@ -1,0 +1,32 @@
+500 - Command not found
+501 - Wrong number of arguments
+502 - Unauthorized request
+503 - Already logged in
+504 - Could not convert to character set
+505 - Internal error
+506 - Authentication error
+507 - Command not expected
+508 - No such authentication mechanism
+509 - Malformed argument
+510 - No such fnetnode
+511 - No such fnet
+512 - No such transfer
+513 - Not supported for this fnet
+514 - No such search
+
+600 - Chat receipt
+601 - FN state change
+602 - FN name change
+603 - FN destroy
+604 - FN create
+605 - FN num peers change
+610 - Transfer create
+611 - Transfer state change
+612 - Transfer nick change
+613 - Transfer size change
+614 - Transfer error update
+615 - Transfer progress
+616 - Transfer path change
+620 - Search ETA change
+621 - Search commit
+622 - Search result

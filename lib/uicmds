@@ -1,0 +1,130 @@
+:lssr
+200 s s s i i i f
+201
+514
+:lssrch
+200 i i i i
+201
+:shutdown
+200
+502
+:quit
+200
+:lsauth
+200 s
+201
+:login
+200     ; Success
+300 s   ; Auto (think GSS-API)
+301 s   ; No echo
+302 s   ; Echo
+303 s   ; Info message
+304 s   ; Error message
+501
+503     ; Already logging in
+504     ; Charset error
+505 d s ; Back-end error
+506     ; Authentication error
+508     ; No such authentication mechanism
+:pass
+200
+300 s
+301 s
+302 s
+303 s
+304 s
+504
+505 d s
+506
+507     ; Data not expected
+:cnct
+200
+502
+504
+509
+511
+:lsnodes
+200 i s s i i
+201
+502
+:dcnct
+200
+502
+510
+:lspeers
+200 s s		; Peer ID and nick are standardized, so they can be here -- the rest have to be extracted manually
+201
+510
+:lspa
+200 s i
+201
+502
+510
+:download
+200 i
+502
+510
+511
+:lstrans
+200 i i i s s s i i
+201
+502
+:cancel
+200
+502
+512
+:notify
+200
+501
+:sendchat
+200
+501
+502
+504
+505
+509
+510
+513
+:search
+200 i i
+501
+502
+509
+510
+:cansrch
+200
+514
+:filtercmd
+200 s
+201
+501
+502
+504
+505
+:lstrarg
+200 s s
+201
+501
+502
+512
+: ; Nameless notification
+600 i i s s s	; FN chat
+601 i i		; FN state change
+602 i s		; FN name change
+603 i		; FN destroy
+604 i s		; FN create
+605 i i		; FN num peers change
+610 i i s s	; Transfer create
+611 i i		; Transfer state change
+612 i s		; Transfer nick change
+613 i i		; Transfer size change
+614 i i		; Transfer error update
+615 i i		; Transfer progress
+616 i s		; Transfer path change
+617 i		; Transfer destroy
+620 i i
+621 i
+622 i s s s i i i f
+: ; Nameless connection
+200 s
+502
