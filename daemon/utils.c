@@ -676,13 +676,19 @@ int _parrlen(void **arr)
 
 char *getetcpath(char *binpath)
 {
+    int f;
     char *etcpath, *p;
     size_t etcpathsize, etcpathdata;
 
     etcpath = NULL;
     etcpathsize = etcpathdata = 0;
+    f = 1;
     do
     {
+	if(f)
+	    f = 0;
+	else
+	    binpath++;
 	for(p = binpath; *p && (*p != ':'); p++);
 	for(; (p >= binpath) && (*p != '/'); p--);
 	if(p >= binpath)
