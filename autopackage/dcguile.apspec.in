@@ -1,0 +1,37 @@
+# -*-shell-script-*-
+
+[Meta]
+RootName: @dolda2000.com/fredrik/doldaconnect/dcguile:$SOFTWAREVERSION
+DisplayName: Dolda Connect guile module
+ShortName: doldaconnect-guile
+Maintainer: Fredrik Tolf <fredrik@dolda2000.com>
+Packager: Fredrik Tolf <fredrik@dolda2000.com>
+Summary: A Guile module needed for Scheme programs that use Dolda Connect
+URL: http://www.dolda2000.com/~fredrik/doldaconnect/
+License: GNU General Public License, Version 2
+SoftwareVersion: @VERSION@
+AutopackageTarget: 1.0
+InterfaceVersion: 0.0
+
+[Description]
+The Dolda Connect Guile module is used by Scheme programs running in
+GNU Guile that want to talk with the Dolda Connect filesharing daemon.
+
+[BuildPrepare]
+prepareBuild --with-guile
+
+[BuildUnprepare]
+unprepareBuild
+
+[Imports]
+echo lib share | import
+
+[Prepare]
+require @mit.edu/krb5 3.2
+require @gnu.org/guile 12.3
+
+[Install]
+installLib lib/libdolcon-guile.so.0.0.0
+
+[Uninstall]
+uninstallFromLog
