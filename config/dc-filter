@@ -7,11 +7,16 @@ if [ ! -d $HOME/dc/users ]; then mkdir $HOME/dc/users; fi
 exec 2>>$HOME/dc/filterlog
 cd $HOME/dc
 unset speedrec
-for dir in /usr/libexec /usr/local/libexec; do
-    if [ -x "${dir}/speedrec" ]; then
-	speedrec="${dir}/speedrec"
-    fi
-done
+if which speedrec >/dev/null 2>&1; then
+    speedrec=speedrec
+fi
+if [ -z "$speedrec"]; then
+    for dir in /usr/libexec /usr/local/libexec; do
+	if [ -x "${dir}/speedrec" ]; then
+	    speedrec="${dir}/speedrec"
+	fi
+    done
+fi
 if [ -z "$speedrec" ]; then
     echo "could not find speedrec - using cat instead" >&2
 fi
