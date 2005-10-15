@@ -1,7 +1,7 @@
 # -*-shell-script-*-
 
 [Meta]
-RootName: @dolda2000.com/~fredrik/doldaconnect/dolcon:$SOFTWAREVERSION
+RootName: @dolda2000.com/fredrik/doldaconnect/dolcon:$SOFTWAREVERSION
 DisplayName: Dolda Connect GTK 2 user interface
 ShortName: doldaconnect-gtk
 Maintainer: Fredrik Tolf <fredrik@dolda2000.com>
@@ -34,11 +34,11 @@ prepareBuild --enable-gtk2ui --disable-gnomeapplet
 unprepareBuild
 
 [Imports]
-echo '*' | import
+echo bin/dolcon share | import
 
 [Prepare]
 require @gtk.org/gtk 2.0
-require @dolda2000.com/~fredrik/doldaconnect/dcuilib
+require @dolda2000.com/fredrik/doldaconnect/dcuilib 0.0
 
 [Install]
 installExe bin/dolcon
