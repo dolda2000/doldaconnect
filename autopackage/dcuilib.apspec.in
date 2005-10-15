@@ -1,7 +1,7 @@
 # -*-shell-script-*-
 
 [Meta]
-RootName: @dolda2000.com/~fredrik/doldaconnect/dolcon:$SOFTWAREVERSION
+RootName: @dolda2000.com/fredrik/doldaconnect/dcuilib:$SOFTWAREVERSION
 DisplayName: Dolda Connect interface library
 ShortName: doldaconnect-uilib
 Maintainer: Fredrik Tolf <fredrik@dolda2000.com>
