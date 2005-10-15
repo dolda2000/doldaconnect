@@ -27,6 +27,7 @@ unprepareBuild
 echo lib | import
 
 [Prepare]
+require @mit.edu/krb5 3.2
 
 [Install]
 installLib lib/libdcui.so.0.0.0

@@ -38,6 +38,7 @@ echo bin/dolcon share | import
 
 [Prepare]
 require @gtk.org/gtk 2.0
+require @mit.edu/krb5 3.2
 require @dolda2000.com/fredrik/doldaconnect/dcuilib 0.0
 
 [Install]
