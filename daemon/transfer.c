@@ -36,6 +36,7 @@
 #include "auth.h"
 #include "transfer.h"
 #include "module.h"
+#include "client.h"
 
 static void killfilter(struct transfer *transfer);
 
@@ -82,6 +83,8 @@ void freetransfer(struct transfer *transfer)
 	free(transfer->actdesc);
     if(transfer->filterbuf != NULL)
 	free(transfer->filterbuf);
+    if(transfer->hash != NULL)
+	freehash(transfer->hash);
     if(transfer->localend != NULL)
     {
 	transfer->localend->readcb = NULL;
