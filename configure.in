@@ -162,6 +162,8 @@ include/Makefile
 po/Makefile.in
 config/Makefile
 autopackage/dolcon.apspec
+autopackage/dcuilib.apspec
+autopackage/dcguile.apspec
 ])
 
 echo
