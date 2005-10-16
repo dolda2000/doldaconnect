@@ -89,6 +89,7 @@ struct transfer
     struct authhandle *auth;
     struct socket *filterout;
     char *filterbuf;
+    struct hash *hash;
     size_t filterbufsize, filterbufdata;
     CBCHAIN(trans_ac, struct transfer *transfer, wchar_t *attrib);
     CBCHAIN(trans_p, struct transfer *transfer);
