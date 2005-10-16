@@ -32,6 +32,7 @@
 #include "log.h"
 #include "sysevents.h"
 #include "filenet.h"
+#include "client.h"
 #include "search.h"
 
 #define TOK_STR 0
@@ -1112,6 +1113,8 @@ void freesrchres(struct srchres *sr)
 	    sr->srch->results = sr->next;
 	sr->srch->numres--;
     }
+    if(sr->hash != NULL)
+	freehash(sr->hash);
     if(sr->filename != NULL)
 	free(sr->filename);
     if(sr->peerid != NULL)
@@ -1140,6 +1143,8 @@ struct srchres *dupsrchres(struct srchres *sr)
 	new->filename = swcsdup(sr->filename);
     if(sr->fn != NULL)
 	getfnetnode(new->fn = sr->fn);
+    if(sr->hash != NULL)
+	new->hash = duphash(sr->hash);
     return(new);
 }
 
