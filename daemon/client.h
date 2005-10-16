@@ -37,6 +37,13 @@ struct sharepoint
     int delete;
 };
 
+struct hash
+{
+    wchar_t *algo;
+    size_t len;
+    char *buf;
+};
+
 struct hashcache
 {
     struct hashcache *next, *prev;
@@ -77,6 +84,11 @@ struct sharecache *findcache(struct sharecache *parent, wchar_t *name);
 void queuescan(struct sharecache *node);
 char *getfspath(struct sharecache *node);
 struct sharecache *nextscnode(struct sharecache *node);
+struct hash *newhash(wchar_t *algo, size_t len, char *hash);
+void freehash(struct hash *hash);
+struct hash *duphash(struct hash *hash);
+struct hash *parsehash(wchar_t *text);
+wchar_t *unparsehash(struct hash *hash);
 
 extern struct sharecache *shareroot;
 extern unsigned long long sharesize;
