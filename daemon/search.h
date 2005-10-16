@@ -19,6 +19,7 @@
 #ifndef _SEARCH_H
 #define _SEARCH_H
 
+#include "client.h"
 #include "filenet.h"
 #include "sysevents.h"
 #include <regex.h>
@@ -105,6 +106,7 @@ struct srchres
     int slots;
     struct fnetnode *fn;
     double time;
+    struct hash *hash;
 };
 
 wchar_t *regexunquotesimple(wchar_t *re);
