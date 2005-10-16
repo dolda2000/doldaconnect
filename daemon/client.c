@@ -178,10 +178,13 @@ struct hash *parsehash(wchar_t *text)
 
 wchar_t *unparsehash(struct hash *hash)
 {
-    wchar_t *buf, *whbuf;
+    static wchar_t *buf = NULL;
+    wchar_t *whbuf;
     char *hbuf;
     size_t bufsize, bufdata;
     
+    if(buf != NULL)
+	free(buf);
     buf = NULL;
     bufsize = bufdata = 0;
     hbuf = base64encode(hash->buf, hash->len);
