@@ -1659,11 +1659,20 @@ static int srchcommit(struct search *srch, void *uudata)
 static int srchres(struct search *srch, struct srchres *sr, void *uudata)
 {
     struct uidata *data;
+    wchar_t *hbuf;
 
     for(data = actives; data != NULL; data = data->next)
     {
 	if(haspriv(data, PERM_SRCH) && data->notify.b.srch && !wcscmp(srch->owner, data->username))
-	    newnotif(data, 622, NOTIF_ID, srch->id, NOTIF_STR, sr->filename, NOTIF_STR, sr->fnet->name, NOTIF_STR, sr->peerid, NOTIF_INT, sr->size, NOTIF_INT, sr->slots, NOTIF_INT, (sr->fn == NULL)?-1:(sr->fn->id), NOTIF_FLOAT, sr->time, NOTIF_END);
+	{
+	    hbuf = NULL;
+	    if(sr->hash != NULL)
+		hbuf = unparsehash(sr->hash);
+	    newnotif(data, 622, NOTIF_ID, srch->id, NOTIF_STR, sr->filename, NOTIF_STR, sr->fnet->name, NOTIF_STR, sr->peerid, NOTIF_INT, sr->size,
+		     NOTIF_INT, sr->slots, NOTIF_INT, (sr->fn == NULL)?-1:(sr->fn->id), NOTIF_FLOAT, sr->time, NOTIF_STR, (hbuf == NULL)?L"":hbuf, NOTIF_END);
+	    if(hbuf != NULL)
+		free(hbuf);
+	}
     }
     return(0);
 }
