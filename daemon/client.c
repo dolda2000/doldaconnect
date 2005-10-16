@@ -131,6 +131,73 @@ static void dumpsharecache(struct sharecache *node, int l)
     }
 }
 
+struct hash *newhash(wchar_t *algo, size_t len, char *buf)
+{
+    struct hash *ret;
+    
+    ret = smalloc(sizeof(*ret));
+    memset(ret, 0, sizeof(*ret));
+    ret->algo = swcsdup(algo);
+    ret->len = len;
+    ret->buf = memcpy(smalloc(len), buf, len);
+    return(ret);
+}
+
+void freehash(struct hash *hash)
+{
+    free(hash->algo);
+    free(hash->buf);
+    free(hash);
+}
+
+struct hash *duphash(struct hash *hash)
+{
+    return(newhash(hash->algo, hash->len, hash->buf));
+}
+
+struct hash *parsehash(wchar_t *text)
+{
+    wchar_t *p;
+    char *mbsbuf, *decbuf;
+    size_t buflen;
+    struct hash *ret;
+    
+    if((p = wcschr(text, L':')) == NULL)
+	return(NULL);
+    *(p++) = L'\0';
+    if((mbsbuf = icwcstombs(p, "US-ASCII")) == NULL)
+	return(NULL);
+    decbuf = base64decode(mbsbuf, &buflen);
+    free(mbsbuf);
+    if(decbuf == NULL)
+	return(NULL);
+    ret = newhash(text, buflen, decbuf);
+    free(decbuf);
+    return(ret);
+}
+
+wchar_t *unparsehash(struct hash *hash)
+{
+    wchar_t *buf, *whbuf;
+    char *hbuf;
+    size_t bufsize, bufdata;
+    
+    buf = NULL;
+    bufsize = bufdata = 0;
+    hbuf = base64encode(hash->buf, hash->len);
+    if((whbuf = icmbstowcs(hbuf, "US-ASCII")) == NULL)
+    {
+	flog(LOG_CRIT, "bug! could not convert base64 from us-ascii: %s", strerror(errno));
+	abort();
+    }
+    free(hbuf);
+    bufcat(buf, hash->algo, wcslen(hash->algo));
+    addtobuf(buf, ':');
+    bufcat(buf, whbuf, wcslen(whbuf));
+    free(whbuf);
+    return(buf);
+}
+
 static struct hashcache *newhashcache(void)
 {
     struct hashcache *new;
