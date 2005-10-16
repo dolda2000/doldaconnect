@@ -1402,9 +1402,10 @@ static void cmd_to(struct socket *sk, struct fnetnode *fn, char *cmd, char *args
 static void cmd_sr(struct socket *sk, struct fnetnode *fn, char *cmd, char *args)
 {
     struct dchub *hub;
-    char *p, *p2;
+    char *p, *p2, *buf;
     char *nick, *filename, *hubname;
     int size, slots;
+    size_t buflen;
     struct srchres *sr;
     wchar_t *wnick, *wfile;
     
@@ -1451,6 +1452,15 @@ static void cmd_sr(struct socket *sk, struct fnetnode *fn, char *cmd, char *args
     sr->slots = slots;
     free(wfile);
     free(wnick);
+    if(!strncmp(hubname, "TTH:", 4))
+    {
+	if((buf = base32decode(hubname + 4, &buflen)) != NULL)
+	{
+	    if(buflen == 24)
+		sr->hash = newhash(L"TTH", 24, buf);
+	    free(buf);
+	}
+    }
     getfnetnode(sr->fn = fn);
     submitsrchres(sr);
     freesrchres(sr);
@@ -2448,14 +2458,15 @@ static void transwrite(struct socket *sk, struct dcpeer *peer)
 
 static void udpread(struct socket *sk, void *data)
 {
-    char *buf, *p, *p2;
-    size_t buflen;
+    char *buf, *p, *p2, *hashbuf;
+    size_t buflen, hashlen;
     char *nick, *filename, *hubname;
     int size, slots;
     struct fnetnode *fn, *myfn;
     struct dchub *hub;
     struct srchres *sr;
     wchar_t *wnick, *wfile;
+    struct hash *hash;
     
     if((buf = sockgetinbuf(sk, &buflen)) == NULL)
 	return;
@@ -2521,18 +2532,29 @@ static void udpread(struct socket *sk, void *data)
 	    return;
 	}
 	myfn = NULL;
-	for(fn = fnetnodes; fn != NULL; fn = fn->next)
+	hash = NULL;
+	if(!strncmp(hubname, "TTH:", 4))
 	{
-	    if((fn->fnet == &dcnet) && ((hub = fn->data) != NULL))
+	    if((hashbuf = base32decode(hubname + 4, &hashlen)) != NULL)
 	    {
-		if((hub->nativename != NULL) && !strcmp(hub->nativename, hubname))
+		if(hashlen == 24)
+		    hash = newhash(L"TTH", 24, hashbuf);
+		free(hashbuf);
+	    }
+	} else {
+	    for(fn = fnetnodes; fn != NULL; fn = fn->next)
+	    {
+		if((fn->fnet == &dcnet) && ((hub = fn->data) != NULL))
 		{
-		    if(myfn == NULL)
+		    if((hub->nativename != NULL) && !strcmp(hub->nativename, hubname))
 		    {
-			myfn = fn;
-		    } else {
-			myfn = NULL;
-			break;
+			if(myfn == NULL)
+			{
+			    myfn = fn;
+			} else {
+			    myfn = NULL;
+			    break;
+			}
 		    }
 		}
 	    }
@@ -2547,6 +2569,8 @@ static void udpread(struct socket *sk, void *data)
 	free(wnick);
 	if(myfn != NULL)
 	    getfnetnode(sr->fn = myfn);
+	if(hash != NULL)
+	    sr->hash = hash;
 	submitsrchres(sr);
 	freesrchres(sr);
     }
