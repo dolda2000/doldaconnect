@@ -124,7 +124,7 @@
 617 i		; Transfer destroy
 620 i i
 621 i
-622 i s s s i i i f
+622 i s s s i i i f s
 : ; Nameless connection
 200 s
 502
