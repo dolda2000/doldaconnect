@@ -584,6 +584,11 @@ struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namel
     if((sk = mksock(name->sa_family, type)) == NULL)
 	return(NULL);
     sk->state = SOCK_LST;
+    if(confgetint("net", "reuseaddr"))
+    {
+	intbuf = 1;
+	setsockopt(sk->fd, SOL_SOCKET, SO_REUSEADDR, &intbuf, sizeof(intbuf));
+    }
     if(bind(sk->fd, name, namelen) < 0)
     {
 	putsock(sk);
