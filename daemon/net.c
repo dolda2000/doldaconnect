@@ -574,6 +574,7 @@ struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, v
 struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data)
 {
     struct socket *sk;
+    int intbuf;
     
     /* I don't know if this is actually correct (it probably isn't),
      * but since, at on least Linux systems, PF_* are specifically
