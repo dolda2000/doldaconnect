@@ -51,6 +51,7 @@ static struct configvar myvars[] =
 {
     /* 0 = Direct mode, 1 = Passive mode, 2 = SOCKS proxy */
     {CONF_VAR_INT, "mode", {.num = 0}},
+    {CONF_VAR_BOOL, "reuseaddr", {.num = 0}},
     /* Only for direct mode */
     {CONF_VAR_IPV4, "visibleipv4", {.ipv4 = {0}}},
     {CONF_VAR_STRING, "publicif", {.str = L""}},
@@ -521,6 +522,7 @@ size_t sockqueuesize(struct socket *sk)
 struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data)
 {
     struct socket *sk;
+    int intbuf;
     
     if(confgetint("net", "mode") == 1)
     {
@@ -538,6 +540,11 @@ struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, v
 	if((sk = mksock(name->sa_family, type)) == NULL)
 	    return(NULL);
 	sk->state = SOCK_LST;
+	if(confgetint("net", "reuseaddr"))
+	{
+	    intbuf = 1;
+	    setsockopt(sk->fd, SOL_SOCKET, SO_REUSEADDR, &intbuf, sizeof(intbuf));
+	}
 	if(bind(sk->fd, name, namelen) < 0)
 	{
 	    putsock(sk);
