@@ -515,6 +515,11 @@ void putsexpr(struct sexpr *sexpr)
 	if(sexpr->d.s != NULL)
 	    free(sexpr->d.s);
     }
+    if(sexpr->op == SOP_HASHIS)
+    {
+	if(sexpr->d.hash != NULL)
+	    freehash(sexpr->d.hash);
+    }
     free(sexpr);
 }
 
@@ -649,6 +654,23 @@ struct sexpr *parsesexpr(int argc, wchar_t **argv)
 		freetok(tok2);
 		putsexpr(sexpr);
 		done = 0;
+	    } else if((st->type == TOK_STR) && !wcsncmp(st->d.str, L"H=", 2)) {
+		tok2 = poptok(&st);
+		pushtok(tok = newtok(), &st);
+		tok->type = TOK_SE;
+		sexpr = newsexpr();
+		sexpr->op = SOP_HASHIS;
+		if((sexpr->d.hash = parsehash(tok2->d.str + 2)) == NULL)
+		{
+		    freetok(tok2);
+		    putsexpr(sexpr);
+		    goto out_err;
+		}
+		sexpr->cost = 2;
+		getsexpr(tok->d.se = sexpr);
+		freetok(tok2);
+		putsexpr(sexpr);
+		done = 0;
 	    } else if((std >= 3) && (st->type == TOK_CP) && (st->next->type == TOK_SE) && (st->next->next->type == TOK_OP)) {
 		freetok(poptok(&st));
 		tok = poptok(&st);
@@ -741,8 +763,6 @@ struct wcslist *findsexprstrs(struct sexpr *sexpr)
 	list = slmergemin(l1, l2);
 	freesl(&l1);
 	freesl(&l2);
-	break;
-    case SOP_NOT:
 	break;
     case SOP_NAMERE:
     case SOP_LINKRE:
@@ -1083,6 +1103,10 @@ static int srisvalid(struct srchres *sr, struct sexpr *sexpr)
 	return(sr->size == sexpr->d.n);
     case SOP_SIZEGT:
 	return(sr->size > sexpr->d.n);
+    case SOP_HASHIS:
+	if(sr->hash == NULL)
+	    return(0);
+	return(hashcmp(sr->hash, sexpr->d.hash));
     }
     return(0);
 }

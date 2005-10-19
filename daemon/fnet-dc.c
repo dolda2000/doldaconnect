@@ -1158,7 +1158,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	goto out;
     if(*p == 0)
 	goto out;
-    if(*(p++) == 'T')
+    if((*(p++) == 'T') && (minsize == 0))
     {
 	maxsize = 0;
 	minsize = -1;
@@ -2172,6 +2172,33 @@ static void findsizelimit(struct sexpr *sexpr, int *min, int *max)
 	*max = retmax;
 }
 
+static struct hash *findsehash(struct sexpr *sexpr)
+{
+    struct hash *h1, *h2;
+    
+    switch(sexpr->op)
+    {
+    case SOP_AND:
+	if((h1 = findsehash(sexpr->l)) != NULL)
+	    return(h1);
+	if((h1 = findsehash(sexpr->r)) != NULL)
+	    return(h1);
+	break;
+    case SOP_OR:
+	h1 = findsehash(sexpr->l);
+	h2 = findsehash(sexpr->r);
+	if(hashcmp(h1, h2))
+	    return(h1);
+	break;
+    case SOP_HASHIS:
+	if(!wcscmp(sexpr->d.hash->algo, L"TTH"))
+	    return(sexpr->d.hash);
+    default:
+	break;
+    }
+    return(NULL);
+}
+
 static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlist *ln)
 {
     struct dchub *hub;
@@ -2181,13 +2208,14 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
     struct sockaddr *name;
     socklen_t namelen;
     int minsize, maxsize;
-    char sizedesc[32];
+    struct hash *hash;
     
     hub = fn->data;
     if((fn->state != FNN_EST) || (fn->sk == NULL) || (fn->sk->state != SOCK_EST))
 	return(1);
     list = findsexprstrs(srch->sexpr);
     findsizelimit(srch->sexpr, &minsize, &maxsize);
+    hash = findsehash(srch->sexpr);
     if((minsize != 0) && (maxsize != -1))
     {
 	/* Choose either minsize or maxsize by trying to determine
@@ -2198,52 +2226,64 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
 	else
 	    maxsize = -1;
     }
-    if(minsize != 0)
-    {
-	snprintf(sizedesc, sizeof(sizedesc), "T?F?%i", minsize);
-    } else if(maxsize != -1) {
-	snprintf(sizedesc, sizeof(sizedesc), "T?T?%i", maxsize);
-    } else {
-	strcpy(sizedesc, "F?F?0");
-    }
     sstr = NULL;
     sstrsize = sstrdata = 0;
-    if(list != NULL)
+    if((hash != NULL) && (hash->len == 24))
     {
-	for(cur = list; cur != NULL; cur = cur->next)
-	{
-	    if((buf = icwcstombs(cur->str, DCCHARSET)) == NULL)
-	    {
-		/* Can't find anything anyway if the search expression
-		 * requires characters outside DC's charset. There's
-		 * nothing technically wrong with the search itself,
-		 * however, so return success. This should be
-		 * considered as an optimization. */
-		freesl(&list);
-		if(sstr != NULL)
-		    free(sstr);
-		return(0);
-	    }
-	    if(cur != list)
-		addtobuf(sstr, '$');
-	    /*
-	     * It probably doesn't hurt if buf contains any extra
-	     * dollar signs - it will just result in extra search
-	     * terms, and the extraneous results will be filtered by
-	     * the search layer anyway. It hurts if it contains any
-	     * pipes, though, so let's sell them for money.
-	     */
-	    for(p = buf; *p; p++)
-	    {
-		if(*p == '|')
-		    *p = '$';
-	    }
-	    bufcat(sstr, buf, strlen(buf));
-	    free(buf);
-	}
+	/* Prioritize hash searches above all else */
+	bufcat(sstr, "F?T?0?9?TTH:", 12);
+	buf = base32encode(hash->buf, hash->len);
+	
+	bufcat(sstr, buf, 39);
+	free(buf);
     } else {
-	/* Will match all files... :-/ */
-	addtobuf(sstr, '.');
+	if(minsize != 0)
+	{
+	    sizebuf2(sstr, sstrdata + 32, 1);
+	    snprintf(sstr + sstrdata, sstrsize - sstrdata, "T?F?%i?1?", minsize);
+	} else if(maxsize != -1) {
+	    sizebuf2(sstr, sstrdata + 32, 1);
+	    snprintf(sstr + sstrdata, sstrsize - sstrdata, "T?T?%i?1?", maxsize);
+	} else {
+	    bufcat(sstr, "F?F?0?1?", 8);
+	}
+	if(list != NULL)
+	{
+	    for(cur = list; cur != NULL; cur = cur->next)
+	    {
+		if((buf = icwcstombs(cur->str, DCCHARSET)) == NULL)
+		{
+		    /* Can't find anything anyway if the search expression
+		     * requires characters outside DC's charset. There's
+		     * nothing technically wrong with the search itself,
+		     * however, so return success. This should be
+		     * considered as an optimization. */
+		    freesl(&list);
+		    if(sstr != NULL)
+			free(sstr);
+		    return(0);
+		}
+		if(cur != list)
+		    addtobuf(sstr, '$');
+		/*
+		 * It probably doesn't hurt if buf contains any extra
+		 * dollar signs - it will just result in extra search
+		 * terms, and the extraneous results will be filtered by
+		 * the search layer anyway. It hurts if it contains any
+		 * pipes, though, so let's sell them for money.
+		 */
+		for(p = buf; *p; p++)
+		{
+		    if(*p == '|')
+			*p = '$';
+		}
+		bufcat(sstr, buf, strlen(buf));
+		free(buf);
+	    }
+	} else {
+	    /* Will match all files... :-/ */
+	    addtobuf(sstr, '.');
+	}
     }
     addtobuf(sstr, 0);
     if(tcpsock != NULL)
@@ -2252,11 +2292,11 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
 	{
 	    flog(LOG_WARNING, "cannot get address of UDP socket");
 	} else {
-	    qstrf(fn->sk, "$Search %s %s?1?%s|", formataddress(name, namelen), sizedesc, sstr);
+	    qstrf(fn->sk, "$Search %s %s|", formataddress(name, namelen), sstr);
 	    free(name);
 	}
     } else {
-	qstrf(fn->sk, "$Search Hub:%s %s?1?%s|", hub->nativenick, sizedesc, sstr);
+	qstrf(fn->sk, "$Search Hub:%s %s|", hub->nativenick, sstr);
     }
     free(sstr);
     freesl(&list);

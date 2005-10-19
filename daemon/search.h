@@ -37,6 +37,7 @@
 #define SOP_SIZEGT 9
 #define SOP_SIZELT 10
 #define SOP_SIZEEQ 11
+#define SOP_HASHIS 12
 
 #define SRCH_WAIT 0
 #define SRCH_RUN 1
@@ -64,6 +65,7 @@ struct sexpr
 	} re;
 	wchar_t *s;
 	int n;
+	struct hash *hash;
     } d;
 };
 
