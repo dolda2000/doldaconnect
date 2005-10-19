@@ -201,6 +201,17 @@ wchar_t *unparsehash(struct hash *hash)
     return(buf);
 }
 
+int hashcmp(struct hash *h1, struct hash *h2)
+{
+    if(wcscmp(h1->algo, h2->algo))
+	return(0);
+    if(h1->len != h2->len)
+	return(0);
+    if(memcmp(h1->buf, h2->buf, h1->len))
+	return(0);
+    return(1);
+}
+
 static struct hashcache *newhashcache(void)
 {
     struct hashcache *new;

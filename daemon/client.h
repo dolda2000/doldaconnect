@@ -89,6 +89,7 @@ void freehash(struct hash *hash);
 struct hash *duphash(struct hash *hash);
 struct hash *parsehash(wchar_t *text);
 wchar_t *unparsehash(struct hash *hash);
+int hashcmp(struct hash *h1, struct hash *h2);
 
 extern struct sharecache *shareroot;
 extern unsigned long long sharesize;
