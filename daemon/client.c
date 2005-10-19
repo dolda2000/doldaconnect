@@ -198,6 +198,7 @@ wchar_t *unparsehash(struct hash *hash)
     addtobuf(buf, ':');
     bufcat(buf, whbuf, wcslen(whbuf));
     free(whbuf);
+    addtobuf(buf, 0);
     return(buf);
 }
 
