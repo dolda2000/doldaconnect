@@ -996,7 +996,7 @@ static void cmd_lssr(struct socket *sk, struct uidata *data, int argc, wchar_t *
 	for(sr = srch->results; sr != NULL; sr = sr->next)
 	{
 	    swprintf(buf, 64, L"%f", sr->time);
-	    sq(sk, (sr->next != NULL)?1:0, L"200", L"%%ls", sr->filename, sr->fnet->name, L"%%ls", sr->peerid, L"%%i", sr->size, L"%%i", sr->slots, L"%%i", (sr->fn == NULL)?-1:(sr->fn->id), buf, NULL);
+	    sq(sk, (sr->next != NULL)?1:0, L"200", L"%%ls", sr->filename, sr->fnet->name, L"%%ls", sr->peerid, L"%%i", sr->size, L"%%i", sr->slots, L"%%i", (sr->fn == NULL)?-1:(sr->fn->id), buf, L"%%ls", (sr->hash == NULL)?L"":unparsehash(sr->hash), NULL);
 	}
     }
 }
