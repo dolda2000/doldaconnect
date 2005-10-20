@@ -270,6 +270,23 @@ void putsock(struct socket *sk)
     }
 }
 
+void sockpushdata(struct socket *sk, void *buf, size_t size)
+{
+    switch(sk->type)
+    {
+    case SOCK_STREAM:
+	sizebuf(&sk->inbuf.s.buf, &sk->inbuf.s.bufsize, sk->inbuf.s.datasize + size, 1, 1);
+	memmove(sk->inbuf.s.buf + size, sk->inbuf.s.buf, sk->inbuf.s.datasize);
+	memcpy(sk->inbuf.s.buf, buf, size);
+	sk->inbuf.s.datasize += size;
+	break;
+    case SOCK_DGRAM:
+	/* XXX */
+	break;
+    }
+    return;
+}
+
 void *sockgetinbuf(struct socket *sk, size_t *size)
 {
     void *buf;

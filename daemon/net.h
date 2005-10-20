@@ -109,5 +109,6 @@ size_t sockgetdatalen(struct socket *sk);
 int getpublicaddr(int af, struct sockaddr **addr, socklen_t *lenbuf);
 int socksettos(struct socket *sk, int tos);
 char *formataddress(struct sockaddr *arg, socklen_t arglen);
+void sockpushdata(struct socket *sk, void *buf, size_t size);
 
 #endif
