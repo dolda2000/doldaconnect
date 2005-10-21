@@ -157,6 +157,18 @@ void transferdetach(struct transfer *transfer)
     }
 }
 
+struct transfer *finddownload(wchar_t *peerid)
+{
+    struct transfer *transfer;
+
+    for(transfer = transfers; transfer != NULL; transfer = transfer->next)
+    {
+	if((transfer->dir == TRNSD_DOWN) && (transfer->iface == NULL) && !wcscmp(peerid, transfer->peerid))
+	    break;
+    }
+    return(transfer);
+}
+
 struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nickid, struct transferiface *iface, void *data)
 {
     struct transfer *transfer;
@@ -298,6 +310,12 @@ void transferprepul(struct transfer *transfer, size_t size, size_t start, size_t
     transfersetlocalend(transfer, lesk);
 }
 
+void transferstartdl(struct transfer *transfer, struct socket *sk)
+{
+    transfersetstate(transfer, TRNS_MAIN);
+    socksettos(sk, confgetint("transfer", "dltos"));
+}
+
 void transferstartul(struct transfer *transfer, struct socket *sk)
 {
     transfersetstate(transfer, TRNS_MAIN);
@@ -435,6 +453,14 @@ void transfersetpath(struct transfer *transfer, wchar_t *path)
 	free(transfer->path);
     transfer->path = swcsdup(path);
     CBCHAINDOCB(transfer, trans_ac, transfer, L"path");
+}
+
+void transfersethash(struct transfer *transfer, struct hash *hash)
+{
+    if(transfer->hash != NULL)
+	freehash(transfer->hash);
+    transfer->hash = hash;
+    CBCHAINDOCB(transfer, trans_ac, transfer, L"hash");
 }
 
 int slotsleft(void)
