@@ -27,6 +27,7 @@
 614 - Transfer error update
 615 - Transfer progress
 616 - Transfer path change
+617 - Transfer hash update
 620 - Search ETA change
 621 - Search commit
 622 - Search result
