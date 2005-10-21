@@ -187,6 +187,15 @@ static void combine(struct tigertreehash *tth)
     restiger(&th, tth->stack[tth->depth - 1]);
 }
 
+void pushtigertree(struct tigertreehash *tth, char *buf)
+{
+    int nb;
+    
+    memcpy(tth->stack[tth->depth++], buf, 24);
+    for(nb = ++tth->blocks; !(nb & 1); nb >>= 1)
+	combine(tth);
+}
+
 static void dotreeblock(struct tigertreehash *tth)
 {
     struct tigerhash th;
