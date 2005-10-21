@@ -123,6 +123,9 @@ size_t transferdatasize(struct transfer *transfer);
 void transferendofdata(struct transfer *transfer);
 void transferprepul(struct transfer *transfer, size_t size, size_t start, size_t end, struct socket *lesk);
 void transferstartul(struct transfer *transfer, struct socket *sk);
+void transfersethash(struct transfer *transfer, struct hash *hash);
+struct transfer *finddownload(wchar_t *peerid);
+void transferstartdl(struct transfer *transfer, struct socket *sk);
 
 extern struct transfer *transfers;
 EGCBCHAIN(newtransfercb, struct transfer *);
