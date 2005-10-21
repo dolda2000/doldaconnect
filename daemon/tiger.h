@@ -24,5 +24,6 @@ void inittigertree(struct tigertreehash *tth);
 void dotigertree(struct tigertreehash *tth, char *buf, size_t buflen);
 void synctigertree(struct tigertreehash *tth);
 void restigertree(struct tigertreehash *tth, char *rbuf);
+void pushtigertree(struct tigertreehash *tth, char *buf);
 
 #endif
