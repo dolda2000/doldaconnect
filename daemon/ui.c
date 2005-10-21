@@ -742,7 +742,7 @@ static void cmd_download(struct socket *sk, struct uidata *data, int argc, wchar
 	{
 	    if(!wcscmp(argv[i], L"hash"))
 	    {
-		transfer->hash = parsehash(argv[i + 1]);
+		transfersethash(transfer, parsehash(argv[i + 1]));
 	    } else {
 		transferaddarg(transfer, argv[i], argv[i + 1]);
 	    }
@@ -1786,6 +1786,12 @@ static int transferchattr(struct transfer *transfer, wchar_t *attrib, void *uuda
 	{
 	    if(haspriv(data, PERM_TRANS) && data->notify.b.tract && ((transfer->owner == 0) || (transfer->owner == data->uid)))
 		newnotif(data, 616, NOTIF_ID, transfer->id, NOTIF_STR, transfer->path, NOTIF_END);
+	}
+    } else if(!wcscmp(attrib, L"hash")) {
+	for(data = actives; data != NULL; data = data->next)
+	{
+	    if(haspriv(data, PERM_TRANS) && data->notify.b.tract && ((transfer->owner == 0) || (transfer->owner == data->uid)))
+		newnotif(data, 617, NOTIF_ID, transfer->id, NOTIF_STR, (transfer->hash == NULL)?L"":unparsehash(transfer->hash), NOTIF_END);
 	}
     }
     return(0);
