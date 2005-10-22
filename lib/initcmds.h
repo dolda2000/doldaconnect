@@ -129,6 +129,7 @@ static void initcmds(void)
     addresp(cmd, 615, RESP_INT, RESP_INT, RESP_END);	/* Transfer progress */
     addresp(cmd, 616, RESP_INT, RESP_STR, RESP_END);	/* Transfer path change */
     addresp(cmd, 617, RESP_INT, RESP_END);	/* Transfer destroy */
+    addresp(cmd, 618, RESP_INT, RESP_STR, RESP_END);	/* Transfer hash update */
     addresp(cmd, 620, RESP_INT, RESP_INT, RESP_END);
     addresp(cmd, 621, RESP_INT, RESP_END);
     addresp(cmd, 622, RESP_INT, RESP_STR, RESP_STR, RESP_STR, RESP_INT, RESP_INT, RESP_INT, RESP_FLOAT, RESP_STR, RESP_END);
