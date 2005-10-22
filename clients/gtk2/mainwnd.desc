@@ -5,6 +5,12 @@
 ;hasaccels: y
 ;hascolumns: y
 ;hasrenderers: y
+:menu name: srpopup var: y
+	$menuitem name: srhash label: "Search this hash" sig: activate var: y
+end
+:menu name: trpopup var: y
+	$menuitem name: trhash label: "Search this hash" sig: activate var: y
+end
 :wnd name: wnd title: "Dolda Connect" var: y sig(delete_event):initdeath
 	:vbox
 		:menubar
@@ -101,7 +107,7 @@
 					$hr pad: 5
 					$mlbl label: "Search _results:" mwidget: srchres
 					:sw expand: TRUE fill: TRUE
-						:treeview name: srchres var: y rules: TRUE searchcol: 3 sig(row-activated): cb_main_srchres_activate
+						:treeview name: srchres var: y rules: TRUE searchcol: 3 sig(row-activated): cb_main_srchres_activate sig(popup-menu): cb_main_srpopup sig(button-release-event): cb_main_srpopup
 							:tvcol title: "#" sortcol: 7 resizable: FALSE
 								$textrend func: hidezerofunc funcdata: "(gpointer)7"
 							end
@@ -115,6 +121,7 @@
 								$textrend func: speedtimefunc
 							end
 							$tvcol title: "Rsp. time" text: 6 sortcol: 6 resizable: TRUE
+							$tvcol title: "Hash" text: 9 sortcol: 9 resizable: TRUE
 						end
 					end
 				end
@@ -123,7 +130,7 @@
 				:vbox nblabel: "_Downloads"
 					$mlbl label: "_List of downloads:" mwidget: downloads
 					:sw fill: TRUE expand: TRUE
-						:treeview name: downloads var: y sig(key-press-event): cb_main_trlist_keypress
+						:treeview name: downloads var: y sig(key-press-event): cb_main_trlist_keypress sig(popup-menu): cb_main_trpopup sig(button-release-event): cb_main_trpopup
 							:tvcol title: "User Name"
 								$pixbufrend stock_id: 8
 								$textrend text: 4
@@ -143,6 +150,7 @@
 							:tvcol title: "Error"
 								$textrend func: transerrorinfo
 							end
+							$tvcol title: "Hash" text: 12
 						end
 					end
 				end
