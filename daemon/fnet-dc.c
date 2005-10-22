@@ -529,7 +529,7 @@ static char **parseadc(char *args)
 		addtobuf(retbuf, NULL);
 		freeparr(retbuf);
 		return(NULL);
-	    } else if(*args == 's') {
+	    } else if((*args == 's') || (*args == ' ')) {
 		addtobuf(buf, ' ');
 	    } else if(*args == 'n') {
 		addtobuf(buf, '\n');
