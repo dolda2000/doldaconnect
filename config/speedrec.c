@@ -6,10 +6,9 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
-#include <sys/poll.h>
 #include <signal.h>
 
-char buf[4096];
+char buf[65536];
 volatile int eof;
 
 void sighandler(int sig)
@@ -24,7 +23,6 @@ int main(int argc, char **argv)
     time_t starttime, endtime;
     long long numbytes;
     size_t datalen;
-    struct pollfd pfd[2];
     FILE *recfile;
     int thisrec, numrecs, numuses, maxrec;
     int recs[5];
@@ -43,43 +41,17 @@ int main(int argc, char **argv)
     signal(SIGTERM, sighandler);
     while(1)
     {
-	pfd[0].fd = 0;
-	if(eof || (datalen >= sizeof(buf)))
-	    pfd[0].events = 0;
-	else
-	    pfd[0].events = POLLIN;
-	pfd[1].fd = 1;
-	if(datalen > 0)
-	    pfd[1].events = POLLOUT;
-	else
-	    pfd[1].events = 0;
-	pfd[0].revents = pfd[1].revents = 0;
-	ret = poll(pfd, 2, -1);
+	ret = read(0, buf, sizeof(buf));
 	if((ret < 0) && (errno != EINTR))
 	{
-	    perror("cannot poll");
+	    perror("cannot read");
 	    exit(1);
 	}
-	if(pfd[0].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL))
-	{
-	    ret = read(0, buf + datalen, sizeof(buf) - datalen);
-	    if((ret < 0) && (errno != EINTR))
-	    {
-		perror("cannot read");
-		exit(1);
-	    }
-	    if(ret == 0)
-		eof = 1;
-	    if(ret > 0)
-	    {
-		datalen += ret;
-		if(starttime == 0)
-		    starttime = time(NULL);
-		endtime = time(NULL);
-	    }
-	    numbytes += ret;
-	}
-	if(pfd[1].revents & (POLLOUT | POLLERR | POLLHUP | POLLNVAL))
+	if((ret == 0) || eof)
+	    break;
+	datalen = ret;
+	numbytes += ret;
+	while(datalen > 0)
 	{
 	    ret = write(1, buf, datalen);
 	    if((ret < 0) && (errno != EINTR))
@@ -89,8 +61,6 @@ int main(int argc, char **argv)
 	    }
 	    memmove(buf, buf + ret, datalen -= ret);
 	}
-	if(eof && (datalen == 0))
-	    break;
     }
     if((starttime == 0) || (endtime == 0) || (endtime == starttime))
 	exit(0);
