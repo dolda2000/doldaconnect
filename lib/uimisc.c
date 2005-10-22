@@ -778,6 +778,13 @@ static int gettrlistcallback(struct dc_response *resp)
 		transfer->state = ires->argv[2].val.num;
 		transfer->size = ires->argv[6].val.num;
 		transfer->curpos = ires->argv[7].val.num;
+		if(transfer->hash != NULL)
+		{
+		    free(transfer->hash);
+		    transfer->hash = NULL;
+		}
+		if(wcslen(ires->argv[8].val.str) > 0)
+		    transfer->hash = swcsdup(ires->argv[8].val.str);
 	    } else {
 		transfer = newtransfer();
 		transfer->id = ires->argv[0].val.num;
@@ -788,6 +795,8 @@ static int gettrlistcallback(struct dc_response *resp)
 		transfer->path = swcsdup(ires->argv[5].val.str);
 		transfer->size = ires->argv[6].val.num;
 		transfer->curpos = ires->argv[7].val.num;
+		if(wcslen(ires->argv[8].val.str) > 0)
+		    transfer->hash = swcsdup(ires->argv[8].val.str);
 		transfer->found = 1;
 	    }
 	    dc_freeires(ires);
@@ -929,6 +938,18 @@ void dc_uimisc_handlenotify(struct dc_response *resp)
     case 617:
 	if((transfer = dc_findtransfer(ires->argv[0].val.num)) != NULL)
 	    freetransfer(transfer);
+	break;
+    case 618:
+	if((transfer = dc_findtransfer(ires->argv[0].val.num)) != NULL)
+	{
+	    if(transfer->hash != NULL)
+	    {
+		free(transfer->hash);
+		transfer->hash = NULL;
+	    }
+	    if(wcslen(ires->argv[1].val.str) > 0)
+		transfer->hash = swcsdup(ires->argv[1].val.str);
+	}
 	break;
     default:
 	break;
