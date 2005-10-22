@@ -682,6 +682,19 @@ int forkfilter(struct transfer *transfer)
 	addtobuf(argv, filename);
 	addtobuf(argv, buf);
 	addtobuf(argv, peerid);
+	if(transfer->hash)
+	{
+	    if((buf = icwcstombs(unparsehash(transfer->hash), NULL)) != NULL)
+	    {
+		/* XXX: I am very doubtful of this, but it can just as
+		 * well be argued that all data should be presented as
+		 * key-value pairs. */
+		addtobuf(argv, "hash");
+		addtobuf(argv, buf);
+	    } else {
+		flog(LOG_WARNING, "could not convert hash to local charset");
+	    }
+	}
 	for(ta = transfer->args; ta != NULL; ta = ta->next)
 	{
 	    if((rec = icwcstombs(ta->rec, NULL)) == NULL)
