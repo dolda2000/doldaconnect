@@ -6,7 +6,7 @@ static void initcmds(void)
     struct command *cmd;
     
     cmd = makecmd(L"lssr");
-    addresp(cmd, 200, RESP_STR, RESP_STR, RESP_STR, RESP_INT, RESP_INT, RESP_INT, RESP_FLOAT, RESP_END);
+    addresp(cmd, 200, RESP_STR, RESP_STR, RESP_STR, RESP_INT, RESP_INT, RESP_INT, RESP_FLOAT, RESP_STR, RESP_END);
     addresp(cmd, 201, RESP_END);
     addresp(cmd, 514, RESP_END);
     cmd = makecmd(L"lssrch");
@@ -73,7 +73,7 @@ static void initcmds(void)
     addresp(cmd, 510, RESP_END);
     addresp(cmd, 511, RESP_END);
     cmd = makecmd(L"lstrans");
-    addresp(cmd, 200, RESP_INT, RESP_INT, RESP_INT, RESP_STR, RESP_STR, RESP_STR, RESP_INT, RESP_INT, RESP_END);
+    addresp(cmd, 200, RESP_INT, RESP_INT, RESP_INT, RESP_STR, RESP_STR, RESP_STR, RESP_INT, RESP_INT, RESP_STR, RESP_END);
     addresp(cmd, 201, RESP_END);
     addresp(cmd, 502, RESP_END);
     cmd = makecmd(L"cancel");
@@ -131,7 +131,7 @@ static void initcmds(void)
     addresp(cmd, 617, RESP_INT, RESP_END);	/* Transfer destroy */
     addresp(cmd, 620, RESP_INT, RESP_INT, RESP_END);
     addresp(cmd, 621, RESP_INT, RESP_END);
-    addresp(cmd, 622, RESP_INT, RESP_STR, RESP_STR, RESP_STR, RESP_INT, RESP_INT, RESP_INT, RESP_FLOAT, RESP_END);
+    addresp(cmd, 622, RESP_INT, RESP_STR, RESP_STR, RESP_STR, RESP_INT, RESP_INT, RESP_INT, RESP_FLOAT, RESP_STR, RESP_END);
     cmd = makecmd(NULL);	/* Nameless connection */
     addresp(cmd, 200, RESP_STR, RESP_END);
     addresp(cmd, 502, RESP_END);
