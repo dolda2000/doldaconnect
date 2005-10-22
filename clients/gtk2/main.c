@@ -104,8 +104,12 @@ void cb_main_simplesrch_changed(GtkWidget *widget, gpointer data);
 void cb_main_realsrch_changed(GtkWidget *widget, gpointer data);
 void cb_main_srchbtn_clicked(GtkWidget *widget, gpointer data);
 void cb_main_srchcanbtn_clicked(GtkWidget *widget, gpointer data);
-void cb_main_trlist_keypress(GtkWidget *widget, GdkEventKey *event, gpointer data);
+gboolean cb_main_trlist_keypress(GtkWidget *widget, GdkEventKey *event, gpointer data);
 void cb_main_filternoslots_toggled(GtkToggleButton *widget, gpointer data);
+void cb_main_srhash_activate(GtkWidget *widget, gpointer data);
+void cb_main_trhash_activate(GtkWidget *widget, gpointer data);
+gboolean cb_main_srpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
+gboolean cb_main_trpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
 void dcfdcallback(gpointer data, gint source, GdkInputCondition condition);
 void srchstatupdate(void);
 void transnicebytefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
@@ -348,7 +352,7 @@ void updatetransferlists(void)
     GtkTreeIter iter;
     int id;
     char *buf;
-    char *peerid, *peernick, *path;
+    char *peerid, *peernick, *path, *hash;
     int state, dir, size, curpos, error;
     time_t errortime;
     GtkListStore *stores[3];
@@ -378,7 +382,7 @@ void updatetransferlists(void)
 			break;
 		    } else {
 			transfer->found = 1;
-			gtk_tree_model_get(GTK_TREE_MODEL(stores[i]), &iter, 2, &state, 3, &peerid, 4, &peernick, 5, &path, 6, &size, 7, &curpos, 10, &error, 11, &errortime, -1);
+			gtk_tree_model_get(GTK_TREE_MODEL(stores[i]), &iter, 2, &state, 3, &peerid, 4, &peernick, 5, &path, 6, &size, 7, &curpos, 10, &error, 11, &errortime, 12, &hash, -1);
 			if(state != transfer->state)
 			    gtk_list_store_set(stores[i], &iter, 2, transfer->state, 8, gettrstatestock(transfer->state), -1);
 			if(size != transfer->size)
@@ -400,6 +404,10 @@ void updatetransferlists(void)
 			buf = (transfer->path == NULL)?_("Unknown"):icswcstombs(transfer->path, "UTF-8", NULL);
 			if(strcmp(buf, path))
 			    gtk_list_store_set(stores[i], &iter, 5, buf, -1);
+			buf = (transfer->hash == NULL)?"":icswcstombs(transfer->hash, "UTF-8", NULL);
+			if(strcmp(buf, path))
+			    gtk_list_store_set(stores[i], &iter, 12, buf, -1);
+			g_free(hash);
 			g_free(peerid);
 			g_free(peernick);
 			g_free(path);
@@ -417,6 +425,7 @@ void updatetransferlists(void)
 		peerid = icwcstombs(transfer->peerid, "UTF-8");
 		peernick = icwcstombs(((transfer->peernick == NULL) || (transfer->peernick[0] == L'\0'))?transfer->peerid:transfer->peernick, "UTF-8");
 		path = (transfer->path == NULL)?_("Unknown"):icwcstombs(transfer->path, "UTF-8");
+		hash = (transfer->hash == NULL)?"":icwcstombs(transfer->hash, "UTF-8");
 		gtk_list_store_append(stores[transfer->dir], &iter);
 		gtk_list_store_set(stores[transfer->dir], &iter,
 				   0, transfer->id,
@@ -431,11 +440,14 @@ void updatetransferlists(void)
 				   9, 0.0,
 				   10, transfer->error,
 				   11, transfer->errortime,
+				   12, hash,
 				   -1);
 		free(peerid);
 		free(peernick);
 		if(transfer->path != NULL)
 		    free(path);
+		if(transfer->hash != NULL)
+		    free(hash);
 	    }
 	}
     }
@@ -931,6 +943,7 @@ void handleresps(void)
 	    case 615:
 	    case 616:
 	    case 617:
+	    case 618:
 		updatetransferlists();
 		break;
 	    case 620:
@@ -989,11 +1002,11 @@ void handleresps(void)
 			    gtk_tree_store_append(srchmodel, &titer, &piter);
 			    srchsizes[i].ref = iter2ref(&titer);
 			} else if(srchsizes[i].num == 1) {
-			    char *filename, *peername, *fnetname;
+			    char *filename, *peername, *fnetname, *hash;
 			    int slots, speed;
 			    double resptime;
 			    
-			    gtk_tree_model_get(GTK_TREE_MODEL(srchmodel), ref2iter(srchsizes[i].ref), 0, &fnetname, 1, &peername, 3, &filename, 5, &slots, 6, &resptime, 8, &speed, -1);
+			    gtk_tree_model_get(GTK_TREE_MODEL(srchmodel), ref2iter(srchsizes[i].ref), 0, &fnetname, 1, &peername, 3, &filename, 5, &slots, 6, &resptime, 8, &speed, 9, &hash, -1);
 			    gtk_tree_store_remove(srchmodel, ref2iter(srchsizes[i].ref));
 			    gtk_tree_row_reference_free(srchsizes[i].ref);
 			    ss = finddiscsize();
@@ -1008,15 +1021,15 @@ void handleresps(void)
 			    if((buf = icwcstombs(ires->argv[1].val.str, "UTF-8")) != NULL)
 			    {
 				p = buf;
-				/* XXX: Too DC-specific! */
+				/* XXX: Too NMDC-specific! */
 				if(strrchr(p, '\\') != NULL)
 				    p = strrchr(p, '\\') + 1;
 				gtk_tree_store_set(srchmodel, &piter, 3, p, -1);
 				free(buf);
 			    }
 			    gtk_tree_store_append(srchmodel, &titer, &piter);
-			    gtk_tree_store_set(srchmodel, &titer, 0, fnetname, 1, peername, 2, peername, 3, filename, 4, srchsizes[i].size, 5, slots, 6, resptime, 8, speed, -1);
-			    g_free(filename); g_free(peername); g_free(fnetname);
+			    gtk_tree_store_set(srchmodel, &titer, 0, fnetname, 1, peername, 2, peername, 3, filename, 4, srchsizes[i].size, 5, slots, 6, resptime, 8, speed, 9, hash, -1);
+			    g_free(filename); g_free(peername); g_free(fnetname); g_free(hash);
 			    gtk_tree_store_append(srchmodel, &titer, &piter);
 			} else {
 			    srchsizes[i].num++;
@@ -1041,6 +1054,11 @@ void handleresps(void)
 			{
 			    gtk_tree_store_set(srchmodel, &titer, 1, buf, -1);
 			    gtk_tree_store_set(srchmodel, &titer, 2, buf, -1);
+			    free(buf);
+			}
+			if((buf = icwcstombs(ires->argv[8].val.str, "UTF-8")) != NULL)
+			{
+			    gtk_tree_store_set(srchmodel, &titer, 9, buf, -1);
 			    free(buf);
 			}
 			gtk_tree_store_set(srchmodel, &titer, 4, ires->argv[4].val.num, 5, ires->argv[5].val.num, 6, ires->argv[7].val.flnum, 8, -1, -1);
@@ -1509,7 +1527,7 @@ void updatesrchfld(const char *simple)
 	    bufcat(buf, "N~", 2);
 	    for(; *p; p++)
 	    {
-		if(strchr("[]()$^.*?+\\|\"", *p) != NULL)
+		if(strchr("[]()$^.*?+\\|\"!", *p) != NULL)
 		    addtobuf(buf, '\\');
 		addtobuf(buf, *p);
 	    }
@@ -1604,7 +1622,7 @@ void cb_main_srchcanbtn_clicked(GtkWidget *widget, gpointer data)
     srchstatupdate();
 }
 
-void cb_main_trlist_keypress(GtkWidget *widget, GdkEventKey *event, gpointer data)
+gboolean cb_main_trlist_keypress(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
     int id, tag;
     GtkTreeSelection *sel;
@@ -1629,7 +1647,9 @@ void cb_main_trlist_keypress(GtkWidget *widget, GdkEventKey *event, gpointer dat
 	    }
 	    handleresps();
 	}
+	return(TRUE);
     }
+    return(FALSE);
 }
 
 void cb_main_srchres_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *col, gpointer data)
@@ -1711,6 +1731,112 @@ void cb_main_filternoslots_toggled(GtkToggleButton *widget, gpointer data)
     gtk_tree_model_filter_refilter(srchmodelfilter);
 }
 
+void cb_main_srhash_activate(GtkWidget *widget, gpointer data)
+{
+    GtkTreeSelection *sel;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    char *hash, *buf;
+    
+    if(nextsrch != -1)
+	return;
+    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(main_srchres));
+    if(gtk_tree_selection_get_selected(sel, &model, &iter))
+    {
+	gtk_tree_model_get(model, &iter, 9, &hash, -1);
+	buf = sprintf2("H=%s", hash);
+	gtk_entry_set_text(GTK_ENTRY(main_realsrch), buf);
+	g_free(hash);
+	free(buf);
+	cb_main_srchbtn_clicked(widget, NULL);
+    } else {
+	return;
+    }
+}
+
+void cb_main_trhash_activate(GtkWidget *widget, gpointer data)
+{
+    GtkTreeSelection *sel;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    char *hash, *buf;
+    
+    if(nextsrch != -1)
+	return;
+    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(main_downloads));
+    if(gtk_tree_selection_get_selected(sel, &model, &iter))
+    {
+	gtk_tree_model_get(model, &iter, 12, &hash, -1);
+	buf = sprintf2("H=%s", hash);
+	gtk_entry_set_text(GTK_ENTRY(main_realsrch), buf);
+	g_free(hash);
+	free(buf);
+	cb_main_srchbtn_clicked(widget, NULL);
+    } else {
+	return;
+    }
+}
+
+/* XXX: This is quite a hack, since the calling convention is
+ * different for the popup-menu sig and the button-press-event sig. It
+ * most certainly works, but I don't know how portable it is. */
+gboolean cb_main_srpopup(GtkWidget *widget, GdkEventButton *event, gpointer data)
+{
+    GtkTreeSelection *sel;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    char *hash;
+    
+    if((event != NULL) && (event->button != 3))
+	return(FALSE);
+    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+    if(gtk_tree_selection_get_selected(sel, &model, &iter))
+    {
+	gtk_tree_model_get(model, &iter, 9, &hash, -1);
+	if((nextsrch != -1) || (hash == NULL) || (*hash == 0))
+	    gtk_widget_set_sensitive(main_srhash, FALSE);
+	else
+	    gtk_widget_set_sensitive(main_srhash, TRUE);
+	g_free(hash);
+    } else {
+	return(FALSE);
+    }
+    if(event == NULL)
+	gtk_menu_popup(GTK_MENU(main_srpopup), NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time());
+    else
+	gtk_menu_popup(GTK_MENU(main_srpopup), NULL, NULL, NULL, NULL, event->button, event->time);
+    return(FALSE);
+}
+
+/* The above hack note goes for this one too. */
+gboolean cb_main_trpopup(GtkWidget *widget, GdkEventButton *event, gpointer data)
+{
+    GtkTreeSelection *sel;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    char *hash;
+    
+    if((event != NULL) && (event->button != 3))
+	return(FALSE);
+    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+    if(gtk_tree_selection_get_selected(sel, &model, &iter))
+    {
+	gtk_tree_model_get(model, &iter, 12, &hash, -1);
+	if((nextsrch != -1) || (hash == NULL) || (*hash == 0))
+	    gtk_widget_set_sensitive(main_trhash, FALSE);
+	else
+	    gtk_widget_set_sensitive(main_trhash, TRUE);
+	g_free(hash);
+    } else {
+	return(FALSE);
+    }
+    if(event == NULL)
+	gtk_menu_popup(GTK_MENU(main_trpopup), NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time());
+    else
+	gtk_menu_popup(GTK_MENU(main_trpopup), NULL, NULL, NULL, NULL, event->button, event->time);
+    return(FALSE);
+}
+
 void srchstatupdate(void)
 {
     char buf[1024];
@@ -1775,7 +1901,7 @@ int main(int argc, char **argv)
     gtk_tree_view_set_model(GTK_TREE_VIEW(main_phublist), GTK_TREE_MODEL(sortmodel));
     g_object_unref(sortmodel);
 
-    dlmodel = gtk_list_store_new(12, G_TYPE_INT, /* id */
+    dlmodel = gtk_list_store_new(13, G_TYPE_INT, /* id */
 				 G_TYPE_INT,     /* dir */
 				 G_TYPE_INT,     /* state */
 				 G_TYPE_STRING,  /* peerid */
@@ -1786,13 +1912,23 @@ int main(int argc, char **argv)
 				 G_TYPE_STRING,  /* stock */
 				 G_TYPE_FLOAT,   /* percentage */
 				 G_TYPE_INT,     /* error */
-				 G_TYPE_INT);    /* errortime */
+				 G_TYPE_INT,     /* errortime */
+				 G_TYPE_STRING); /* hash */
     gtk_tree_view_set_model(GTK_TREE_VIEW(main_downloads), GTK_TREE_MODEL(dlmodel));
 
-    ulmodel = gtk_list_store_new(12, G_TYPE_INT, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_FLOAT, G_TYPE_INT, G_TYPE_INT);
+    ulmodel = gtk_list_store_new(13, G_TYPE_INT, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_FLOAT, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(main_uploads), GTK_TREE_MODEL(ulmodel));
 
-    srchmodel = gtk_tree_store_new(9, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, G_TYPE_DOUBLE, G_TYPE_INT, G_TYPE_INT);
+    srchmodel = gtk_tree_store_new(10, G_TYPE_STRING, /* fnetname */
+				   G_TYPE_STRING,     /* peerid */
+				   G_TYPE_STRING,     /* peername */
+				   G_TYPE_STRING,     /* filename */
+				   G_TYPE_INT,        /* size */
+				   G_TYPE_INT,        /* slots */
+				   G_TYPE_DOUBLE,     /* resptime */
+				   G_TYPE_INT,        /* sizenum */
+				   G_TYPE_INT,        /* speed */
+				   G_TYPE_STRING);    /* hash */
     srchmodelfilter = GTK_TREE_MODEL_FILTER(gtk_tree_model_filter_new(GTK_TREE_MODEL(srchmodel), NULL));
     gtk_tree_model_filter_set_visible_func(srchmodelfilter, srchfilterfunc, NULL, NULL);
     sortmodel = gtk_tree_model_sort_new_with_model(GTK_TREE_MODEL(srchmodelfilter));
