@@ -1791,7 +1791,7 @@ static int transferchattr(struct transfer *transfer, wchar_t *attrib, void *uuda
 	for(data = actives; data != NULL; data = data->next)
 	{
 	    if(haspriv(data, PERM_TRANS) && data->notify.b.tract && ((transfer->owner == 0) || (transfer->owner == data->uid)))
-		newnotif(data, 617, NOTIF_ID, transfer->id, NOTIF_STR, (transfer->hash == NULL)?L"":unparsehash(transfer->hash), NOTIF_END);
+		newnotif(data, 618, NOTIF_ID, transfer->id, NOTIF_STR, (transfer->hash == NULL)?L"":unparsehash(transfer->hash), NOTIF_END);
 	}
     }
     return(0);
