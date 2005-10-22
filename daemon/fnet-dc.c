@@ -536,7 +536,9 @@ static char **parseadc(char *args)
 	    } else if(*args == '\\') {
 		addtobuf(buf, '\\');
 	    }
+	    args++;
 	    state = 1;
+	    break;
 	}
     }
     if(buf != NULL)
