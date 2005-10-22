@@ -2053,8 +2053,9 @@ static void handletthl(struct dcpeer *peer)
     {
 	pushtigertree(&peer->tth, peer->inbuf);
 	memmove(peer->inbuf, peer->inbuf + 24, peer->inbufdata -= 24);
+	peer->curread += 24;
     }
-    if((peer->curread += 24) >= peer->totalsize)
+    if(peer->curread >= peer->totalsize)
     {
 	peer->state = PEER_CMD;
 	synctigertree(&peer->tth);
@@ -2112,6 +2113,12 @@ static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	    goto out;
 	}
 	startdl(peer);
+	if(peer->inbufdata > 0)
+	{
+	    sockpushdata(sk, peer->inbuf, peer->inbufdata);
+	    peer->inbufdata = 0;
+	    transread(sk, peer);
+	}
     } else {
 	/* We certainly didn't request this...*/
 	freedcpeer(peer);
