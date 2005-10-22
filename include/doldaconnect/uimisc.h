@@ -57,6 +57,7 @@ struct dc_transfer
     int found;
     int error;
     time_t errortime;
+    wchar_t *hash;
     void (*destroycb)(struct dc_transfer *transfer);
     void *udata;
 };
