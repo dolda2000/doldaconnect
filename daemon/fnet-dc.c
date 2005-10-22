@@ -2982,15 +2982,15 @@ static void peerread(struct socket *sk, struct dcpeer *peer)
 	    newqcmd(&peer->queue, peer->inbuf);
 	    for(cmd = peercmds; cmd->handler != NULL; cmd++)
 	    {
-		if(!memcmp(peer->inbuf, cmd->name, strlen(cmd->name)) && (peer->inbuf[strlen(cmd->name)] == 0))
+		if(!memcmp(peer->inbuf, cmd->name, strlen(cmd->name)) && ((peer->inbuf[strlen(cmd->name)] == ' ') || (peer->inbuf[strlen(cmd->name)] == '|')))
 		    break;
 	    }
+	    memmove(peer->inbuf, p, peer->inbufdata -= p - peer->inbuf);
 	    if(cmd->stop)
 	    {
 		peer->state = PEER_STOP;
 		break;
 	    }
-	    memmove(peer->inbuf, p, peer->inbufdata -= p - peer->inbuf);
 	}
     } else if(peer->state == PEER_TTHL) {
 	handletthl(peer);
