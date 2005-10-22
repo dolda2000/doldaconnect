@@ -2146,6 +2146,12 @@ static void cmd_sending(struct socket *sk, struct dcpeer *peer, char *cmd, char 
 	return;
     }
     startdl(peer);
+    if(peer->inbufdata > 0)
+    {
+	sockpushdata(sk, peer->inbuf, peer->inbufdata);
+	peer->inbufdata = 0;
+	transread(sk, peer);
+    }
 }
 
 /*
