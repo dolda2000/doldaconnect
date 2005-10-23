@@ -6,10 +6,11 @@
 ;hascolumns: y
 ;hasrenderers: y
 :menu name: srpopup var: y
-	$menuitem name: srhash label: "Search this hash" sig: activate var: y
+	$menuitem name: srhash label: "Search for this hash" sig: activate var: y
 end
 :menu name: trpopup var: y
-	$menuitem name: trhash label: "Search this hash" sig: activate var: y
+	$menuitem name: trhash label: "Search for this hash" sig: activate var: y
+	$menuitem name: trcancel label: "Cancel transfer" sig: activate
 end
 :wnd name: wnd title: "Dolda Connect" var: y sig(delete_event):initdeath
 	:vbox
