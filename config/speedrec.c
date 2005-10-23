@@ -49,6 +49,9 @@ int main(int argc, char **argv)
 	}
 	if((ret == 0) || eof)
 	    break;
+	if(starttime == 0)
+	    starttime = time(NULL);
+	endtime = time(NULL);
 	datalen = ret;
 	numbytes += ret;
 	while(datalen > 0)
