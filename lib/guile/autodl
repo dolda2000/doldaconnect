@@ -114,6 +114,8 @@
 		      (cadr (cdr (assoc 'peer sr)))
 		      (cdr (assoc 'filename sr))
 		      (cdr (assoc 'size sr)))))
+      (let ((hash (assoc 'hash sr)))
+	(if (and hash (not (equal? (cdr hash) ""))) (set! args (append args (list "hash" (cdr hash))))))
       (let ((tag (assoc 'tag session)))
 	(if tag (set! args (append args (list "tag" (cdr tag))))))
       (let ((uarg (assoc 'uarg session)))
@@ -316,7 +318,7 @@
     retval)
   )
 
-(define (handlesr filename fnet peer size slots resptime)
+(define (handlesr filename fnet peer size slots resptime hash)
   (let ((cl (or (assoc size sr)
 		(let ((newp (cons size '()))) (set! sr (append sr (list newp))) newp)))
 	(newsr (list
@@ -326,6 +328,7 @@
 		(cons 'slots slots)
 		(cons 'resptime resptime)
 		(cons 'speed (getspeed peer))
+		(cons 'hash hash)
 		(cons 'recvtime (current-time))
 		(cons 'dis #f)))
 	(newlist '()))
@@ -499,7 +502,7 @@
 							(set! lastsearch (current-time))))))
 					  ((622) ; Search result
 					   (let ((ires (list->vector (dc-intresp resp))))
-					     (if (and ires (= (vector-ref ires 0) srchid)) (apply handlesr (map (lambda (n) (vector-ref ires n)) '(1 2 3 4 5 7))))))
+					     (if (and ires (= (vector-ref ires 0) srchid)) (apply handlesr (map (lambda (n) (vector-ref ires n)) '(1 2 3 4 5 7 8))))))
 					  
 					  )
 					)
