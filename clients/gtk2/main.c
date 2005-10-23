@@ -108,6 +108,7 @@ gboolean cb_main_trlist_keypress(GtkWidget *widget, GdkEventKey *event, gpointer
 void cb_main_filternoslots_toggled(GtkToggleButton *widget, gpointer data);
 void cb_main_srhash_activate(GtkWidget *widget, gpointer data);
 void cb_main_trhash_activate(GtkWidget *widget, gpointer data);
+void cb_main_trcancel_activate(GtkWidget *widget, gpointer data);
 gboolean cb_main_srpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
 gboolean cb_main_trpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
 void dcfdcallback(gpointer data, gint source, GdkInputCondition condition);
@@ -1659,8 +1660,8 @@ void cb_main_srchres_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewC
     GtkTreeIter iter;
     GtkTreeModel *model;
     int size, num;
-    char *tfnet, *tpeerid, *tfilename, *arg;
-    wchar_t *fnet, *peerid, *filename;
+    char *tfnet, *tpeerid, *tfilename, *thash, *arg;
+    wchar_t *fnet, *peerid, *filename, *hash;
     
     if(dcfd < 0)
     {
@@ -1673,10 +1674,11 @@ void cb_main_srchres_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewC
     gtk_tree_model_get(model, &iter, 7, &num, -1);
     if(num > 0)
 	return;
-    gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 0, &tfnet, 1, &tpeerid, 3, &tfilename, 4, &size, -1);
+    gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 0, &tfnet, 1, &tpeerid, 3, &tfilename, 4, &size, 9, &thash, -1);
     fnet = icmbstowcs(tfnet, "UTF-8");
     peerid = icmbstowcs(tpeerid, "UTF-8");
     filename = icmbstowcs(tfilename, "UTF-8");
+    hash = (thash == NULL)?NULL:icmbstowcs(thash, "UTF-8");
     if((fnet == NULL) || (peerid == NULL) || (filename == NULL))
     {
 	if(fnet != NULL)
@@ -1685,9 +1687,13 @@ void cb_main_srchres_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewC
 	    free(peerid);
 	if(filename != NULL)
 	    free(filename);
+	if(hash != NULL)
+	    free(hash);
 	g_free(tfnet);
 	g_free(tpeerid);
 	g_free(tfilename);
+	if(thash != NULL)
+	    g_free(thash);
 	return;
     }
     g_free(tfnet);
@@ -1695,12 +1701,14 @@ void cb_main_srchres_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewC
     g_free(tfilename);
     arg = (char *)gtk_entry_get_text(GTK_ENTRY(main_dlarg));
     if(*arg)
-	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%%ls", peerid, L"%%ls", filename, L"%%i", size, L"user", L"%%s", arg, NULL);
+	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%%ls", peerid, L"%%ls", filename, L"%%i", size, L"hash", L"%%ls", (hash == NULL)?L"":hash, L"user", L"%%s", arg, NULL);
     else
-	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%%ls", peerid, L"%%ls", filename, L"%%i", size, NULL);
+	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%%ls", peerid, L"%%ls", filename, L"%%i", size, L"hash", L"%%ls", (hash == NULL)?L"":hash, NULL);
     free(fnet);
     free(peerid);
     free(filename);
+    if(hash != NULL)
+	free(hash);
     if((resp = dc_gettaggedrespsync(tag)) != NULL)
     {
 	if(resp->code == 502)
@@ -1772,6 +1780,35 @@ void cb_main_trhash_activate(GtkWidget *widget, gpointer data)
 	g_free(hash);
 	free(buf);
 	cb_main_srchbtn_clicked(widget, NULL);
+    } else {
+	return;
+    }
+}
+
+void cb_main_trcancel_activate(GtkWidget *widget, gpointer data)
+{
+    GtkTreeSelection *sel;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    int id, tag;
+    struct dc_response *resp;
+    
+    if(nextsrch != -1)
+	return;
+    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(main_downloads));
+    if(gtk_tree_selection_get_selected(sel, &model, &iter))
+    {
+	gtk_tree_model_get(model, &iter, 0, &id, -1);
+	tag = dc_queuecmd(NULL, NULL, L"cancel", L"%%i", id, NULL);
+	if((resp = dc_gettaggedrespsync(tag)) != NULL)
+	{
+	    if(resp->code == 502)
+		msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("You do not have permission to do that"));
+	    else if(resp->code != 200)
+		msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("An error occurred while trying to cancel (%i)"), resp->code);
+	    dc_freeresp(resp);
+	}
+	handleresps();
     } else {
 	return;
     }
