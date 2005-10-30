@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2005-07-09 05:31+0200\n"
-"PO-Revision-Date: 2005-08-15 03:48+0200\n"
+"POT-Creation-Date: 2005-10-24 02:57+0200\n"
+"PO-Revision-Date: 2005-10-29 23:27+0200\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -17,78 +17,78 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: clients/gtk2/main.c:215 clients/gtk2/main.c:238 clients/gtk2/main.c:270
-#: clients/gtk2/main.c:304 clients/gtk2/main.c:400 clients/gtk2/main.c:419
+#: clients/gtk2/main.c:220 clients/gtk2/main.c:243 clients/gtk2/main.c:275
+#: clients/gtk2/main.c:309 clients/gtk2/main.c:405 clients/gtk2/main.c:428
 msgid "Unknown"
 msgstr "Okänt"
 
-#: clients/gtk2/main.c:319
+#: clients/gtk2/main.c:324
 msgid "Not found"
 msgstr "Kunde inte hittas"
 
-#: clients/gtk2/main.c:321
+#: clients/gtk2/main.c:326
 msgid "No slots"
 msgstr "Inga slots lediga"
 
-#: clients/gtk2/main.c:322
+#: clients/gtk2/main.c:327
 msgid "%H:%M:%S"
 msgstr "%H:%M:%S"
 
-#: clients/gtk2/main.c:323
+#: clients/gtk2/main.c:328
 #, c-format
 msgid "%s (reported at %s)"
 msgstr "%s (rapporterades kl. %s)"
 
-#: clients/gtk2/main.c:484 clients/gtk2/main.c:1807
+#: clients/gtk2/main.c:497 clients/gtk2/main.c:1980
 msgid "Disconnected"
 msgstr "Frånkopplad"
 
-#: clients/gtk2/main.c:607
+#: clients/gtk2/main.c:620
 msgid "Could not get your home directory!"
 msgstr "Kunde inte hitta din hemkatalog!"
 
-#: clients/gtk2/main.c:614
+#: clients/gtk2/main.c:627
 #, c-format
 msgid "Could not open configuration file for writing: %s"
 msgstr "Kunde inte skriva till konfigurationsfilen: %s"
 
-#: clients/gtk2/main.c:655 clients/gtk2/main.c:659
+#: clients/gtk2/main.c:668 clients/gtk2/main.c:672
 msgid "Login"
 msgstr "Logga in"
 
-#: clients/gtk2/main.c:695
+#: clients/gtk2/main.c:708
 msgid "Could not negotiate an acceptable authentication mechanism"
 msgstr "Kunde inte förhandla fram en acceptabel autentiseringsmekanism"
 
-#: clients/gtk2/main.c:700
+#: clients/gtk2/main.c:713
 msgid "The server has encountered an error"
 msgstr "Servern har råkat ut för ett fel"
 
-#: clients/gtk2/main.c:705
+#: clients/gtk2/main.c:718
 msgid "Internal client error"
 msgstr "Internt fel i klienten"
 
-#: clients/gtk2/main.c:714
+#: clients/gtk2/main.c:727
 msgid "Login attempt failed!"
 msgstr "Inloggningsförsöket misslyckades!"
 
-#: clients/gtk2/main.c:760
+#: clients/gtk2/main.c:773
 msgid "Discrete sizes"
 msgstr "Enskilda storlekar"
 
-#: clients/gtk2/main.c:881
+#: clients/gtk2/main.c:894
 msgid "Connected"
 msgstr "Ansluten"
 
-#: clients/gtk2/main.c:884
+#: clients/gtk2/main.c:897
 msgid "The server refused the connection"
 msgstr "Servern vägrade förbindelsen"
 
-#: clients/gtk2/main.c:1083
+#: clients/gtk2/main.c:1102
 msgid "The server has closed the connection"
 msgstr "Servern har stängt förbindelsen"
 
-#: clients/gtk2/main.c:1085
+#: clients/gtk2/main.c:1104
 #, c-format
 msgid ""
 "The connection to the server failed:\n"
@@ -99,11 +99,11 @@ msgstr ""
 "\n"
 "%s"
 
-#: clients/gtk2/main.c:1105
+#: clients/gtk2/main.c:1124
 msgid "Preferences"
 msgstr "Inställningar"
 
-#: clients/gtk2/main.c:1131
+#: clients/gtk2/main.c:1150
 #, c-format
 msgid ""
 "Could not connect:\n"
@@ -114,96 +114,96 @@ msgstr ""
 "\n"
 "%s"
 
-#: clients/gtk2/main.c:1138
+#: clients/gtk2/main.c:1157
 #: clients/gnome-trans-applet/dolcon-trans-applet.c:84
 msgid "Connecting..."
 msgstr "Ansluter..."
 
-#: clients/gtk2/main.c:1147
+#: clients/gtk2/main.c:1166
 msgid "Connect"
 msgstr "Anslut"
 
-#: clients/gtk2/main.c:1147
+#: clients/gtk2/main.c:1166
 msgid "Server address:"
 msgstr "Serverns adress:"
 
-#: clients/gtk2/main.c:1160 clients/gtk2/main.c:1181 clients/gtk2/main.c:1360
-#: clients/gtk2/main.c:1402 clients/gtk2/main.c:1464 clients/gtk2/main.c:1552
-#: clients/gtk2/main.c:1647
+#: clients/gtk2/main.c:1179 clients/gtk2/main.c:1200 clients/gtk2/main.c:1379
+#: clients/gtk2/main.c:1421 clients/gtk2/main.c:1483 clients/gtk2/main.c:1571
+#: clients/gtk2/main.c:1668
 msgid "Not connected to DC server"
 msgstr "Ej ansluten till DC-servern"
 
-#: clients/gtk2/main.c:1167 clients/gtk2/main.c:1195 clients/gtk2/main.c:1373
-#: clients/gtk2/main.c:1420 clients/gtk2/main.c:1477 clients/gtk2/main.c:1570
-#: clients/gtk2/main.c:1625 clients/gtk2/main.c:1687
+#: clients/gtk2/main.c:1186 clients/gtk2/main.c:1214 clients/gtk2/main.c:1392
+#: clients/gtk2/main.c:1439 clients/gtk2/main.c:1496 clients/gtk2/main.c:1589
+#: clients/gtk2/main.c:1644 clients/gtk2/main.c:1715 clients/gtk2/main.c:1806
 msgid "You do not have permission to do that"
 msgstr "Du har inte tillstånd att göra det"
 
-#: clients/gtk2/main.c:1197 clients/gtk2/main.c:1422
+#: clients/gtk2/main.c:1216 clients/gtk2/main.c:1441
 msgid "The server could not parse that address"
 msgstr "Servern kunde inte tolka den adressen"
 
-#: clients/gtk2/main.c:1225
+#: clients/gtk2/main.c:1244
 #, c-format
 msgid "Could not read from public hub listing process: %s"
 msgstr "Kunde inte läsa från processen som hämtar den publika hublistan: %s"
 
-#: clients/gtk2/main.c:1262
+#: clients/gtk2/main.c:1281
 #, c-format
 msgid "Could not decode hublist - aborting at this point: %s"
 msgstr "Kunde inte dekoda hublistan - stannar här: %s"
 
-#: clients/gtk2/main.c:1365 clients/gtk2/main.c:1469
+#: clients/gtk2/main.c:1384 clients/gtk2/main.c:1488
 msgid "No hub selected"
 msgstr "Ingen hub vald"
 
-#: clients/gtk2/main.c:1479
+#: clients/gtk2/main.c:1498
 msgid ""
 "This hub could not support all the types of characters in your chat message"
 msgstr "Den här hubben klarar inte av alla sorters bokstäver i ditt meddelande"
 
-#: clients/gtk2/main.c:1481
+#: clients/gtk2/main.c:1500
 msgid "This hub does not support chatting"
 msgstr "Den här hubben klarar inte av att chatta"
 
-#: clients/gtk2/main.c:1483
+#: clients/gtk2/main.c:1502
 #, c-format
 msgid "An error occurred while trying to chat (%i)"
 msgstr "Ett fel uppstod under försöket att chatta (%i)"
 
-#: clients/gtk2/main.c:1560
+#: clients/gtk2/main.c:1579
 msgid "Please enter a search expression before searching"
 msgstr "Skriv in ett sökuttryck först"
 
-#: clients/gtk2/main.c:1568
+#: clients/gtk2/main.c:1587
 msgid "Could not find any hubs to search on"
 msgstr "Kunde inte hitta någon hub att söka på"
 
-#: clients/gtk2/main.c:1572
+#: clients/gtk2/main.c:1591
 msgid "The server could not parse your search expression"
 msgstr "Servern kunde inte tolka ditt sökuttryck"
 
-#: clients/gtk2/main.c:1574
+#: clients/gtk2/main.c:1593
 #, c-format
 msgid "An error occurred while trying to search (%i)"
 msgstr "Ett fel uppstod under försöket att söka (%i)"
 
-#: clients/gtk2/main.c:1627
+#: clients/gtk2/main.c:1646 clients/gtk2/main.c:1808
 #, c-format
 msgid "An error occurred while trying to cancel (%i)"
 msgstr "Ett fel uppstod under försöket att avbryta (%i)"
 
-#: clients/gtk2/main.c:1689
+#: clients/gtk2/main.c:1717
 #, c-format
 msgid "An error occurred while trying to queue the download (%i)"
 msgstr "Ett fel uppstod under försöket att lägga till nerladdningen (%i)"
 
-#: clients/gtk2/main.c:1720 clients/gtk2/mainwnd.gtk:398
+#: clients/gtk2/main.c:1883 clients/gtk2/mainwnd.gtk:429
 #, c-format
 msgid "Ready to search"
 msgstr "Redo att söka"
 
-#: clients/gtk2/main.c:1722
+#: clients/gtk2/main.c:1885
 #, c-format
 msgid "Search scheduled and will be submitted in %i seconds"
 msgstr "Sökningen är schemalagd och kommer genomföras om %i sekunder"
@@ -212,184 +212,196 @@ msgstr "Sökningen är schemalagd och kommer genomföras om %i sekunder"
 msgid " "
 msgstr " "
 
-#: clients/gtk2/mainwnd.gtk:45
+#: clients/gtk2/mainwnd.gtk:43 clients/gtk2/mainwnd.gtk:54
+msgid "Search for this hash"
+msgstr "Sök efter denna hash"
+
+#: clients/gtk2/mainwnd.gtk:60
+msgid "Cancel transfer"
+msgstr "Avbryt överföringen"
+
+#: clients/gtk2/mainwnd.gtk:76
 msgid "_Main"
 msgstr "Huvud_meny"
 
-#: clients/gtk2/mainwnd.gtk:50
+#: clients/gtk2/mainwnd.gtk:81
 msgid "_Connect"
 msgstr "_Anslut"
 
-#: clients/gtk2/mainwnd.gtk:57
+#: clients/gtk2/mainwnd.gtk:88
 msgid "_Disconnect"
 msgstr "_Koppla från"
 
-#: clients/gtk2/mainwnd.gtk:69
+#: clients/gtk2/mainwnd.gtk:100
 msgid "_Shut down daemon"
 msgstr "_Stäng av demonen"
 
-#: clients/gtk2/mainwnd.gtk:84
+#: clients/gtk2/mainwnd.gtk:115
 msgid "Op_tions"
 msgstr "Alternati_v"
 
-#: clients/gtk2/mainwnd.gtk:112
+#: clients/gtk2/mainwnd.gtk:143
 msgid "Connected hu_bs"
 msgstr "_Anslutna hubbar"
 
-#: clients/gtk2/mainwnd.gtk:124 clients/gtk2/mainwnd.gtk:260
+#: clients/gtk2/mainwnd.gtk:155 clients/gtk2/mainwnd.gtk:291
 msgid "Hub name"
 msgstr "Hubnamn"
 
-#: clients/gtk2/mainwnd.gtk:138 clients/gtk2/mainwnd.gtk:175
+#: clients/gtk2/mainwnd.gtk:169 clients/gtk2/mainwnd.gtk:206
 msgid "# users"
 msgstr "Antal användare"
 
-#: clients/gtk2/mainwnd.gtk:149
+#: clients/gtk2/mainwnd.gtk:180
 msgid "D_isconnect"
 msgstr "_Koppla från"
 
-#: clients/gtk2/mainwnd.gtk:160
+#: clients/gtk2/mainwnd.gtk:191
 msgid "_Public hub list"
 msgstr "_Publik hublista"
 
-#: clients/gtk2/mainwnd.gtk:180
+#: clients/gtk2/mainwnd.gtk:211
 msgid "Name"
 msgstr "Namn"
 
-#: clients/gtk2/mainwnd.gtk:185
+#: clients/gtk2/mainwnd.gtk:216
 msgid "Description"
 msgstr "Beskrivning"
 
-#: clients/gtk2/mainwnd.gtk:198
+#: clients/gtk2/mainwnd.gtk:229
 msgid "_Filter:"
 msgstr "_Filter:"
 
-#: clients/gtk2/mainwnd.gtk:209
+#: clients/gtk2/mainwnd.gtk:240
 msgid "_Get public hub list"
 msgstr "Hämta _publik hublista"
 
-#: clients/gtk2/mainwnd.gtk:214
+#: clients/gtk2/mainwnd.gtk:245
 msgid "_Address:"
 msgstr "_Adress:"
 
-#: clients/gtk2/mainwnd.gtk:225
+#: clients/gtk2/mainwnd.gtk:256
 msgid "C_onnect"
 msgstr "_Anslut"
 
-#: clients/gtk2/mainwnd.gtk:239
+#: clients/gtk2/mainwnd.gtk:270
 msgid "_Hub connections"
 msgstr "_Hubanslutningar"
 
-#: clients/gtk2/mainwnd.gtk:247
+#: clients/gtk2/mainwnd.gtk:278
 msgid "Hu_bs"
 msgstr "Hu_bbar"
 
-#: clients/gtk2/mainwnd.gtk:298
+#: clients/gtk2/mainwnd.gtk:329
 msgid "Chat st_ring:"
 msgstr "Chatm_eddelande:"
 
-#: clients/gtk2/mainwnd.gtk:309
+#: clients/gtk2/mainwnd.gtk:340
 msgid "S_end"
 msgstr "S_kicka"
 
-#: clients/gtk2/mainwnd.gtk:321
+#: clients/gtk2/mainwnd.gtk:352
 msgid "_Chat"
 msgstr "_Chat"
 
-#: clients/gtk2/mainwnd.gtk:328
+#: clients/gtk2/mainwnd.gtk:359
 msgid "S_imple search:"
 msgstr "_Enkel sökning:"
 
-#: clients/gtk2/mainwnd.gtk:340
+#: clients/gtk2/mainwnd.gtk:371
 msgid "S_earch"
 msgstr "S_ök"
 
-#: clients/gtk2/mainwnd.gtk:346
+#: clients/gtk2/mainwnd.gtk:377
 msgid "C_ancel"
 msgstr "_Avbryt"
 
-#: clients/gtk2/mainwnd.gtk:357
+#: clients/gtk2/mainwnd.gtk:388
 msgid "Displa_y results with free slots only"
 msgstr "_Visa endast resultat med fria slots"
 
-#: clients/gtk2/mainwnd.gtk:363
+#: clients/gtk2/mainwnd.gtk:394
 msgid "Ad_vanced"
 msgstr "A_vancerat"
 
-#: clients/gtk2/mainwnd.gtk:368
+#: clients/gtk2/mainwnd.gtk:399
 msgid "C_omplete search expression:"
 msgstr "_Komplett sökuttryck:"
 
-#: clients/gtk2/mainwnd.gtk:380
+#: clients/gtk2/mainwnd.gtk:411
 msgid "Filter ar_gument:"
 msgstr "Filterar_gument:"
 
-#: clients/gtk2/mainwnd.gtk:407
+#: clients/gtk2/mainwnd.gtk:438
 msgid "Search _results:"
 msgstr "Sök_resultat:"
 
-#: clients/gtk2/mainwnd.gtk:422
+#: clients/gtk2/mainwnd.gtk:455
 msgid "#"
 msgstr "#"
 
-#: clients/gtk2/mainwnd.gtk:432
+#: clients/gtk2/mainwnd.gtk:465
 msgid "Peer name"
 msgstr "Användare"
 
-#: clients/gtk2/mainwnd.gtk:437
+#: clients/gtk2/mainwnd.gtk:470
 msgid "File name"
 msgstr "Filnamn"
 
-#: clients/gtk2/mainwnd.gtk:444 clients/gtk2/mainwnd.gtk:520
-#: clients/gtk2/mainwnd.gtk:590
+#: clients/gtk2/mainwnd.gtk:477 clients/gtk2/mainwnd.gtk:560
+#: clients/gtk2/mainwnd.gtk:633
 msgid "Size"
 msgstr "Storlek"
 
-#: clients/gtk2/mainwnd.gtk:454
+#: clients/gtk2/mainwnd.gtk:487
 msgid "Slots"
 msgstr "Slots"
 
-#: clients/gtk2/mainwnd.gtk:460
+#: clients/gtk2/mainwnd.gtk:493
 msgid "Known speed"
 msgstr "Känd hastighet"
 
-#: clients/gtk2/mainwnd.gtk:470
+#: clients/gtk2/mainwnd.gtk:503
 msgid "Rsp. time"
 msgstr "Svarstid"
 
-#: clients/gtk2/mainwnd.gtk:482
+#: clients/gtk2/mainwnd.gtk:508 clients/gtk2/mainwnd.gtk:590
+msgid "Hash"
+msgstr "Hash"
+
+#: clients/gtk2/mainwnd.gtk:520
 msgid "_Search"
 msgstr "_Sök"
 
-#: clients/gtk2/mainwnd.gtk:492
+#: clients/gtk2/mainwnd.gtk:530
 msgid "_List of downloads:"
 msgstr "_Lista över nerladdningar:"
 
-#: clients/gtk2/mainwnd.gtk:504 clients/gtk2/mainwnd.gtk:574
+#: clients/gtk2/mainwnd.gtk:544 clients/gtk2/mainwnd.gtk:617
 msgid "User Name"
 msgstr "Användarnamn"
 
-#: clients/gtk2/mainwnd.gtk:516 clients/gtk2/mainwnd.gtk:586
+#: clients/gtk2/mainwnd.gtk:556 clients/gtk2/mainwnd.gtk:629
 msgid "File Name"
 msgstr "Filenamn"
 
-#: clients/gtk2/mainwnd.gtk:529 clients/gtk2/mainwnd.gtk:599
+#: clients/gtk2/mainwnd.gtk:569 clients/gtk2/mainwnd.gtk:642
 msgid "Position"
 msgstr "Position"
 
-#: clients/gtk2/mainwnd.gtk:542
+#: clients/gtk2/mainwnd.gtk:582
 msgid "Error"
 msgstr "Felmeddelande"
 
-#: clients/gtk2/mainwnd.gtk:557
+#: clients/gtk2/mainwnd.gtk:600
 msgid "_Downloads"
 msgstr "_Nerladdningar"
 
-#: clients/gtk2/mainwnd.gtk:562
+#: clients/gtk2/mainwnd.gtk:605
 msgid "_List of uploads:"
 msgstr "_Lista över uppladdningar:"
 
-#: clients/gtk2/mainwnd.gtk:618
+#: clients/gtk2/mainwnd.gtk:661
 msgid "_Uploads"
 msgstr "_Uppladdningar"
 
@@ -413,7 +425,7 @@ msgstr "Anslut au_tomatiskt vid uppstart"
 msgid "Calculating remaining time..."
 msgstr "Beräknar återstående tid..."
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:62
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:63
 msgid "Time left: Infinite (Transfer is standing still)"
 msgstr "Tid kvar: Oändlig (Överföringen står still)"
 
