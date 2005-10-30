@@ -118,7 +118,7 @@
 						    (set! last-fn (vector-ref ires 0))))
 					 (for-each
 					  (lambda (p)
-					    (write-line (string-append (strftime "%H:%M:%S" (localtime (current-time))) ": <" (vector-ref ires 3) "> " (vector-ref ires 4)) p))
+					    (write-line (string-append (strftime "%H:%M:%S" (localtime (current-time))) (if (eq? (vector-ref ires 1) 0) "!" ":") " <" (vector-ref ires 3) "> " (vector-ref ires 4)) p))
 					  (list p (current-output-port)))
 					 (close-port p))
 				       ))
