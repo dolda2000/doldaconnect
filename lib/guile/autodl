@@ -378,7 +378,7 @@
 
 (define (autodl-main args)
   (let ((dc-server #f) (done #f) (retval 0))
-    (let ((getopt (make-getopt (cdr args) "hs:S:e:p:t:a:I:")) (arg #f))
+    (let ((getopt (make-getopt (cdr args) "whs:S:e:p:t:a:I:")) (arg #f))
       (do ((arg (getopt) (getopt))) ((not (and (pair? arg) (char? (car arg)))) (set! args arg))
 	(cond ((eq? (car arg) #\h)
 	       (begin (display "usage: autodl [-s server] -S sessfile\n" (current-error-port))
