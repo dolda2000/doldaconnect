@@ -516,7 +516,8 @@
 					  ((622) ; Search result
 					   (let ((ires (list->vector (dc-intresp resp))))
 					     (if (eq? (cdr (assoc 'search-mode session)) 'wait)
-						 (set-cdr! (assoc 'search-mode session) 'normal))
+						 (begin (set-cdr! (assoc 'search-mode session) 'normal)
+							(logf "reverting to normal mode")))
 					     (if (and ires (= (vector-ref ires 0) srchid)) (apply handlesr (map (lambda (n) (vector-ref ires n)) '(1 2 3 4 5 7 8))))))
 					  
 					  )
