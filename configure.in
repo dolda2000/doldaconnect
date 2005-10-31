@@ -151,6 +151,7 @@ CPPFLAGS="-I\$(top_srcdir)/include $CPPFLAGS"
 AC_SUBST([clients extlibs])
 AC_OUTPUT([
 Makefile
+autopackage/Makefile
 daemon/Makefile
 lib/Makefile
 lib/guile/Makefile
