@@ -32,3 +32,6 @@
 620 - Search ETA change
 621 - Search commit
 622 - Search result
+630 - Peer create
+631 - Peer delete
+632 - Peer change
