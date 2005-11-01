@@ -422,7 +422,7 @@
     (if (not (assoc 'maxtrans session))
 	(set! session (cons '(maxtrans . 1) session)))
     (if (not (assoc 'search-mode session))
-	(set! session (cons '(search-mode . wait) session)))
+	(set! session (cons '(search-mode . normal) session)))
     (if (not (validate-session session)) (begin (display "Invalid session!\n" (current-error-port)) (exit 1)))
     (if (not dc-server) (set! dc-server (getenv "DCSERVER")))
     (if (not dc-server) (set! dc-server "localhost"))
