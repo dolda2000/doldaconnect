@@ -105,6 +105,9 @@ struct fnetnode
     CBCHAIN(fnetnode_chat, struct fnetnode *fn, int public, wchar_t *name, wchar_t *peer, wchar_t *string);
     CBCHAIN(fnetnode_unlink, struct fnetnode *fn);
     CBCHAIN(fnetnode_destroy, struct fnetnode *fn);
+    CBCHAIN(fnetpeer_new, struct fnetnode *fn, struct fnetpeer *peer);
+    CBCHAIN(fnetpeer_del, struct fnetnode *fn, struct fnetpeer *peer);
+    CBCHAIN(fnetpeer_chdi, struct fnetnode *fn, struct fnetpeer *peer, struct fnetpeerdi *di);
     int numpeers;
     void *data;
 };
