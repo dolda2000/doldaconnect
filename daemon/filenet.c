@@ -243,7 +243,7 @@ void fnetpeersetstr(struct fnetpeer *peer, wchar_t *id, wchar_t *value)
 	datum = adddatum(peer->fn, id, FNPD_STR);
     di = difindoradd(peer, datum, &changed);
     if(di->data.str != NULL) {
-	changed = (changed || !wcscmp(value, di->data.str));
+	changed = (changed || wcscmp(value, di->data.str));
 	free(di->data.str);
     } else {
 	changed = 1;
