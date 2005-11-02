@@ -52,6 +52,9 @@ static struct fnetnode *newfn(struct fnet *fnet)
     CBCHAININIT(new, fnetnode_chat);
     CBCHAININIT(new, fnetnode_unlink);
     CBCHAININIT(new, fnetnode_destroy);
+    CBCHAININIT(new, fnetpeer_new);
+    CBCHAININIT(new, fnetpeer_del);
+    CBCHAININIT(new, fnetpeer_chdi);
     new->next = NULL;
     new->prev = NULL;
     numfnetnodes++;
@@ -98,6 +101,9 @@ void putfnetnode(struct fnetnode *fn)
     CBCHAINFREE(fn, fnetnode_chat);
     CBCHAINFREE(fn, fnetnode_unlink);
     CBCHAINFREE(fn, fnetnode_destroy);
+    CBCHAINFREE(fn, fnetpeer_new);
+    CBCHAINFREE(fn, fnetpeer_del);
+    CBCHAINFREE(fn, fnetpeer_chdi);
     if(fn->fnet->destroy != NULL)
 	fn->fnet->destroy(fn);
     while(fn->peers != NULL)
@@ -202,7 +208,7 @@ static struct fnetpeerdatum *adddatum(struct fnetnode *fn, wchar_t *id, int data
     return(new);
 }
 
-static struct fnetpeerdi *difindoradd(struct fnetpeer *peer, struct fnetpeerdatum *datum)
+static struct fnetpeerdi *difindoradd(struct fnetpeer *peer, struct fnetpeerdatum *datum, int *isnew)
 {
     int i;
     
@@ -217,8 +223,12 @@ static struct fnetpeerdi *difindoradd(struct fnetpeer *peer, struct fnetpeerdatu
 	memset(&peer->peerdi[peer->dinum], 0, sizeof(struct fnetpeerdi));
 	peer->peerdi[peer->dinum].datum = datum;
 	datum->refcount++;
+	if(isnew != NULL)
+	    *isnew = 1;
 	return(&peer->peerdi[peer->dinum++]);
     } else {
+	if(isnew != NULL)
+	    *isnew = 0;
 	return(&peer->peerdi[i]);
     }
 }
@@ -227,35 +237,50 @@ void fnetpeersetstr(struct fnetpeer *peer, wchar_t *id, wchar_t *value)
 {
     struct fnetpeerdatum *datum;
     struct fnetpeerdi *di;
+    int changed;
     
     if((datum = finddatum(peer->fn, id)) == NULL)
 	datum = adddatum(peer->fn, id, FNPD_STR);
-    di = difindoradd(peer, datum);
-    if(di->data.str != NULL)
+    di = difindoradd(peer, datum, &changed);
+    if(di->data.str != NULL) {
+	changed = (changed || !wcscmp(value, di->data.str));
 	free(di->data.str);
+    } else {
+	changed = 1;
+    }
     di->data.str = swcsdup(value);
+    if(changed)
+	CBCHAINDOCB(peer->fn, fnetpeer_chdi, peer->fn, peer, di);
 }
 
 void fnetpeersetnum(struct fnetpeer *peer, wchar_t *id, int value)
 {
     struct fnetpeerdatum *datum;
     struct fnetpeerdi *di;
+    int changed;
     
     if((datum = finddatum(peer->fn, id)) == NULL)
 	datum = adddatum(peer->fn, id, FNPD_INT);
-    di = difindoradd(peer, datum);
+    di = difindoradd(peer, datum, &changed);
+    changed = (changed || (di->data.num != value));
     di->data.num = value;
+    if(changed)
+	CBCHAINDOCB(peer->fn, fnetpeer_chdi, peer->fn, peer, di);
 }
 
 void fnetpeersetlnum(struct fnetpeer *peer, wchar_t *id, long long value)
 {
     struct fnetpeerdatum *datum;
     struct fnetpeerdi *di;
+    int changed;
     
     if((datum = finddatum(peer->fn, id)) == NULL)
 	datum = adddatum(peer->fn, id, FNPD_LL);
-    di = difindoradd(peer, datum);
+    di = difindoradd(peer, datum, &changed);
+    changed = (changed || (di->data.lnum != value));
     di->data.lnum = value;
+    if(changed)
+	CBCHAINDOCB(peer->fn, fnetpeer_chdi, peer->fn, peer, di);
 }
 
 static void putdatum(struct fnetpeer *peer, struct fnetpeerdatum *datum)
@@ -311,6 +336,7 @@ struct fnetpeer *fnetaddpeer(struct fnetnode *fn, wchar_t *id, wchar_t *nick)
     fn->peers = new;
     fn->numpeers++;
     CBCHAINDOCB(fn, fnetnode_ac, fn, L"numpeers");
+    CBCHAINDOCB(fn, fnetpeer_new, fn, new);
     return(new);
 }
 
@@ -326,6 +352,7 @@ void fnetdelpeer(struct fnetpeer *peer)
 	peer->fn->peers = peer->next;
     peer->fn->numpeers--;
     CBCHAINDOCB(peer->fn, fnetnode_ac, peer->fn, L"numpeers");
+    CBCHAINDOCB(peer->fn, fnetpeer_del, peer->fn, peer);
     free(peer->id);
     free(peer->nick);
     for(i = 0; i < peer->dinum; i++)
