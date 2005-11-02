@@ -123,6 +123,7 @@ struct uidata
 	{
 	    int fnact:1;
 	    int fnchat:1;
+	    int fnpeer:1;
 	    int tract:1;
 	    int trprog:1;
 	    int srch:1;
@@ -835,6 +836,8 @@ static void cmd_notify(struct socket *sk, struct uidata *data, int argc, wchar_t
 	    data->notify.b.fnchat = val;
 	} else if(!wcscasecmp(argv[i], L"fn:act")) {
 	    data->notify.b.fnact = val;
+	} else if(!wcscasecmp(argv[i], L"fn:peer")) {
+	    data->notify.b.fnpeer = val;
 	} else if(!wcscasecmp(argv[i], L"trans:act")) {
 	    data->notify.b.tract = val;
 	} else if(!wcscasecmp(argv[i], L"trans:prog")) {
@@ -1267,18 +1270,10 @@ static struct qcommand *unlinkqcmd(struct uidata *data)
     return(qcmd);
 }
 
-static struct notif *newnotif(struct uidata *data, int code, ...)
+static void notifappendv(struct notif *notif, va_list args)
 {
-    struct notif *notif;
-    va_list args;
     int dt, ca;
     
-    notif = smalloc(sizeof(*notif));
-    memset(notif, 0, sizeof(*notif));
-    notif->rlimit = 0.0;
-    notif->ui = data;
-    notif->code = code;
-    va_start(args, code);
     while((dt = va_arg(args, int)) != NOTIF_END)
     {
 	ca = notif->argc;
@@ -1298,6 +1293,29 @@ static struct notif *newnotif(struct uidata *data, int code, ...)
 	    break;
 	}
     }
+}
+
+static void notifappend(struct notif *notif, ...)
+{
+    va_list args;
+    
+    va_start(args, notif);
+    notifappendv(notif, args);
+    va_end(args);
+}
+
+static struct notif *newnotif(struct uidata *data, int code, ...)
+{
+    struct notif *notif;
+    va_list args;
+    
+    notif = smalloc(sizeof(*notif));
+    memset(notif, 0, sizeof(*notif));
+    notif->rlimit = 0.0;
+    notif->ui = data;
+    notif->code = code;
+    va_start(args, code);
+    notifappendv(notif, args);
     va_end(args);
     notif->next = NULL;
     notif->prev = data->lnotif;
@@ -1718,7 +1736,7 @@ static int fnactive(struct fnetnode *fn, wchar_t *attrib, void *uudata)
 		if((notif = findnotif(data->fnotif, 1, NOTIF_PEND, 605, fn->id)) != NULL)
 		    notif->argv[1].d.n = fn->numpeers;
 		else
-		    newnotif(data, 605, NOTIF_ID, fn->id, NOTIF_INT, fn->numpeers, NOTIF_END);
+		    newnotif(data, 605, NOTIF_ID, fn->id, NOTIF_INT, fn->numpeers, NOTIF_END)->rlimit = 0.5;
 	    }
 	}
     }
@@ -1737,6 +1755,66 @@ static int fnunlink(struct fnetnode *fn, void *uudata)
     return(0);
 }
 
+static int peernew(struct fnetnode *fn, struct fnetpeer *peer, void *uudata)
+{
+    struct uidata *data;
+    
+    for(data = actives; data != NULL; data = data->next)
+    {
+	if(data->notify.b.fnpeer)
+	    newnotif(data, 630, NOTIF_INT, fn->id, NOTIF_STR, peer->id, NOTIF_STR, peer->nick, NOTIF_END);
+    }
+    return(0);
+}
+
+static int peerdel(struct fnetnode *fn, struct fnetpeer *peer, void *uudata)
+{
+    struct uidata *data;
+    
+    for(data = actives; data != NULL; data = data->next)
+    {
+	if(data->notify.b.fnpeer)
+	    newnotif(data, 631, NOTIF_INT, fn->id, NOTIF_STR, peer->id, NOTIF_END);
+    }
+    return(0);
+}
+
+static int peerchange(struct fnetnode *fn, struct fnetpeer *peer, struct fnetpeerdi *di, void *uudata)
+{
+    struct uidata *data;
+    struct notif *notif;
+    wchar_t buf[32];
+    
+    for(data = actives; data != NULL; data = data->next)
+    {
+	if(data->notify.b.fnpeer)
+	{
+	    for(notif = data->fnotif; notif != NULL; notif = notif->next)
+	    {
+		if((notif->code == 632) && (notif->state == NOTIF_PEND) && (notif->argv[0].d.n == fn->id) && !wcscmp(notif->argv[1].d.s, peer->id))
+		    break;
+	    }
+	    if(notif == NULL)
+		notif = newnotif(data, 632, NOTIF_INT, fn->id, NOTIF_STR, peer->id, NOTIF_STR, peer->nick, NOTIF_END);
+	    notifappend(notif, NOTIF_STR, di->datum->id, NOTIF_INT, di->datum->datatype, NOTIF_END);
+	    switch(di->datum->datatype)
+	    {
+	    case FNPD_INT:
+		notifappend(notif, NOTIF_INT, di->data.num, NOTIF_END);
+		break;
+	    case FNPD_STR:
+		notifappend(notif, NOTIF_STR, di->data.str, NOTIF_END);
+		break;
+	    case FNPD_LL:
+		swprintf(buf, sizeof(buf) / sizeof(*buf), L"%lli", di->data.lnum);
+		notifappend(notif, NOTIF_STR, buf, NOTIF_END);
+		break;
+	    }
+	}
+    }
+    return(0);
+}
+
 static int newfnetnode(struct fnetnode *fn, void *uudata)
 {
     struct uidata *data;
@@ -1749,6 +1827,9 @@ static int newfnetnode(struct fnetnode *fn, void *uudata)
     CBREG(fn, fnetnode_ac, fnactive, NULL, NULL);
     CBREG(fn, fnetnode_chat, recvchat, NULL, NULL);
     CBREG(fn, fnetnode_unlink, fnunlink, NULL, NULL);
+    CBREG(fn, fnetpeer_new, peernew, NULL, NULL);
+    CBREG(fn, fnetpeer_del, peerdel, NULL, NULL);
+    CBREG(fn, fnetpeer_chdi, peerchange, NULL, NULL);
     return(0);
 }
 
