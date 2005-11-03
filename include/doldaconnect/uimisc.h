@@ -18,6 +18,10 @@
 #define DC_FNN_STATE_EST 2
 #define DC_FNN_STATE_DEAD 3
 
+#define DC_FNPD_INT 0
+#define DC_FNPD_LL 1
+#define DC_FNPD_STR 2
+
 #define DC_TRNS_WAITING 0
 #define DC_TRNS_HS 1
 #define DC_TRNS_MAIN 2
@@ -44,6 +48,39 @@ struct dc_fnetnode
     int found;
     void (*destroycb)(struct dc_fnetnode *fn);
     void *udata;
+    int trackpeers;
+    struct dc_fnetpeer *peers;
+    struct dc_fnetpeerdatum *peerdata;
+};
+
+struct dc_fnetpeerdatum
+{
+    struct dc_fnetpeerdatum *next, *prev;
+    int refcount;
+    int dt;
+    wchar_t *id;
+};
+
+struct dc_fnetpeerdi
+{
+    struct dc_fnetpeerdatum *datum;
+    union
+    {
+	int num;
+	long long lnum;
+	wchar_t *str;
+    } d;
+};
+
+struct dc_fnetpeer
+{
+    struct dc_fnetpeer *next, *prev;
+    struct dc_fnetnode *fn;
+    wchar_t *id;
+    wchar_t *nick;
+    int dinum;
+    int found;
+    struct dc_fnetpeerdi *di;
 };
 
 struct dc_transfer
@@ -70,6 +107,8 @@ struct dc_transfer *dc_findtransfer(int id);
 void dc_gettrlistasync(void (*callback)(int, void *), void *udata);
 wchar_t **dc_lexsexpr(wchar_t *sexpr);
 void dc_freewcsarr(wchar_t **arr);
+void dc_getpeerlistasync(struct dc_fnetnode *fn, void (*callback)(struct dc_fnetnode *, int, void *), void *udata);
+struct dc_fnetpeer *dc_fnetfindpeer(struct dc_fnetnode *fn, wchar_t *id);
 
 extern struct dc_fnetnode *dc_fnetnodes;
 extern struct dc_transfer *dc_transfers;

@@ -133,6 +133,9 @@ static void initcmds(void)
     addresp(cmd, 620, RESP_INT, RESP_INT, RESP_END);
     addresp(cmd, 621, RESP_INT, RESP_END);
     addresp(cmd, 622, RESP_INT, RESP_STR, RESP_STR, RESP_STR, RESP_INT, RESP_INT, RESP_INT, RESP_FLOAT, RESP_STR, RESP_END);
+    addresp(cmd, 630, RESP_INT, RESP_STR, RESP_STR, RESP_END);
+    addresp(cmd, 631, RESP_INT, RESP_STR, RESP_END);
+    addresp(cmd, 632, RESP_INT, RESP_STR, RESP_STR, RESP_END);	/* More data follows, but cannot be handled by dc_interpret */
     cmd = makecmd(NULL);	/* Nameless connection */
     addresp(cmd, 200, RESP_STR, RESP_END);
     addresp(cmd, 502, RESP_END);

@@ -126,6 +126,9 @@
 620 i i
 621 i
 622 i s s s i i i f s
+630 i s s
+631 i s
+632 i s s       ; More data follows, but cannot be handled by dc_interpret
 : ; Nameless connection
 200 s
 502
