@@ -50,6 +50,9 @@ struct dc_fnetnode
     void *udata;
     struct dc_fnetpeer *peers;
     struct dc_fnetpeerdatum *peerdata;
+    void (*newpeercb)(struct dc_fnetpeer *peer);
+    void (*delpeercb)(struct dc_fnetpeer *peer);
+    void (*chpeercb)(struct dc_fnetpeer *peer);
 };
 
 struct dc_fnetpeerdatum

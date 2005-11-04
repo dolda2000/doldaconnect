@@ -1218,14 +1218,22 @@ void dc_uimisc_handlenotify(struct dc_response *resp)
 	if((fn = dc_findfnetnode(ires->argv[0].val.num)) != NULL)
 	{
 	    if((peer = dc_fnetfindpeer(fn, ires->argv[1].val.str)) == NULL)
-		addpeer(fn, ires->argv[1].val.str, ires->argv[2].val.str);
+	    {
+		peer = addpeer(fn, ires->argv[1].val.str, ires->argv[2].val.str);
+		if(fn->newpeercb != NULL)
+		    fn->newpeercb(peer);
+	    }
 	}
 	break;
     case 631:
 	if((fn = dc_findfnetnode(ires->argv[0].val.num)) != NULL)
 	{
 	    if((peer = dc_fnetfindpeer(fn, ires->argv[1].val.str)) != NULL)
+	    {
+		if(fn->delpeercb != NULL)
+		    fn->delpeercb(peer);
 		delpeer(peer);
+	    }
 	}
 	break;
     case 632:
@@ -1253,6 +1261,8 @@ void dc_uimisc_handlenotify(struct dc_response *resp)
 			break;
 		    }
 		}
+		if(fn->chpeercb != NULL)
+		    fn->chpeercb(peer);
 	    }
 	}
 	break;
