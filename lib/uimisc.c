@@ -1034,11 +1034,9 @@ static int getpeerlistcallback(struct dc_response *resp)
 	    if(!peer->found)
 		delpeer(peer);
 	}
-	fn->trackpeers = 1;
     } else if(resp->code == 201) {
 	while(fn->peers != NULL)
 	    delpeer(fn->peers);
-	fn->trackpeers = 1;
     }
     data->callback(fn, resp->code, data->data);
     free(data);
@@ -1217,21 +1215,21 @@ void dc_uimisc_handlenotify(struct dc_response *resp)
 	}
 	break;
     case 630:
-	if(((fn = dc_findfnetnode(ires->argv[0].val.num)) != NULL) && fn->trackpeers)
+	if((fn = dc_findfnetnode(ires->argv[0].val.num)) != NULL)
 	{
 	    if((peer = dc_fnetfindpeer(fn, ires->argv[1].val.str)) == NULL)
 		addpeer(fn, ires->argv[1].val.str, ires->argv[2].val.str);
 	}
 	break;
     case 631:
-	if(((fn = dc_findfnetnode(ires->argv[0].val.num)) != NULL) && fn->trackpeers)
+	if((fn = dc_findfnetnode(ires->argv[0].val.num)) != NULL)
 	{
 	    if((peer = dc_fnetfindpeer(fn, ires->argv[1].val.str)) != NULL)
 		delpeer(peer);
 	}
 	break;
     case 632:
-	if(((fn = dc_findfnetnode(ires->argv[0].val.num)) != NULL) && fn->trackpeers)
+	if((fn = dc_findfnetnode(ires->argv[0].val.num)) != NULL)
 	{
 	    if((peer = dc_fnetfindpeer(fn, ires->argv[1].val.str)) != NULL)
 	    {

@@ -48,7 +48,6 @@ struct dc_fnetnode
     int found;
     void (*destroycb)(struct dc_fnetnode *fn);
     void *udata;
-    int trackpeers;
     struct dc_fnetpeer *peers;
     struct dc_fnetpeerdatum *peerdata;
 };
