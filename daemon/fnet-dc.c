@@ -575,8 +575,11 @@ static char *getadcid(struct dcpeer *peer)
 {
     char *buf;
     char *ret;
+    int isfilelist;
     
-    if((peer->transfer->hash != NULL) && isdchash(peer->transfer->hash) && supports(peer, "tthf"))
+    if(!wcscmp(peer->transfer->path, L"files.xml") || !wcscmp(peer->transfer->path, L"files.xml.bz2") || !wcscmp(peer->transfer->path, L"MyList.DcLst"))
+	isfilelist = 1;
+    if(!isfilelist && (peer->transfer->hash != NULL) && isdchash(peer->transfer->hash) && supports(peer, "tthf"))
     {
 	buf = base32encode(peer->transfer->hash->buf, 24);
 	ret = sprintf2("TTH/%.39s", buf);
