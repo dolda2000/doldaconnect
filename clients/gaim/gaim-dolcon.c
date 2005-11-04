@@ -224,6 +224,7 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
 		break;
 	    }
 	}
+	dc_freeresp(resp);
     }
     updatewrite(data);
 }
