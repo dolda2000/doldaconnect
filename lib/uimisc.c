@@ -1246,7 +1246,7 @@ void dc_uimisc_handlenotify(struct dc_response *resp)
 		    free(peer->nick);
 		    peer->nick = swcsdup(ires->argv[2].val.str);
 		}
-		for(i = 3; i < resp->rlines[0].argc; i += 3)
+		for(i = 4; i < resp->rlines[0].argc; i += 3)
 		{
 		    switch(wcstol(resp->rlines[0].argv[i + 1], NULL, 10))
 		    {
