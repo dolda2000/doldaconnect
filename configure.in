@@ -80,6 +80,14 @@ if test "$enable_gnomeapplet" = yes; then
 	clients="$clients gnome-trans-applet"
 fi
 
+gaimplugin_msg=No
+AC_ARG_ENABLE(gaimplugin, [  --enable-gaimplugin     Enable GNOME transfer applet (experimental)])
+if test "$enable_gaimplugin" = yes; then
+	experimental=yes
+	gaimplugin_msg=Yes
+	clients="$clients gaim"
+fi
+
 guile_msg=No
 if test "$with_guile" = yes; then
 	GUILE_FLAGS
@@ -159,6 +167,7 @@ lib/guile/dolcon/Makefile
 clients/Makefile
 clients/gtk2/Makefile
 clients/gnome-trans-applet/Makefile
+clients/gaim/Makefile
 include/Makefile
 po/Makefile.in
 config/Makefile
@@ -175,6 +184,7 @@ echo "    GTK2 user interface:     $gtk2ui_msg"
 echo "    GTK2 progress bars:      $gtk2pbar_msg"
 echo "    Guile extension library: $guile_msg"
 echo "    GNOME transfer applet:   $gnometrapplet_msg"
+echo "    Gaim chat plugin:        $gaimplugin_msg"
 echo
 
 if tput bold >/dev/null 2>&1 && tty <&2 >/dev/null 2>&1; then
