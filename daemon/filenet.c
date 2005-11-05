@@ -106,6 +106,8 @@ void putfnetnode(struct fnetnode *fn)
     CBCHAINFREE(fn, fnetpeer_chdi);
     if(fn->fnet->destroy != NULL)
 	fn->fnet->destroy(fn);
+    while(fn->args != NULL)
+	freewcspair(fn->args, &fn->args);
     while(fn->peers != NULL)
 	fnetdelpeer(fn->peers);
     if(fn->mynick != NULL)

@@ -101,6 +101,9 @@ struct fnetnode
     struct socket *sk;
     struct fnetpeerdatum *peerdata;
     struct fnetpeer *peers;
+    struct wcspair *args;
+    int numpeers;
+    void *data;
     CBCHAIN(fnetnode_ac, struct fnetnode *fn, wchar_t *attrib);
     CBCHAIN(fnetnode_chat, struct fnetnode *fn, int public, wchar_t *name, wchar_t *peer, wchar_t *string);
     CBCHAIN(fnetnode_unlink, struct fnetnode *fn);
@@ -108,8 +111,6 @@ struct fnetnode
     CBCHAIN(fnetpeer_new, struct fnetnode *fn, struct fnetpeer *peer);
     CBCHAIN(fnetpeer_del, struct fnetnode *fn, struct fnetpeer *peer);
     CBCHAIN(fnetpeer_chdi, struct fnetnode *fn, struct fnetpeer *peer, struct fnetpeerdi *di);
-    int numpeers;
-    void *data;
 };
 
 void regfnet(struct fnet *fnet);
