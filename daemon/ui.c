@@ -745,7 +745,7 @@ static void cmd_download(struct socket *sk, struct uidata *data, int argc, wchar
 	    {
 		transfersethash(transfer, parsehash(argv[i + 1]));
 	    } else {
-		transferaddarg(transfer, argv[i], argv[i + 1]);
+		newwcspair(argv[i], argv[i + 1], &transfer->args);
 	    }
 	}
     }
@@ -1164,7 +1164,7 @@ static void cmd_filtercmd(struct socket *sk, struct uidata *data, int argc, wcha
 static void cmd_lstrarg(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
 {
     struct transfer *transfer;
-    struct transarg *ta;
+    struct wcspair *ta;
     
     haveargs(2);
     havepriv(PERM_TRANS);
@@ -1183,7 +1183,7 @@ static void cmd_lstrarg(struct socket *sk, struct uidata *data, int argc, wchar_
 	sq(sk, 0, L"201", L"Transfer has no arguments", NULL);
     } else {
 	for(ta = transfer->args; ta != NULL; ta = ta->next)
-	    sq(sk, ta->next != NULL, L"200", L"%%ls", ta->rec, L"%%ls", ta->val, NULL);
+	    sq(sk, ta->next != NULL, L"200", L"%%ls", ta->key, L"%%ls", ta->val, NULL);
     }
 }
 

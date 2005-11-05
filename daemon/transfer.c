@@ -46,8 +46,6 @@ GCBCHAIN(newtransfercb, struct transfer *);
 
 void freetransfer(struct transfer *transfer)
 {
-    struct transarg *ta;
-    
     if(transfer == transfers)
 	transfers = transfer->next;
     if(transfer->next != NULL)
@@ -60,13 +58,8 @@ void freetransfer(struct transfer *transfer)
     CBCHAINFREE(transfer, trans_p);
     CBCHAINFREE(transfer, trans_destroy);
     CBCHAINFREE(transfer, trans_filterout);
-    while((ta = transfer->args) != NULL)
-    {
-	transfer->args = ta->next;
-	free(ta->rec);
-	free(ta->val);
-	free(ta);
-    }
+    while(transfer->args != NULL)
+	freewcspair(transfer->args, &transfer->args);
     if(transfer->filter != -1)
 	killfilter(transfer);
     if(transfer->etimer != NULL)
@@ -126,17 +119,6 @@ struct transfer *newtransfer(void)
     time(&new->activity);
     numtransfers++;
     return(new);
-}
-
-void transferaddarg(struct transfer *transfer, wchar_t *rec, wchar_t *val)
-{
-    struct transarg *ta;
-    
-    ta = smalloc(sizeof(*ta));
-    ta->rec = swcsdup(rec);
-    ta->val = swcsdup(val);
-    ta->next = transfer->args;
-    transfer->args = ta;
 }
 
 void transferattach(struct transfer *transfer, struct transferiface *iface, void *data)
@@ -623,7 +605,7 @@ int forkfilter(struct transfer *transfer)
     char **argv;
     size_t argvsize, argvdata;
     struct socket *insock, *outsock;
-    struct transarg *ta;
+    struct wcspair *ta;
     char *rec, *val;
 
     wfilename = transfer->path;
@@ -697,7 +679,7 @@ int forkfilter(struct transfer *transfer)
 	}
 	for(ta = transfer->args; ta != NULL; ta = ta->next)
 	{
-	    if((rec = icwcstombs(ta->rec, NULL)) == NULL)
+	    if((rec = icwcstombs(ta->key, NULL)) == NULL)
 		continue;
 	    if((val = icwcstombs(ta->val, NULL)) == NULL)
 		continue;

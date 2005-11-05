@@ -745,3 +745,35 @@ char *findfile(char *gname, char *uname, char *homedir)
     }
     return(NULL);
 }
+
+struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list)
+{
+    struct wcspair *pair;
+    
+    pair = smalloc(sizeof(*pair));
+    memset(pair, 0, sizeof(*pair));
+    if(key != NULL)
+	pair->key = swcsdup(key);
+    if(val != NULL)
+	pair->val = swcsdup(val);
+    if(list == NULL)
+    {
+	pair->next = NULL;
+    } else {
+	pair->next = *list;
+	*list = pair;
+    }
+    return(pair);
+}
+
+void freewcspair(struct wcspair *pair, struct wcspair **list)
+{
+    if(list != NULL)
+    {
+	if(*list == pair)
+	    *list = pair->next;
+    }
+    free(pair->key);
+    free(pair->val);
+    free(pair);
+}

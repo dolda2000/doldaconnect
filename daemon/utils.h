@@ -24,6 +24,12 @@
 #include <malloc.h>
 #include "log.h"
 
+struct wcspair {
+    struct wcspair *next;
+    wchar_t *key;
+    wchar_t *val;
+};
+
 /* "Safe" functions */
 #define smalloc(size) ({void *__result__; ((__result__ = malloc(size)) == NULL)?({LOGOOM(size); abort(); (void *)0;}):__result__;})
 #define srealloc(ptr, size) ({void *__result__; ((__result__ = realloc((ptr), (size))) == NULL)?({LOGOOM(size); abort(); (void *)0;}):__result__;})
@@ -59,7 +65,6 @@ char *sprintf2(char *format, ...)
 #if defined(__GNUC__) && 0
     __attribute__ ((format (printf, 1, 2)))
 #endif
-
 ;
 wchar_t *vswprintf2(wchar_t *format, va_list al);
 wchar_t *swprintf2(wchar_t *format, ...);
@@ -84,6 +89,8 @@ char *base32decode(char *data, size_t *datalen);
 void _freeparr(void **arr);
 int _parrlen(void **arr);
 char *findfile(char *gname, char *uname, char *homedir);
+struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list);
+void freewcspair(struct wcspair *pair, struct wcspair **list);
 
 #define sizebuf(b, bs, rs, es, a) _sizebuf((void **)(b), (bs), (rs), (es), (a))
 #define sizebuf2(b, rs, a) _sizebuf((void **)(&(b)), &(b ## size), (rs), sizeof(*(b)), (a))

@@ -50,13 +50,6 @@ struct transferiface
     void (*wantdata)(struct transfer *transfer, void *data);
 };
 
-struct transarg
-{
-    struct transarg *next;
-    wchar_t *rec;
-    wchar_t *val;
-};
-
 struct transfer
 {
     struct transfer *next, *prev;
@@ -84,7 +77,7 @@ struct transfer
     struct fnetnode *fn;
     void *ifacedata;
     struct socket *localend;
-    struct transarg *args;
+    struct wcspair *args;
     pid_t filter;
     struct authhandle *auth;
     struct socket *filterout;
@@ -116,7 +109,6 @@ void transferdetach(struct transfer *transfer);
 void resettransfer(struct transfer *transfer);
 void transfersetlocalend(struct transfer *transfer, struct socket *sk);
 void *transfergetdata(struct transfer *transfer, size_t *size);
-void transferaddarg(struct transfer *transfer, wchar_t *rec, wchar_t *val);
 int forkfilter(struct transfer *transfer);
 void transferputdata(struct transfer *transfer, void *buf, size_t size);
 size_t transferdatasize(struct transfer *transfer);
