@@ -1,9 +1,10 @@
-bin_PROGRAMS=locktouch
+bin_PROGRAMS=locktouch tigersum
 libexec_PROGRAMS=speedrec
 
 speedrec_SOURCES=speedrec.c
 
 locktouch_SOURCES=locktouch.c
+tigersum_SOURCES=tigersum.c
 
 EXTRA_DIST=doldacond.conf dc-filter dc-filtercmd
 
