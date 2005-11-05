@@ -533,6 +533,8 @@ char *base64decode(char *data, size_t *datalen)
 	c = (int)(unsigned char)*data;
 	if(c == '=')
 	    break;
+	if(c == '\n')
+	    continue;
 	if(base64rev[c] == -1)
 	{
 	    if(buf != NULL)
@@ -630,6 +632,8 @@ char *base32decode(char *data, size_t *datalen)
 	c = (int)(unsigned char)*data;
 	if(c == '=')
 	    break;
+	if(c == '\n')
+	    continue;
 	if(base32rev[c] == -1)
 	{
 	    if(buf != NULL)
