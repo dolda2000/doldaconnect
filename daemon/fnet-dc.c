@@ -106,7 +106,7 @@ struct dchub
     char *inbuf;
     size_t inbufdata, inbufsize;
     struct qcommand *queue;
-    int extended;
+    int extended, isop;
     char *nativename;
     char *nativenick;
 };
@@ -1448,6 +1448,15 @@ static void cmd_getpass(struct socket *sk, struct fnetnode *fn, char *cmd, char 
     hubhandleaction(sk, fn, cmd, args);
 }
 
+static void cmd_logedin(struct socket *sk, struct fnetnode *fn, char *cmd, char *args)
+{
+    struct dchub *hub;
+    
+    hub = fn->data;
+    hub->isop = 1;
+    hubhandleaction(sk, fn, cmd, args);
+}
+
 static void cmd_mynick(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
     struct dcexppeer *expect;
@@ -2494,6 +2503,7 @@ struct command hubcmds[] =
     {"$SR", cc(cmd_sr)},
     {"$UserCommand", cc(cmd_usercommand)},
     {"$GetPass", cc(cmd_getpass)},
+    {"$LogedIn", cc(cmd_logedin)}, /* sic */
     {NULL, NULL}
 };
 
