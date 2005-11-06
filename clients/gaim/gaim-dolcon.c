@@ -93,11 +93,14 @@ static void newpeercb(struct dc_fnetpeer *peer)
 {
     struct conndata *data;
     GaimConversation *conv;
+    char *buf;
     
     data = peer->fn->udata;
     if((conv = gaim_find_chat(data->gc, peer->fn->id)) != NULL)
     {
-	gaim_conv_chat_add_user(GAIM_CONV_CHAT(conv), icswcstombs(peer->nick, "UTF-8", NULL), NULL, GAIM_CBFLAGS_NONE, TRUE);
+	buf = sprintf2("%i:%s", peer->fn->id, icswcstombs(peer->nick, "UTF-8", NULL));
+	gaim_conv_chat_add_user(GAIM_CONV_CHAT(conv), buf, NULL, GAIM_CBFLAGS_NONE, TRUE);
+	free(buf);
     }
 }
 
@@ -105,11 +108,14 @@ static void delpeercb(struct dc_fnetpeer *peer)
 {
     struct conndata *data;
     GaimConversation *conv;
+    char *buf;
     
     data = peer->fn->udata;
     if((conv = gaim_find_chat(data->gc, peer->fn->id)) != NULL)
     {
-	gaim_conv_chat_remove_user(GAIM_CONV_CHAT(conv), icswcstombs(peer->nick, "UTF-8", NULL), NULL);
+	buf = sprintf2("%i:%s", peer->fn->id, icswcstombs(peer->nick, "UTF-8", NULL));
+	gaim_conv_chat_remove_user(GAIM_CONV_CHAT(conv), buf, NULL);
+	free(buf);
     }
 }
 
@@ -194,7 +200,7 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
 				free(peer);
 			    }
 			} else {
-			    peer = icwcstombs(ires->argv[3].val.str, "UTF-8");
+			    peer = sprintf2("%i:%s", fn->id, icswcstombs(ires->argv[3].val.str, "UTF-8", NULL));
 			    msg = gaim_escape_html(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL));
 			    if(!gaim_account_get_bool(data->gc->account, "represspm", FALSE) || (gaim_find_conversation_with_account(peer, data->gc->account) != NULL))
 				serv_got_im(data->gc, peer, msg, 0, time(NULL));
@@ -208,6 +214,7 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
 	    case 601:
 	    case 602:
 	    case 603:
+		break;
 	    case 604:
 		if((ires = dc_interpret(resp)) != NULL)
 		{
@@ -220,6 +227,7 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
 		    }
 		    dc_freeires(ires);
 		}
+		break;
 	    case 605:
 		break;
 	    }
@@ -250,29 +258,29 @@ static int gi_sendchat(GaimConnection *gc, int id, const char *what)
 static int gi_sendim(GaimConnection *gc, const char *who, const char *what, GaimConvImFlags flags)
 {
     struct conndata *data;
-    struct dc_fnetnode *fn, *tfn;
-    struct dc_fnetpeer *peer, *tpeer;
-    wchar_t *wwho, *wwhat;
-    int en;
+    struct dc_fnetnode *fn;
+    struct dc_fnetpeer *peer;
+    wchar_t *wwho, *wwhat, *p;
+    int en, id;
     
     data = gc->proto_data;
     if((wwho = icmbstowcs((char *)who, "UTF-8")) == NULL)
 	return(-errno);
-    tpeer = NULL;
-    for(fn = dc_fnetnodes; fn != NULL; fn = fn->next) {
-	for(peer = fn->peers; peer != NULL; peer = peer->next) {
-	    if(!wcscmp(wwho, peer->nick)) {
-		if(tpeer == NULL) {
-		    tpeer = peer;
-		    tfn = fn;
-		} else {
-		    free(wwho);
-		    return(-ESRCH);
-		}
-	    }
-	}
+    if((p = wcschr(wwho, L':')) == NULL) {
+	free(wwho);
+	return(-ESRCH);
     }
-    if(tpeer == NULL) {
+    *(p++) = L'\0';
+    id = wcstol(wwho, NULL, 10);
+    if((fn = dc_findfnetnode(id)) == NULL) {
+	free(wwho);
+	return(-ESRCH);
+    }
+    for(peer = fn->peers; peer != NULL; peer = peer->next) {
+	if(!wcscmp(peer->nick, p))
+	    break;
+    }
+    if(peer == NULL) {
 	free(wwho);
 	return(-ESRCH);
     }
@@ -281,7 +289,7 @@ static int gi_sendim(GaimConnection *gc, const char *who, const char *what, Gaim
 	free(wwho);
 	return(-en);
     }
-    dc_queuecmd(NULL, NULL, L"sendchat", L"%%i", tfn->id, L"0", L"%%ls", wwho, L"%%ls", wwhat, NULL);
+    dc_queuecmd(NULL, NULL, L"sendchat", L"%%i", fn->id, L"0", L"%%ls", peer->nick, L"%%ls", wwhat, NULL);
     free(wwho);
     free(wwhat);
     updatewrite(data);
@@ -396,33 +404,25 @@ static void gi_cancelgetlist(GaimRoomlist *rl)
     }
 }
 
-static void getpeerlistcb(struct dc_fnetnode *fn, int resp, struct conndata *data)
-{
-    GaimConversation *conv;
-    struct dc_fnetpeer *peer;
-    
-    if(resp == 200)
-    {
-	if(gaim_find_chat(data->gc, fn->id) != NULL)
-	    return;
-	conv = serv_got_joined_chat(data->gc, fn->id, icswcstombs(fn->name, "UTF-8", NULL));
-	for(peer = fn->peers; peer != NULL; peer = peer->next)
-	    gaim_conv_chat_add_user(GAIM_CONV_CHAT(conv), icswcstombs(peer->nick, "UTF-8", NULL), NULL, GAIM_CBFLAGS_NONE, FALSE);
-    }
-}
-
 static void gi_joinchat(GaimConnection *gc, GHashTable *chatdata)
 {
     struct conndata *data;
     struct dc_fnetnode *fn;
+    GaimConversation *conv;
+    struct dc_fnetpeer *peer;
+    char *buf;
     
     data = gc->proto_data;
     if((fn = dc_findfnetnode(GPOINTER_TO_INT(g_hash_table_lookup(chatdata, "id")))) == NULL)
 	return;
     if(gaim_find_chat(gc, fn->id) != NULL)
 	return;
-    dc_getpeerlistasync(fn, (void (*)(struct dc_fnetnode *, int, void *))getpeerlistcb, data);
-    updatewrite(data);
+    conv = serv_got_joined_chat(data->gc, fn->id, icswcstombs(fn->name, "UTF-8", NULL));
+    for(peer = fn->peers; peer != NULL; peer = peer->next) {
+	buf = sprintf2("%i:%s", fn->id, icswcstombs(peer->nick, "UTF-8", NULL));
+	gaim_conv_chat_add_user(GAIM_CONV_CHAT(conv), buf, NULL, GAIM_CBFLAGS_NONE, FALSE);
+	free(buf);
+    }
 }
 
 static GaimPluginProtocolInfo protinfo = {
