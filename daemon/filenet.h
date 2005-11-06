@@ -118,7 +118,7 @@ void fnetsetname(struct fnetnode *fn, wchar_t *newname);
 void fnetsetstate(struct fnetnode *fn, int newstate);
 int fnetsetnick(struct fnetnode *fn, wchar_t *newnick);
 struct fnet *findfnet(wchar_t *name);
-struct fnetnode *fnetinitconnect(wchar_t *name, char *addr);
+struct fnetnode *fnetinitconnect(wchar_t *name, char *addr, struct wcspair *args);
 void linkfnetnode(struct fnetnode *fn);
 void unlinkfnetnode(struct fnetnode *fn);
 void getfnetnode(struct fnetnode *fn);

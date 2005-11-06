@@ -996,7 +996,7 @@ static void cmd_forcemove(struct socket *sk, struct fnetnode *fn, char *cmd, cha
     } else {
 	freeargs = 0;
     }
-    if((newfn = fnetinitconnect(L"dc", args)) != NULL)
+    if((newfn = fnetinitconnect(L"dc", args, NULL)) != NULL)
     {
 	linkfnetnode(newfn);
 	putfnetnode(newfn);

@@ -439,10 +439,11 @@ struct fnet *findfnet(wchar_t *name)
     return(fnet);
 }
 
-struct fnetnode *fnetinitconnect(wchar_t *name, char *addr)
+struct fnetnode *fnetinitconnect(wchar_t *name, char *addr, struct wcspair *args)
 {
     struct fnet *fnet;
     struct fnetnode *fn;
+    struct wcspair *arg;
     
     if((fnet = findfnet(name)) == NULL)
     {
@@ -450,7 +451,13 @@ struct fnetnode *fnetinitconnect(wchar_t *name, char *addr)
 	return(NULL);
     }
     fn = newfn(fnet);
+    for(arg = fn->args; arg != NULL; arg = arg->next)
+    {
+	if(!wcscmp(arg->key, L"nick"))
+	    fnetsetnick(fn, arg->val);
+    }
     getfnetnode(fn);
+    fn->args = args;
     if(netresolve(addr, (void (*)(struct sockaddr *, int, void *))resolvecb, fn) < 0)
 	return(NULL);
     return(fn);

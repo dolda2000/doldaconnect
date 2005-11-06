@@ -558,6 +558,7 @@ static void cmd_fnetconnect(struct socket *sk, struct uidata *data, int argc, wc
     char *buf;
     int err;
     struct fnetnode *fn;
+    struct wcspair *args;
     
     haveargs(3);
     havepriv(PERM_FNETCTL);
@@ -566,7 +567,10 @@ static void cmd_fnetconnect(struct socket *sk, struct uidata *data, int argc, wc
 	sq(sk, 0, L"504", L"Could not convert data to locale charset", NULL);
 	return;
     }
-    fn = fnetinitconnect(argv[1], buf);
+    args = NULL;
+    for(i = 3; i < argc - 1; i += 2)
+	newwcspair(argv[i], argv[i + 1], &args);
+    fn = fnetinitconnect(argv[1], buf, args);
     err = errno;
     free(buf);
     if(fn == NULL)
@@ -576,11 +580,6 @@ static void cmd_fnetconnect(struct socket *sk, struct uidata *data, int argc, wc
 	else
 	    sq(sk, 0, L"509", L"Could not parse the address", L"%%s", strerror(err), NULL);
 	return;
-    }
-    for(i = 3; i < argc - 1; i += 2)
-    {
-	if(!wcscmp(argv[i], L"nick"))
-	    fnetsetnick(fn, argv[i + 1]);
     }
     linkfnetnode(fn);
     fnetsetname(fn, argv[2]);
