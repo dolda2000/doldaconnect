@@ -451,13 +451,13 @@ struct fnetnode *fnetinitconnect(wchar_t *name, char *addr, struct wcspair *args
 	return(NULL);
     }
     fn = newfn(fnet);
+    fn->args = args;
     for(arg = fn->args; arg != NULL; arg = arg->next)
     {
 	if(!wcscmp(arg->key, L"nick"))
 	    fnetsetnick(fn, arg->val);
     }
     getfnetnode(fn);
-    fn->args = args;
     if(netresolve(addr, (void (*)(struct sockaddr *, int, void *))resolvecb, fn) < 0)
 	return(NULL);
     return(fn);
