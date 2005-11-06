@@ -29,6 +29,10 @@
 #define FNN_EST 2
 #define FNN_DEAD 3
 
+#define FNNS_PUB 0
+#define FNNS_REG 1
+#define FNNS_OP 2
+
 #define FNPD_INT 0
 #define FNPD_LL 1
 #define FNPD_STR 2
@@ -94,6 +98,7 @@ struct fnetnode
     int id;
     int state;
     int linked;
+    int regstatus;
     time_t srchwait, lastsrch;
     wchar_t *name;
     wchar_t *mynick;

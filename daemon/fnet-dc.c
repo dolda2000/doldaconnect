@@ -106,7 +106,7 @@ struct dchub
     char *inbuf;
     size_t inbufdata, inbufsize;
     struct qcommand *queue;
-    int extended, isop;
+    int extended;
     char *nativename;
     char *nativenick;
 };
@@ -1445,6 +1445,7 @@ static void cmd_getpass(struct socket *sk, struct fnetnode *fn, char *cmd, char 
     }
     qstrf(sk, "$MyPass %s|", mbspw);
     free(mbspw);
+    fn->regstatus = FNNS_REG;
     hubhandleaction(sk, fn, cmd, args);
 }
 
@@ -1453,7 +1454,7 @@ static void cmd_logedin(struct socket *sk, struct fnetnode *fn, char *cmd, char 
     struct dchub *hub;
     
     hub = fn->data;
-    hub->isop = 1;
+    fn->regstatus = FNNS_OP;
     hubhandleaction(sk, fn, cmd, args);
 }
 
