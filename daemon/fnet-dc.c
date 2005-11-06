@@ -1426,6 +1426,28 @@ static void cmd_usercommand(struct socket *sk, struct fnetnode *fn, char *cmd, c
     /* Do nothing for now. */
 }
 
+static void cmd_getpass(struct socket *sk, struct fnetnode *fn, char *cmd, char *args)
+{
+    struct dchub *hub;
+    struct wcspair *arg;
+    char *mbspw;
+    
+    hub = fn->data;
+    for(arg = fn->args; arg != NULL; arg = arg->next)
+    {
+	if(!wcscmp(arg->key, L"password"))
+	    break;
+    }
+    if((arg == NULL) || ((mbspw = icwcstombs(arg->val, DCCHARSET)) == NULL))
+    {
+	killfnetnode(fn);
+	return;
+    }
+    qstrf(sk, "$MyPass %s|", mbspw);
+    free(mbspw);
+    hubhandleaction(sk, fn, cmd, args);
+}
+
 static void cmd_mynick(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
     struct dcexppeer *expect;
@@ -2471,6 +2493,7 @@ struct command hubcmds[] =
     {"$To:", cc(cmd_to)},
     {"$SR", cc(cmd_sr)},
     {"$UserCommand", cc(cmd_usercommand)},
+    {"$GetPass", cc(cmd_getpass)},
     {NULL, NULL}
 };
 
