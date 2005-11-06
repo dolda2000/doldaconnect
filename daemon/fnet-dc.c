@@ -729,23 +729,30 @@ static void sendmyinfo(struct socket *sk, struct fnetnode *fn)
     struct dchub *hub;
     char *buf;
     struct fnetnode *cfn;
-    int numhubs;
+    int hn1, hn2, hn3;
     
     hub = fn->data;
     qstrf(sk, "$MyINFO $ALL %s ", hub->nativenick);
     buf = tr(icswcstombs(confgetstr("dc", "desc"), DCCHARSET, "Charset_conv_failure"), "$_|_");
     qstrf(sk, "%s", buf);
-    numhubs = 0;
+    hn1 = hn2 = hn3 = 0;
     for(cfn = fnetnodes; cfn != NULL; cfn = cfn->next)
     {
 	if((cfn->state == FNN_EST) || (cfn->state == FNN_HS))
-	    numhubs++;
+	{
+	    if(cfn->regstatus == FNNS_OP)
+		hn3++;
+	    else if(cfn->regstatus == FNNS_REG)
+		hn2++;
+	    else
+		hn1++;
+	}
     }
-    qstrf(sk, "<%s V:%s,M:%c,H:%i/0/0,S:%i>",
+    qstrf(sk, "<%s V:%s,M:%c,H:%i/%i/%i,S:%i>",
 	  DCIDTAG,
 	  DCIDTAGV,
 	  (tcpsock == NULL)?'P':'A',
-	  numhubs,
+	  hn1, hn2, hn3,
 	  confgetint("transfer", "slots")
 	  );
     qstrf(sk, "$ $");
