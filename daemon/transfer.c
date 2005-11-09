@@ -317,14 +317,56 @@ void transfersetlocalend(struct transfer *transfer, struct socket *sk)
     sk->errcb = (void (*)(struct socket *, int, void *))transfererr;
 }
 
-void bumptransfer(struct transfer *transfer)
+static int tryreq(struct transfer *transfer)
 {
     struct fnetnode *fn;
     struct fnetpeer *peer;
+    
+    if((fn = transfer->fn) != NULL)
+    {
+	if(fn->state != FNN_EST)
+	{
+	    transfer->close = 1;
+	    return(1);
+	}
+	peer = fnetfindpeer(fn, transfer->peerid);
+    } else {
+	peer = NULL;
+	for(fn = fnetnodes; fn != NULL; fn = fn->next)
+	{
+	    if((fn->state == FNN_EST) && (fn->fnet == transfer->fnet) && ((peer = fnetfindpeer(fn, transfer->peerid)) != NULL))
+		break;
+	}
+    }
+    if(peer != NULL)
+	return(fn->fnet->reqconn(peer));
+    return(1);
+}
+
+void trytransferbypeer(struct fnet *fnet, wchar_t *peerid)
+{
+    struct transfer *transfer;
+    
+    for(transfer = transfers; transfer != NULL; transfer = transfer->next)
+    {
+	if((transfer->dir == TRNSD_DOWN) && (transfer->state == TRNS_WAITING))
+	{
+	    if((transfer->fnet == fnet) && !wcscmp(transfer->peerid, peerid))
+	    {
+		if(!tryreq(transfer))
+		    return;
+	    }
+	}
+    }
+}
+
+void bumptransfer(struct transfer *transfer)
+{
     time_t now;
     
     if((now = time(NULL)) < transfer->timeout)
     {
+
 	if(transfer->etimer == NULL)
 	    transfer->etimer = timercallback(transfer->timeout, (void (*)(int, void *))transexpire, transfer);
 	return;
@@ -334,32 +376,9 @@ void bumptransfer(struct transfer *transfer)
     switch(transfer->state)
     {
     case TRNS_WAITING:
-	if(transfer->fn != NULL)
-	{
-	    fn = transfer->fn;
-	    if(fn->state != FNN_EST)
-	    {
-		transfer->close = 1;
-		return;
-	    }
-	    peer = fnetfindpeer(fn, transfer->peerid);
-	} else {
-	    peer = NULL;
-	    for(fn = fnetnodes; fn != NULL; fn = fn->next)
-	    {
-		if((fn->state == FNN_EST) && (fn->fnet == transfer->fnet) && ((peer = fnetfindpeer(fn, transfer->peerid)) != NULL))
-		    break;
-	    }
-	}
 	transfer->etimer = timercallback(transfer->timeout = (time(NULL) + 30), (void (*)(int, void *))transexpire, transfer);
 	if(now - transfer->lastreq > 30)
-	{
-	    if(peer != NULL)
-	    {
-		fn->fnet->reqconn(peer);
-		time(&transfer->lastreq);
-	    }
-	}
+	    tryreq(transfer);
 	break;
     case TRNS_HS:
 	if(transfer->dir == TRNSD_UP)
