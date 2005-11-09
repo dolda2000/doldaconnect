@@ -40,6 +40,8 @@
 
 static void killfilter(struct transfer *transfer);
 
+unsigned long long bytesupload = 0;
+unsigned long long bytesdownload = 0;
 struct transfer *transfers = NULL;
 int numtransfers = 0;
 GCBCHAIN(newtransfercb, struct transfer *);
@@ -240,6 +242,7 @@ void transferputdata(struct transfer *transfer, void *buf, size_t size)
     time(&transfer->activity);
     sockqueue(transfer->localend, buf, size);
     transfer->curpos += size;
+    bytesdownload += size;
     CBCHAINDOCB(transfer, trans_p, transfer);
 }
 
@@ -279,6 +282,7 @@ void *transfergetdata(struct transfer *transfer, size_t *size)
 	buf = srealloc(buf, *size);
     }
     transfer->curpos += *size;
+    bytesupload += *size;
     CBCHAINDOCB(transfer, trans_p, transfer);
     return(buf);
 }
