@@ -107,6 +107,9 @@
 501
 502
 512
+:transstatus
+200 s s
+502
 : ; Nameless notification
 600 i i s s s	; FN chat
 601 i i		; FN state change
