@@ -1192,22 +1192,27 @@ void cb_main_sdmenu_activate(GtkWidget *widget, gpointer data)
 void cb_main_fnaddr_activate(GtkWidget *widget, gpointer data)
 {
     int tag;
-    char *buf;
     struct dc_response *resp;
+    wchar_t **toks;
     
     if(dcfd < 0)
     {
 	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Not connected to DC server"));
 	return;
     }
-    buf = sstrdup(gtk_entry_get_text(GTK_ENTRY(main_fnaddr)));
-    if(strchr(buf, ':') == NULL)
+    toks = dc_lexsexpr(icsmbstowcs((char *)gtk_entry_get_text(GTK_ENTRY(main_fnaddr)), "UTF-8", NULL));
+    if(*toks == NULL)
     {
-	buf = srealloc(buf, strlen(buf) + 5);
-	strcat(buf, ":411");
+	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Illegal address entered"));
+	return;
     }
-    tag = dc_queuecmd(NULL, NULL, L"cnct", L"dc", L"%%s", buf, NULL);
-    free(buf);
+    if(wcschr(toks[0], L':') == NULL)
+    {
+	toks[0] = srealloc(toks[0], (wcslen(toks[0]) + 5) * sizeof(wchar_t));
+	wcscat(toks[0], L":411");
+    }
+    tag = dc_queuecmd(NULL, NULL, L"cnct", L"dc", L"%%a", toks, NULL);
+    dc_freewcsarr(toks);
     if((resp = dc_gettaggedrespsync(tag)) != NULL)
     {
 	if(resp->code == 502)
