@@ -1204,6 +1204,18 @@ static void cmd_hashstatus(struct socket *sk, struct uidata *data, int argc, wch
     sq(sk, 0, L"200", L"%%i", total, L"tth", L"%%i", hashed, NULL);
 }
 
+static void cmd_transstatus(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
+{
+    wchar_t *buf1, *buf2;
+    
+    havepriv(PERM_TRANS);
+    buf1 = swprintf2(L"%lli", bytesdownload);
+    buf2 = swprintf2(L"%lli", bytesupload);
+    sq(sk, 0, L"200", L"%%ls", buf1, L"%%ls", buf2, NULL);
+    free(buf1);
+    free(buf2);
+}
+
 #undef haveargs
 #undef havepriv
 
@@ -1239,6 +1251,7 @@ static struct command commands[] =
     {L"filtercmd", cmd_filtercmd},
     {L"lstrarg", cmd_lstrarg},
     {L"hashstatus", cmd_hashstatus},
+    {L"transstatus", cmd_transstatus},
     {NULL, NULL}
 };
 
