@@ -136,7 +136,7 @@ struct dcpeer
     int extended;
     int direction;    /* Using the constants from transfer.h */
     int compress;
-    int hascurpos, notthl;
+    int hascurpos, fetchingtthl, notthl;
     struct tigertreehash tth;
     void *cprsdata;
     char *key;
@@ -676,6 +676,7 @@ static void requestfile(struct dcpeer *peer)
 	    sendadc(peer->sk, "0");
 	    sendadc(peer->sk, "-1");
 	    qstr(peer->sk, "|");
+	    peer->fetchingtthl = 1;
 	    return;
 	}
     }
@@ -1637,6 +1638,13 @@ static void cmd_filelength(struct socket *sk, struct dcpeer *peer, char *cmd, ch
 
 static void cmd_error(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
+    if(peer->fetchingtthl)
+    {
+	peer->fetchingtthl = 0;
+	peer->notthl = 1;
+	requestfile(peer);
+	return;
+    }
     if((peer->transfer != NULL) && (peer->transfer->dir == TRNSD_DOWN))
     {
 	transferseterror(peer->transfer, TRNSE_NOTFOUND);
@@ -2144,6 +2152,7 @@ static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	peer->state = PEER_TTHL;
 	peer->totalsize = numbytes;
 	peer->curread = 0;
+	peer->fetchingtthl = 0;
 	inittigertree(&peer->tth);
 	handletthl(peer);
     } else if(!strcmp(argv[0], "file")) {
