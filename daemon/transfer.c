@@ -339,7 +339,10 @@ static int tryreq(struct transfer *transfer)
 	}
     }
     if(peer != NULL)
+    {
+	time(&transfer->lastreq);
 	return(fn->fnet->reqconn(peer));
+    }
     return(1);
 }
 
