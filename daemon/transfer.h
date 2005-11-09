@@ -118,6 +118,7 @@ void transferstartul(struct transfer *transfer, struct socket *sk);
 void transfersethash(struct transfer *transfer, struct hash *hash);
 struct transfer *finddownload(wchar_t *peerid);
 void transferstartdl(struct transfer *transfer, struct socket *sk);
+void trytransferbypeer(struct fnet *fnet, wchar_t *peerid);
 
 extern struct transfer *transfers;
 EGCBCHAIN(newtransfercb, struct transfer *);
