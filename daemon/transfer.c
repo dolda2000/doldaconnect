@@ -609,6 +609,7 @@ static void filterexit(pid_t pid, int status, void *data)
 	    } else {
 		freetransfer(transfer);
 	    }
+	    trytransferbypeer(transfer->fnet, transfer->peerid);
 	    break;
 	}
     }
