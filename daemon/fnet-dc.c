@@ -1615,6 +1615,7 @@ static void startul(struct dcpeer *peer)
 static void cmd_filelength(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
     int size;
+    struct transfer *transfer;
     
     if(peer->transfer == NULL)
     {
@@ -1625,7 +1626,9 @@ static void cmd_filelength(struct socket *sk, struct dcpeer *peer, char *cmd, ch
     if(peer->transfer->size != size)
     {
 	transfersetsize(peer->transfer, size);
+	transfer = peer->transfer;
 	freedcpeer(peer);
+	trytransferbypeer(transfer->fnet, transfer->peerid);
 	return;
     }
     startdl(peer);
