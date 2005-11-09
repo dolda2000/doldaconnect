@@ -121,6 +121,8 @@ void transferstartdl(struct transfer *transfer, struct socket *sk);
 void trytransferbypeer(struct fnet *fnet, wchar_t *peerid);
 
 extern struct transfer *transfers;
+extern unsigned long long bytesupload;
+extern unsigned long long bytesdownload;
 EGCBCHAIN(newtransfercb, struct transfer *);
 
 #endif
