@@ -128,6 +128,7 @@ struct dcpeer
     size_t inbufdata, inbufsize;
     size_t curread, totalsize;
     int freeing;
+    struct timer *timeout;
     struct qcommand *queue;
     struct transfer *transfer;
     int state;
@@ -442,6 +443,14 @@ static void hubrecvchat(struct socket *sk, struct fnetnode *fn, char *from, char
 	free(wfrom);
     free(wpeer);
     free(chat);
+}
+
+static void peertimeout(int cancelled, struct dcpeer *peer)
+{
+    peer->timeout = NULL;
+    if(cancelled)
+	return;
+    freedcpeer(peer);
 }
 
 static void sendadc(struct socket *sk, char *arg)
@@ -1600,6 +1609,8 @@ static void cmd_key(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
 
 static void startdl(struct dcpeer *peer)
 {
+    if(peer->timeout != NULL)
+	canceltimer(peer->timeout);
     peer->state = PEER_TRNS;
     transferstartdl(peer->transfer, peer->sk);
     peer->sk->readcb = (void (*)(struct socket *, void *))transread;
@@ -1608,6 +1619,8 @@ static void startdl(struct dcpeer *peer)
 
 static void startul(struct dcpeer *peer)
 {
+    if(peer->timeout != NULL)
+	canceltimer(peer->timeout);
     peer->state = PEER_TRNS;
     transferstartul(peer->transfer, peer->sk);
     peer->sk->writecb = (void (*)(struct socket *, void *))transwrite;
@@ -2117,6 +2130,8 @@ static void handletthl(struct dcpeer *peer)
     }
     if(peer->curread >= peer->totalsize)
     {
+	if(peer->timeout == NULL)
+	    peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
 	peer->state = PEER_CMD;
 	synctigertree(&peer->tth);
 	restigertree(&peer->tth, buf);
@@ -2155,6 +2170,8 @@ static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	    freedcpeer(peer);
 	    goto out;
 	}
+	if(peer->timeout != NULL)
+	    canceltimer(peer->timeout);
 	peer->state = PEER_TTHL;
 	peer->totalsize = numbytes;
 	peer->curread = 0;
@@ -2626,6 +2643,8 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
 		{
 		    freedcpeer(peer);
 		} else {
+		    if(peer->timeout == NULL)
+			peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
 		    peer->state = PEER_CMD;
 		    endcompress(peer);
 		    transfersetstate(transfer, TRNS_HS);
@@ -2929,6 +2948,8 @@ static void freedcpeer(struct dcpeer *peer)
 	    resettransfer(peer->transfer);
 	transferdetach(peer->transfer);
     }
+    if(peer->timeout != NULL)
+	canceltimer(peer->timeout);
     if(peer->sk->data == peer)
 	peer->sk->data = NULL;
     peer->sk->readcb = NULL;
@@ -3082,6 +3103,7 @@ static void peerconnect(struct socket *sk, int err, struct fnetnode *fn)
     sk->data = peer;
     socksettos(sk, confgetint("fnet", "fnptos"));
     putsock(sk);
+    peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
     sendmynick(peer);
     sendpeerlock(peer);
 }
@@ -3096,6 +3118,7 @@ static void peeraccept(struct socket *sk, struct socket *newsk, void *data)
     newsk->errcb = (void (*)(struct socket *, int, void *))peererror;
     newsk->data = peer;
     socksettos(newsk, confgetint("fnet", "fnptos"));
+    peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
 }
 
 static void updatehmlist(void)
@@ -3455,6 +3478,9 @@ static int run(void)
 	nextpeer = peer->next;
 	if((qcmd = ulqcmd(&peer->queue)) != NULL)
 	{
+	    if(peer->timeout != NULL)
+		canceltimer(peer->timeout);
+	    peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
 	    if(*qcmd->string == '$')
 		dispatchcommand(qcmd, peercmds, peer->sk, peer);
 	    freeqcmd(qcmd);
