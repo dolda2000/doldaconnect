@@ -1778,15 +1778,10 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
     } else if(fd >= 0) {
 	if((buf2 = icsmbstowcs(args, DCCHARSET, NULL)) != NULL)
 	    transfersetpath(peer->transfer, buf2);
+	peer->transfer->flags.b.minislot = 1;
     }
     if(fd < 0)
     {
-	if(slotsleft() < 1)
-	{
-	    qstr(sk, "$MaxedOut|");
-	    freedcpeer(peer);
-	    return;
-	}
 	if((node = resdcpath(args, DCCHARSET, '\\')) == NULL)
 	{
 	    qstrf(sk, "$Error File not in share|");
@@ -1811,6 +1806,13 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
 	close(fd);
 	flog(LOG_WARNING, "could not stat file %ls: %s", node->name, strerror(errno));
 	qstrf(sk, "$Error|");
+	freedcpeer(peer);
+	return;
+    }
+    if(sb.st_size < 65536)
+	peer->transfer->flags.b.minislot = 1;
+    if(!peer->transfer->flags.b.minislot && (slotsleft() < 1)) {
+	qstr(sk, "$MaxedOut|");
 	freedcpeer(peer);
 	return;
     }
@@ -1917,14 +1919,10 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
     } else if(fd >= 0) {
 	if((buf2 = icsmbstowcs(args, charset, NULL)) != NULL)
 	    transfersetpath(peer->transfer, buf2);
+	peer->transfer->flags.b.minislot = 1;
     }
     if(fd < 0)
     {
-	if(slotsleft() < 1)
-	{
-	    qstr(sk, "$MaxedOut|");
-	    return;
-	}
 	if((node = resdcpath(p, charset, '\\')) == NULL)
 	{
 	    qstr(sk, "$Error File not in cache|");
@@ -1947,6 +1945,12 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	close(fd);
 	flog(LOG_WARNING, "could not stat file %ls: %s", node->name, strerror(errno));
 	qstr(sk, "$Error|");
+	return;
+    }
+    if(sb.st_size < 65536)
+	peer->transfer->flags.b.minislot = 1;
+    if(!peer->transfer->flags.b.minislot && (slotsleft() < 1)) {
+	qstr(sk, "$MaxedOut|");
 	return;
     }
     if((start != 0) && ((start >= sb.st_size) || (lseek(fd, start, SEEK_SET) < 0)))
@@ -2001,14 +2005,10 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
     } else if(fd >= 0) {
 	if((wbuf = icsmbstowcs(argv[1], "UTF-8", NULL)) != NULL)
 	    transfersetpath(peer->transfer, wbuf);
+	peer->transfer->flags.b.minislot = 1;
     }
     if(fd < 0)
     {
-	if(slotsleft() < 1)
-	{
-	    qstr(sk, "$MaxedOut|");
-	    goto out;
-	}
 	if(!strncmp(argv[1], "TTH/", 4))
 	{
 	    if((node = findbytth(argv[1] + 4)) == NULL)
@@ -2046,6 +2046,12 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	{
 	    flog(LOG_WARNING, "could not stat file %ls: %s", node->name, strerror(errno));
 	    qstr(sk, "$Error|");
+	    goto out;
+	}
+	if(sb.st_size < 65536)
+	    peer->transfer->flags.b.minislot = 1;
+	if(!peer->transfer->flags.b.minislot && (slotsleft() < 1)) {
+	    qstr(sk, "$MaxedOut|");
 	    goto out;
 	}
 	if((start != 0) && ((start >= sb.st_size) || (lseek(fd, start, SEEK_SET) < 0)))
