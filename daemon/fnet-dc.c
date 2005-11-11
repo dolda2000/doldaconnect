@@ -1825,6 +1825,7 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
     if(sb.st_size < 65536)
 	peer->transfer->flags.b.minislot = 1;
     if(!peer->transfer->flags.b.minislot && (slotsleft() < 1)) {
+	close(fd);
 	qstr(sk, "$MaxedOut|");
 	freedcpeer(peer);
 	return;
@@ -1963,6 +1964,7 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
     if(sb.st_size < 65536)
 	peer->transfer->flags.b.minislot = 1;
     if(!peer->transfer->flags.b.minislot && (slotsleft() < 1)) {
+	close(fd);
 	qstr(sk, "$MaxedOut|");
 	return;
     }
