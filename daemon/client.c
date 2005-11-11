@@ -76,7 +76,11 @@ static struct scanstate *scanjob = NULL;
 static struct scanqueue *scanqueue = NULL;
 static struct sharepoint *shares = NULL;
 static struct hashcache *hashcache = NULL;
-static pid_t hashjob = 0;
+/* Set initially to -1, but changed to 0 the first time run() is
+ * called. This is to avoid forking a hash job before daemonizing,
+ * since that would make the daemon unable to wait() for the hash
+ * job. */
+static pid_t hashjob = -1;
 struct sharecache *shareroot = NULL;
 unsigned long long sharesize = 0;
 GCBCHAIN(sharechangecb, unsigned long long);
@@ -1051,6 +1055,11 @@ static int init(int hup)
 
 static int run(void)
 {
+    if(hashjob == -1)
+    {
+	hashjob = 0;
+	checkhashes();
+    }
     return(doscan(10));
 }
 
