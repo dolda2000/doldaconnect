@@ -91,6 +91,7 @@ int _parrlen(void **arr);
 char *findfile(char *gname, char *uname, char *homedir);
 struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list);
 void freewcspair(struct wcspair *pair, struct wcspair **list);
+wchar_t *wpfind(struct wcspair *list, wchar_t *key);
 
 #define sizebuf(b, bs, rs, es, a) _sizebuf((void **)(b), (bs), (rs), (es), (a))
 #define sizebuf2(b, rs, a) _sizebuf((void **)(&(b)), &(b ## size), (rs), sizeof(*(b)), (a))
