@@ -768,10 +768,15 @@ struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list)
 
 void freewcspair(struct wcspair *pair, struct wcspair **list)
 {
-    if(list != NULL)
+    struct wcspair *cur;
+    
+    for(cur = *list; cur != NULL; list = &(cur->next), cur = cur->next)
     {
-	if(*list == pair)
-	    *list = pair->next;
+	if(cur == pair)
+	{
+	    *list = cur->next;
+	    break;
+	}
     }
     free(pair->key);
     free(pair->val);
