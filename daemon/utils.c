@@ -777,3 +777,13 @@ void freewcspair(struct wcspair *pair, struct wcspair **list)
     free(pair->val);
     free(pair);
 }
+
+wchar_t *wpfind(struct wcspair *list, wchar_t *key)
+{
+    for(; list != NULL; list = list->next)
+    {
+	if(!wcscmp(list->key, key))
+	    return(list->val);
+    }
+    return(NULL);
+}
