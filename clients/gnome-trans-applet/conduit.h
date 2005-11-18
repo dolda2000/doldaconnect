@@ -31,6 +31,7 @@ struct conduitiface
     int (*init)(struct conduit *conduit);
     int (*connect)(struct conduit *conduit);
     void (*destroy)(struct conduit *conduit);
+    int (*cancel)(struct conduit *conduit, struct transfer *transfer);
 };
 
 struct transfer *findtransferbytag(struct conduit *conduit, char *tag);

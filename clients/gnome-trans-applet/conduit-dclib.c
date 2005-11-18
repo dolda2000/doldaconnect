@@ -304,11 +304,31 @@ static void destroy(struct conduit *conduit)
     free(data);
 }
 
+static int cancel(struct conduit *conduit, struct transfer *transfer)
+{
+    struct data *data;
+    struct dtdata *dtd;
+    struct dc_transfer *dt;
+    
+    data = conduit->cdata;
+    for(dt = dc_transfers; dt != NULL; dt = dt->next)
+    {
+	if(((dtd = dt->udata) != NULL) && (dtd->ct == transfer))
+	{
+	    dc_queuecmd(NULL, NULL, L"cancel", L"%%i", dt->id, NULL);
+	    return(0);
+	}
+    }
+    errno = -ESRCH;
+    return(-1);
+}
+
 static struct conduitiface st_conduit_dclib =
 {
     .init = init,
     .connect = connect,
     .destroy = destroy,
+    .cancel = cancel,
 };
 
 struct conduitiface *conduit_dclib = &st_conduit_dclib;

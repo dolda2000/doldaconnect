@@ -42,17 +42,24 @@ struct appletdata
 
 static char *ctxtmenu =
 "<popup name='button3'>"
-"    <menuitem name='Preferences' verb='dca_pref' _label='Preferences' pixtype='stock' pixname='gtk-properties'>"
-"    </menuitem>"
+"    <menuitem name='Preferences' verb='dca_pref' _label='Preferences' pixtype='stock' pixname='gtk-properties' />"
+"    <menuitem name='Cancel transfer' verb='dca_cancel' _label='Cancel transfer' pixtype='stock' pixname='gtk-cancel' />"
 "</popup>";
 
 static void run_pref_dialog(BonoboUIComponent *uic, gpointer data, const char *cname)
 {
 }
 
+static void cancel_transfer(BonoboUIComponent *uic, struct appletdata *data, const char *cname)
+{
+    if(data->conduit->iface->cancel != NULL)
+	data->conduit->iface->cancel(data->conduit, data->curdisplay);
+}
+
 static BonoboUIVerb ctxtmenuverbs[] =
 {
     BONOBO_UI_VERB("dca_pref", run_pref_dialog),
+    BONOBO_UI_VERB("dca_cancel", cancel_transfer),
     BONOBO_UI_VERB_END
 };
 
@@ -208,8 +215,6 @@ static gboolean trview_applet_fill(PanelApplet *applet, const gchar *iid, gpoint
     if(strcmp(iid, "OAFIID:Dolcon_Transferapplet"))
 	return(FALSE);
     
-    panel_applet_setup_menu(applet, ctxtmenu, ctxtmenuverbs, NULL);
-
     hbox = gtk_hbox_new(FALSE, 0);
     label = gtk_label_new("");
     gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
@@ -227,6 +232,8 @@ static gboolean trview_applet_fill(PanelApplet *applet, const gchar *iid, gpoint
     data->tiptimeout = g_timeout_add(500, (gboolean (*)(gpointer))updatetip, data);
     data->label = GTK_LABEL(label);
     
+    panel_applet_setup_menu(applet, ctxtmenu, ctxtmenuverbs, data);
+
     g_signal_connect(applet, "button-press-event", (GCallback)trview_applet_button_press, data);
     g_signal_connect(applet, "destroy", (GCallback)trview_applet_destroy, data);
     
