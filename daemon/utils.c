@@ -190,7 +190,7 @@ wchar_t *icsmbstowcs(char *mbs, char *charset, wchar_t *def)
 	free(buf);
     if((buf = icmbstowcs(mbs, charset)) == NULL)
     {
-	if(*def == '~')
+	if((def != NULL) && (*def == L'~'))
 	{
 	    flog(LOG_WARNING, "icsmbstowcs: could not convert wcs string into charset %s: %s", charset, strerror(errno));
 	    def++;
@@ -264,7 +264,7 @@ char *icswcstombs(wchar_t *wcs, char *charset, char *def)
 	free(buf);
     if((buf = icwcstombs(wcs, charset)) == NULL)
     {
-	if(*def == '~')
+	if((def != NULL) && (*def == '~'))
 	{
 	    flog(LOG_WARNING, "icswcstombs: could not convert mbs string from charset %s: %s", charset, strerror(errno));
 	    def++;
