@@ -55,6 +55,12 @@ static struct configvar myvars[] =
     /* Only for direct mode */
     {CONF_VAR_IPV4, "visibleipv4", {.ipv4 = {0}}},
     {CONF_VAR_STRING, "publicif", {.str = L""}},
+    /* Diffserv should be supported on IPv4, too, but I don't know the
+     * API to do that. */
+    {CONF_VAR_INT, "diffserv-mincost", {.num = 0}},
+    {CONF_VAR_INT, "diffserv-maxrel", {.num = 0}},
+    {CONF_VAR_INT, "diffserv-maxtp", {.num = 0}},
+    {CONF_VAR_INT, "diffserv-mindelay", {.num = 0}},
     {CONF_VAR_END}
 };
 
@@ -854,16 +860,67 @@ int pollsocks(int timeout)
 
 int socksettos(struct socket *sk, int tos)
 {
+    int buf;
+    
     if(sk->family == AF_INET)
     {
-	if(setsockopt(sk->fd, SOL_IP, IP_TOS, &tos, sizeof(tos)) < 0)
+	switch(tos)
+	{
+	case SOCK_TOS_MINCOST:
+	    buf = IPTOS_MINCOST;
+	    break;
+	case SOCK_TOS_MAXREL:
+	    buf = IPTOS_RELIABILITY;
+	    break;
+	case SOCK_TOS_MAXTP:
+	    buf = IPTOS_THROUGHPUT;
+	    break;
+	case SOCK_TOS_MINDELAY:
+	    buf = IPTOS_LOWDELAY;
+	    break;
+	default:
+	    flog(LOG_WARNING, "attempted to set unknown TOS value %i to IPv4 sock", tos);
+	    return(-1);
+	}
+	if(setsockopt(sk->fd, SOL_IP, IP_TOS, &buf, sizeof(buf)) < 0)
 	{
 	    flog(LOG_WARNING, "could not set sock TOS to %i: %s", tos, strerror(errno));
 	    return(-1);
 	}
 	return(0);
     }
-    /* XXX: How does the IPv6 traffic class work? */
+    if(sk->family == AF_INET6)
+    {
+	switch(tos)
+	{
+	case SOCK_TOS_MINCOST:
+	    buf = confgetint("net", "diffserv-mincost");
+	    break;
+	case SOCK_TOS_MAXREL:
+	    buf = confgetint("net", "diffserv-maxrel");
+	    break;
+	case SOCK_TOS_MAXTP:
+	    buf = confgetint("net", "diffserv-maxtp");
+	    break;
+	case SOCK_TOS_MINDELAY:
+	    buf = confgetint("net", "diffserv-mindelay");
+	    break;
+	default:
+	    flog(LOG_WARNING, "attempted to set unknown TOS value %i to IPv4 sock", tos);
+	    return(-1);
+	}
+	/*
+	  On Linux, the API IPv6 flow label management doesn't seem to
+	  be entirely complete, so I guess this will have to wait.
+	  
+	if(setsockopt(...) < 0)
+	{
+	    flog(LOG_WARNING, "could not set sock traffic class to %i: %s", tos, strerror(errno));
+	    return(-1);
+	}
+	*/
+	return(0);
+    }
     flog(LOG_WARNING, "could not set TOS on sock of family %i", sk->family);
     return(1);
 }
