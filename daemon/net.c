@@ -867,16 +867,16 @@ int socksettos(struct socket *sk, int tos)
 	switch(tos)
 	{
 	case SOCK_TOS_MINCOST:
-	    buf = IPTOS_MINCOST;
+	    buf = 0x02;
 	    break;
 	case SOCK_TOS_MAXREL:
-	    buf = IPTOS_RELIABILITY;
+	    buf = 0x04;
 	    break;
 	case SOCK_TOS_MAXTP:
-	    buf = IPTOS_THROUGHPUT;
+	    buf = 0x08;
 	    break;
 	case SOCK_TOS_MINDELAY:
-	    buf = IPTOS_LOWDELAY;
+	    buf = 0x10;
 	    break;
 	default:
 	    flog(LOG_WARNING, "attempted to set unknown TOS value %i to IPv4 sock", tos);
