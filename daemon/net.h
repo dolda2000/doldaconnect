@@ -25,10 +25,10 @@
 #define SOCK_SYN 1 /* Connecting */
 #define SOCK_EST 2 /* Established */
 #define SOCK_STL 3 /* Stale, dead */
-#define SOCK_TOS_MINDELAY 0x10
-#define SOCK_TOS_MAXTP 0x08
-#define SOCK_TOS_MAXREL 0x04
-#define SOCK_TOS_MINCOST 0x02
+#define SOCK_TOS_MINDELAY 4
+#define SOCK_TOS_MAXTP 3
+#define SOCK_TOS_MAXREL 2
+#define SOCK_TOS_MINCOST 1
 
 struct dgrambuf
 {
