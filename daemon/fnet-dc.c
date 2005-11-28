@@ -106,7 +106,7 @@ struct dchub
     char *inbuf;
     size_t inbufdata, inbufsize;
     struct qcommand *queue;
-    int extended;
+    int extended, dcppemu;
     char *nativename;
     char *nativenick;
 };
@@ -134,7 +134,7 @@ struct dcpeer
     int state;
     int ptclose;      /* Close after transfer is complete */
     int accepted;     /* If false, we connected, otherwise, we accepted */
-    int extended;
+    int extended, dcppemu;
     int direction;    /* Using the constants from transfer.h */
     int compress;
     int hascurpos, fetchingtthl, notthl;
@@ -634,20 +634,18 @@ static void sendmynick(struct dcpeer *peer)
 
 static void sendpeerlock(struct dcpeer *peer)
 {
-#ifdef DCPP_MASQUERADE
-    qstrf(peer->sk, "$Lock EXTENDEDPROTOCOLABCABCABCABCABCABC Pk=DCPLUSPLUS0.674ABCABC|");
-#else
-    qstrf(peer->sk, "$Lock EXTENDEDPROTOCOLABCABCABCABCABCABC Pk=DOLDA%sABCABCABC|", VERSION);
-#endif
+    if(peer->dcppemu)
+	qstrf(peer->sk, "$Lock EXTENDEDPROTOCOLABCABCABCABCABCABC Pk=DCPLUSPLUS0.674ABCABC|");
+    else
+	qstrf(peer->sk, "$Lock EXTENDEDPROTOCOLABCABCABCABCABCABC Pk=DOLDA%sABCABCABC|", VERSION);
 }
 
 static void sendsupports(struct dcpeer *peer)
 {
-#ifdef DCPP_MASQUERADE
-    qstr(peer->sk, "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG |");
-#else
-    qstr(peer->sk, "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG|");
-#endif
+    if(peer->dcppemu)
+	qstr(peer->sk, "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG |");
+    else
+	qstr(peer->sk, "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG|");
 }
 
 static void requestfile(struct dcpeer *peer)
@@ -759,8 +757,8 @@ static void sendmyinfo(struct socket *sk, struct fnetnode *fn)
 	}
     }
     qstrf(sk, "<%s V:%s,M:%c,H:%i/%i/%i,S:%i>",
-	  DCIDTAG,
-	  DCIDTAGV,
+	  (hub->dcppemu)?"++":"Dolda",
+	  (hub->dcppemu)?"0.674":VERSION,
 	  (tcpsock == NULL)?'P':'A',
 	  hn1, hn2, hn3,
 	  confgetint("transfer", "slots")
@@ -807,11 +805,10 @@ static void cmd_lock(struct socket *sk, struct fnetnode *fn, char *cmd, char *ar
 	*(p++) = 0;
     if(hub->extended)
     {
-#ifdef DCPP_MASQUERADE
-	qstrf(sk, "$Supports UserCommand NoGetINFO NoHello UserIP2 TTHSearch GetZBlock |");
-#else
-	qstrf(sk, "$Supports UserCommand NoGetINFO NoHello UserIP2 TTHSearch GetZBlock|");
-#endif
+	if(hub->dcppemu)
+	    qstrf(sk, "$Supports UserCommand NoGetINFO NoHello UserIP2 TTHSearch GetZBlock |");
+	else
+	    qstrf(sk, "$Supports UserCommand NoGetINFO NoHello UserIP2 TTHSearch GetZBlock|");
     }
     key = dcmakekey(args);
     qstrf(sk, "$Key %s|", key);
@@ -1446,16 +1443,12 @@ static void cmd_usercommand(struct socket *sk, struct fnetnode *fn, char *cmd, c
 static void cmd_getpass(struct socket *sk, struct fnetnode *fn, char *cmd, char *args)
 {
     struct dchub *hub;
-    struct wcspair *arg;
+    wchar_t *pw;
     char *mbspw;
     
     hub = fn->data;
-    for(arg = fn->args; arg != NULL; arg = arg->next)
-    {
-	if(!wcscmp(arg->key, L"password"))
-	    break;
-    }
-    if((arg == NULL) || ((mbspw = icwcstombs(arg->val, DCCHARSET)) == NULL))
+    pw = wpfind(fn->args, L"password");
+    if((pw == NULL) || ((mbspw = icwcstombs(pw, DCCHARSET)) == NULL))
     {
 	killfnetnode(fn);
 	return;
@@ -1478,6 +1471,7 @@ static void cmd_logedin(struct socket *sk, struct fnetnode *fn, char *cmd, char 
 static void cmd_mynick(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
     struct dcexppeer *expect;
+    struct dchub *hub;
 
     if(peer->nativename != NULL)
 	free(peer->nativename);
@@ -1500,8 +1494,10 @@ static void cmd_mynick(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	{
 	    peer->fn = NULL;
 	} else {
+	    hub = expect->fn->data;
 	    peer->fn = expect->fn;
 	    getfnetnode(peer->fn);
+	    peer->dcppemu = hub->dcppemu;
 	    freeexppeer(expect);
 	}
     }
@@ -2902,10 +2898,20 @@ static int hubsetnick(struct fnetnode *fn, wchar_t *newnick)
 static struct dchub *newdchub(struct fnetnode *fn)
 {
     struct dchub *new;
+    wchar_t *emu;
     
     new = smalloc(sizeof(*new));
     memset(new, 0, sizeof(*new));
     fn->data = new;
+    if(confgetint("dc", "dcppemu"))
+	new->dcppemu = 1;
+    if((emu = wpfind(fn->args, L"dcppemu")) != NULL)
+    {
+	if(*emu == L'y')
+	    new->dcppemu = 1;
+	if(*emu == L'n')
+	    new->dcppemu = 0;
+    }
     if(hubsetnick(fn, fn->mynick))
 	fnetsetnick(fn, L"DoldaConnectUser-IN");
     /* IN as in Invalid Nick */
@@ -2921,6 +2927,8 @@ static struct dcpeer *newdcpeer(struct socket *sk)
     new->transfer = NULL;
     getsock(sk);
     new->sk = sk;
+    if(confgetint("dc", "dcppemu"))
+	new->dcppemu = 1;
     new->next = peers;
     new->prev = NULL;
     if(peers != NULL)
@@ -3091,15 +3099,18 @@ static void peererror(struct socket *sk, int err, struct dcpeer *peer)
 static void peerconnect(struct socket *sk, int err, struct fnetnode *fn)
 {
     struct dcpeer *peer;
+    struct dchub *hub;
     
     if(err != 0)
     {
 	putfnetnode(fn);
 	return;
     }
+    hub = fn->data;
     peer = newdcpeer(sk);
     peer->fn = fn;
     peer->accepted = 0;
+    peer->dcppemu = hub->dcppemu;
     sk->readcb = (void (*)(struct socket *, void *))peerread;
     sk->errcb = (void (*)(struct socket *, int, void *))peererror;
     sk->data = peer;
@@ -3302,7 +3313,10 @@ static void updatexmllist(void)
     for(i = 0; i < sizeof(cidbuf) - 1; i++)
 	cidbuf[i] = (rand() % ('Z' - 'A' + 1)) + 'A';
     cidbuf[i] = 0;
-    fprintf(fs, "<FileListing Version=\"1\" CID=\"%s\" Base=\"/\" Generator=\"%s\">\r\n", cidbuf, DCIDFULL);
+    if(confgetint("dc", "dcppemu"))
+	fprintf(fs, "<FileListing Version=\"1\" CID=\"%s\" Base=\"/\" Generator=\"DC++ 0.674\">\r\n", cidbuf);
+    else
+	fprintf(fs, "<FileListing Version=\"1\" CID=\"%s\" Base=\"/\" Generator=\"%s\">\r\n", cidbuf, "DoldaConnect" VERSION);
     
     node = shareroot->child;
     lev = 0;
@@ -3347,11 +3361,10 @@ static void updatexmllist(void)
 	}
     }
     
-#ifdef DCPP_MASQUERADE
-    fprintf(fs, "</FileListing>");
-#else
-    fprintf(fs, "</FileListing>\r\n");
-#endif
+    if(confgetint("dc", "dcppemu"))
+	fprintf(fs, "</FileListing>");
+    else
+	fprintf(fs, "</FileListing>\r\n");
     fclose(fs);
 }
 
@@ -3592,6 +3605,7 @@ static struct configvar myvars[] =
     {CONF_VAR_STRING, "email", {.str = L"spam@spam.org"}},
     {CONF_VAR_INT, "udpport", {.num = 0}},
     {CONF_VAR_INT, "tcpport", {.num = 0}},
+    {CONF_VAR_BOOL, "dcppemu", {.num = 0}},
     {CONF_VAR_END}
 };
 
