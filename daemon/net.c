@@ -866,6 +866,9 @@ int socksettos(struct socket *sk, int tos)
     {
 	switch(tos)
 	{
+	case 0:
+	    buf = 0;
+	    break;
 	case SOCK_TOS_MINCOST:
 	    buf = 0x02;
 	    break;
@@ -893,6 +896,8 @@ int socksettos(struct socket *sk, int tos)
     {
 	switch(tos)
 	{
+	case 0:
+	    buf = 0;
 	case SOCK_TOS_MINCOST:
 	    buf = confgetint("net", "diffserv-mincost");
 	    break;
