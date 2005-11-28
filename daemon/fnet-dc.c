@@ -2647,6 +2647,7 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
 		    endcompress(peer);
 		    transfersetstate(transfer, TRNS_HS);
 		    socksettos(peer->sk, confgetint("fnet", "fnptos"));
+		    transfer->flags.b.minislot = 0;
 		    peer->sk->writecb = NULL;
 		}
 	    }
