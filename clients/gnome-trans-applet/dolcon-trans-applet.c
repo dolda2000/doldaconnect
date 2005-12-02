@@ -197,6 +197,34 @@ static gboolean trview_applet_button_press(GtkWidget *widget, GdkEventButton *ev
     return(FALSE);
 }
 
+static gboolean trview_applet_scroll(GtkWidget *widget, GdkEventScroll *event, struct appletdata *data)
+{
+    struct transfer *tr;
+    
+    if(event->direction == GDK_SCROLL_DOWN)
+    {
+	if(data->curdisplay == NULL)
+	    data->curdisplay = data->conduit->transfers;
+	else if(data->curdisplay->next == NULL)
+	    data->curdisplay = data->conduit->transfers;
+	else
+	    data->curdisplay = data->curdisplay->next;
+	update(data);
+    } else if(event->direction == GDK_SCROLL_UP) {
+	if(data->curdisplay == NULL)
+	{
+	    data->curdisplay = data->conduit->transfers;
+	} else if(data->curdisplay->prev == NULL) {
+	    for(tr = data->conduit->transfers; tr->next != NULL; tr = tr->next);
+	    data->curdisplay = tr;
+	} else {
+	    data->curdisplay = data->curdisplay->prev;
+	}
+	update(data);
+    }
+    return(TRUE);
+}
+
 static void trview_applet_destroy(GtkWidget *widget, struct appletdata *data)
 {
     freeconduit(data->conduit);
@@ -235,6 +263,7 @@ static gboolean trview_applet_fill(PanelApplet *applet, const gchar *iid, gpoint
     panel_applet_setup_menu(applet, ctxtmenu, ctxtmenuverbs, data);
 
     g_signal_connect(applet, "button-press-event", (GCallback)trview_applet_button_press, data);
+    g_signal_connect(applet, "scroll-event", (GCallback)trview_applet_scroll, data);
     g_signal_connect(applet, "destroy", (GCallback)trview_applet_destroy, data);
     
     condtryconn(data->conduit);
