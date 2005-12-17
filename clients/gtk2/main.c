@@ -846,7 +846,15 @@ gint ksupdatecb(gpointer data)
 	}
     }
     if(oldnum != numspeeds)
-	knownspeeds = srealloc(knownspeeds, numspeeds * sizeof(*knownspeeds));
+    {
+	if(numspeeds == 0)
+	{
+	    free(knownspeeds);
+	    knownspeeds = NULL;
+	} else {
+	    knownspeeds = srealloc(knownspeeds, numspeeds * sizeof(*knownspeeds));
+	}
+    }
     gtk_tree_model_foreach(GTK_TREE_MODEL(srchmodel), ksupdaterow, NULL);
     if(ksqueryseq == -2)
     {
