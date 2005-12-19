@@ -107,7 +107,9 @@ void cb_main_srchcanbtn_clicked(GtkWidget *widget, gpointer data);
 gboolean cb_main_trlist_keypress(GtkWidget *widget, GdkEventKey *event, gpointer data);
 void cb_main_filternoslots_toggled(GtkToggleButton *widget, gpointer data);
 void cb_main_srhash_activate(GtkWidget *widget, gpointer data);
+void cb_main_srcopy_activate(GtkWidget *widget, gpointer data);
 void cb_main_trhash_activate(GtkWidget *widget, gpointer data);
+void cb_main_trcopy_activate(GtkWidget *widget, gpointer data);
 void cb_main_trcancel_activate(GtkWidget *widget, gpointer data);
 gboolean cb_main_srpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
 gboolean cb_main_trpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
@@ -1775,6 +1777,25 @@ void cb_main_srhash_activate(GtkWidget *widget, gpointer data)
     }
 }
 
+void cb_main_srcopy_activate(GtkWidget *widget, gpointer data)
+{
+    GtkClipboard *cb;
+    GtkTreeSelection *sel;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    char *hash;
+    
+    if(nextsrch != -1)
+	return;
+    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(main_srchres));
+    if(!gtk_tree_selection_get_selected(sel, &model, &iter))
+	return;
+    gtk_tree_model_get(model, &iter, 9, &hash, -1);
+    cb = gtk_clipboard_get(gdk_atom_intern("PRIMARY", FALSE));
+    gtk_clipboard_set_text(cb, hash, -1);
+    g_free(hash);
+}
+
 void cb_main_trhash_activate(GtkWidget *widget, gpointer data)
 {
     GtkTreeSelection *sel;
@@ -1796,6 +1817,23 @@ void cb_main_trhash_activate(GtkWidget *widget, gpointer data)
     } else {
 	return;
     }
+}
+
+void cb_main_trcopy_activate(GtkWidget *widget, gpointer data)
+{
+    GtkClipboard *cb;
+    GtkTreeSelection *sel;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    char *hash;
+    
+    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(main_downloads));
+    if(!gtk_tree_selection_get_selected(sel, &model, &iter))
+	return;
+    gtk_tree_model_get(model, &iter, 12, &hash, -1);
+    cb = gtk_clipboard_get(gdk_atom_intern("PRIMARY", FALSE));
+    gtk_clipboard_set_text(cb, hash, -1);
+    g_free(hash);
 }
 
 void cb_main_trcancel_activate(GtkWidget *widget, gpointer data)
@@ -1844,9 +1882,13 @@ gboolean cb_main_srpopup(GtkWidget *widget, GdkEventButton *event, gpointer data
     {
 	gtk_tree_model_get(model, &iter, 9, &hash, -1);
 	if((nextsrch != -1) || (hash == NULL) || (*hash == 0))
+	{
 	    gtk_widget_set_sensitive(main_srhash, FALSE);
-	else
+	    gtk_widget_set_sensitive(main_srcopy, FALSE);
+	} else {
 	    gtk_widget_set_sensitive(main_srhash, TRUE);
+	    gtk_widget_set_sensitive(main_srcopy, TRUE);
+	}
 	g_free(hash);
     } else {
 	return(FALSE);
@@ -1873,9 +1915,13 @@ gboolean cb_main_trpopup(GtkWidget *widget, GdkEventButton *event, gpointer data
     {
 	gtk_tree_model_get(model, &iter, 12, &hash, -1);
 	if((nextsrch != -1) || (hash == NULL) || (*hash == 0))
+	{
 	    gtk_widget_set_sensitive(main_trhash, FALSE);
-	else
+	    gtk_widget_set_sensitive(main_trcopy, FALSE);
+	} else {
 	    gtk_widget_set_sensitive(main_trhash, TRUE);
+	    gtk_widget_set_sensitive(main_trcopy, TRUE);
+	}
 	g_free(hash);
     } else {
 	return(FALSE);
