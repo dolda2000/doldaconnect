@@ -29,6 +29,7 @@ end
 			:menuitem label: Op_tions
 				:menu
 					$smenuitem name: prefmenu stock: PREFERENCES sig: activate
+					$menuitem name: lsres label: "_List resumable files" sig: activate
 				end
 			end
 		end
