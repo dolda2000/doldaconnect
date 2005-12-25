@@ -40,3 +40,76 @@ if [ "$cmd" = rmtag ]; then
 	fi
     done
 fi
+
+if [ "$cmd" = remain ]; then
+    for f in "$HOME"/dc/resume/*.info; do
+	if [ ! -r "$f" ]; then
+	    continue
+	fi
+	unset "${!dcarg_@}"
+	. "$f"
+	resfile="${f%.info}"
+	for id in "$@"; do
+	    idt="${id%%:*}"
+	    idd="${id#*:}"
+	    match=n
+	    if [ "$idt" = size ]; then
+		if [ "$idd" -eq "$filesize" ]; then
+		    match=y
+		fi
+	    elif [ "$idt" = hash ]; then
+		if [ "$idd" = "$dcarg_hash" ]; then
+		    match=y
+		fi
+	    elif [ "$idt" = all ]; then
+		match=y
+	    fi
+	    if [ "$match" = y ]; then
+		rfrem="$(wc -c <"$resfile" | sed 's/ //g')"
+		echo "size:$filesize"
+		echo "prog:$rfrem"
+		echo "name:$origname"
+		if [ -n "$dcarg_hash" ]; then
+		    echo "hash:$dcarg_hash"
+		fi
+	    fi
+	done
+    done
+fi
+
+if [ "$cmd" = lsres ]; then
+    for f in "$HOME"/dc/resume/*.info; do
+	if [ ! -r "$f" ]; then
+	    continue
+	fi
+	. "$f"
+	resfile="${f%.info}"
+	rfrem="$(wc -c <"$resfile" | sed 's/ //g')"
+	echo "id:${resfile##*/}"
+	echo "size:$filesize"
+	echo "prog:$rfrem"
+	echo "name:$origname"
+	if [ -e "${resfile}.lock" ]; then
+	    echo "lock:yes"
+	else
+	    echo "lock:no"
+	fi
+	if [ -n "$dcarg_hash" ]; then
+	    echo "hash:$dcarg_hash"
+	fi
+    done
+fi
+
+if [ "$cmd" = rmres ]; then
+    resfile="$HOME/dc/resume/$1"
+    if [ ! -r "${resfile}.info" ]; then
+	echo "err:notfound"
+	exit
+    fi
+    if [ -e "${resfile}.lock" ]; then
+	echo "err:locked"
+	exit
+    fi
+    rm -f "$resfile" "${resfile}.info"
+    echo "ok"
+fi
