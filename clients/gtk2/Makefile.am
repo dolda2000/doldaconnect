@@ -4,11 +4,11 @@ dolcon_SOURCES=	main.c \
 		progressbar.c \
 		progressbar.h
 
-EXTRA_DIST=mainwnd.desc inpdialog.desc pref.desc makegdesc
+EXTRA_DIST=mainwnd.desc inpdialog.desc pref.desc reslist.desc makegdesc
 
-BUILT_SOURCES=mainwnd.gtk inpdialog.gtk pref.gtk
+BUILT_SOURCES=mainwnd.gtk inpdialog.gtk pref.gtk reslist.gtk
 
-main.c: mainwnd.gtk inpdialog.gtk
+main.c: mainwnd.gtk inpdialog.gtk pref.gtk reslist.gtk
 
 localedir=$(datadir)/locale
 dolcon_LDFLAGS=$(shell pkg-config --libs gtk+-2.0)
