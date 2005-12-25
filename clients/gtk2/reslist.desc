@@ -1,0 +1,24 @@
+;prefix: reslist_
+;hascolumns: y
+;hasrenderers: y
+:wnd name: wnd title: "Resumable files" var: y sig(delete-event): gtk_widget_hide_on_delete
+	:vbox
+		:sw fill: TRUE expand: TRUE
+			:treeview name: list var: y sig(cursor-changed): cb_reslist_list_cchange sig(row-activated): cb_reslist_list_activate sig(key-press-event): cb_reslist_list_keypress
+				$tvcol title: "Name" text: 3 sortcol: 3 resizable: TRUE
+				:tvcol title: "Size"
+					$textrend func: transnicebytefunc funcdata: "(gpointer)1"
+				end
+				:tvcol title: "Position"
+					$textrend func: transnicebytefunc funcdata: "(gpointer)2"
+				end
+				$tvcol title: "Hash" text: 5 sortcol: 5
+			end
+		end
+		:hbox
+			$sbtn name: reload stock: REFRESH sig: clicked var: y
+			$sbtn name: delete stock: DELETE sig: clicked sensitive: FALSE var: y
+			$btn name: search label: "_Search for hash" sig: clicked sensitive: FALSE var: y
+		end
+	end
+end
