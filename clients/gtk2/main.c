@@ -66,7 +66,7 @@ struct knownspeed
 };
 
 GtkWidget *inpdialog;
-GtkListStore *fnmodel, *ulmodel, *dlmodel, *pubhubmodel;
+GtkListStore *fnmodel, *ulmodel, *dlmodel, *pubhubmodel, *reslist;
 GtkTreeStore *srchmodel;
 GtkTreeModelFilter *srchmodelfilter;
 GtkTextTagTable *chattags;
@@ -84,12 +84,13 @@ int cursrch = -1, nextsrch = -1;
 time_t srcheta;
 struct srchsize *srchsizes = NULL;
 struct knownspeed *knownspeeds = NULL;
-int numsizes = 0, numspeeds = 0, ksqueryseq = -1, ksquerytag = -1;
+int numsizes = 0, numspeeds = 0, ksqueryseq = -1, ksquerytag = -1, lsrestag = -1;
 
 gboolean initdeath(GtkWidget *, gpointer);
 void cb_main_connmenu_activate(GtkWidget *widget, gpointer data);
 void cb_main_dconnmenu_activate(GtkWidget *widget, gpointer data);
 void cb_main_prefmenu_activate(GtkWidget *widget, gpointer data);
+void cb_main_lsres_activate(GtkWidget *widget, gpointer data);
 void cb_main_sdmenu_activate(GtkWidget *widget, gpointer data);
 void cb_inpdialog_entry_activate(GtkWidget *widget, gpointer data);
 void cb_main_fnaddr_activate(GtkWidget *widget, gpointer data);
@@ -113,6 +114,12 @@ void cb_main_trcopy_activate(GtkWidget *widget, gpointer data);
 void cb_main_trcancel_activate(GtkWidget *widget, gpointer data);
 gboolean cb_main_srpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
 gboolean cb_main_trpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
+void cb_reslist_reload_clicked(GtkWidget *widget, gpointer data);
+void cb_reslist_delete_clicked(GtkWidget *widget, gpointer data);
+void cb_reslist_search_clicked(GtkWidget *widget, gpointer data);
+void cb_reslist_list_cchange(GtkWidget *widget, gpointer data);
+void cb_reslist_list_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *col, gpointer data);
+gboolean cb_reslist_list_keypress(GtkWidget *widget, GdkEventKey *event, gpointer data);
 void dcfdcallback(gpointer data, gint source, GdkInputCondition condition);
 void srchstatupdate(void);
 void transnicebytefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
@@ -128,6 +135,7 @@ void speedtimefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *
 #include "mainwnd.gtk"
 #include "inpdialog.gtk"
 #include "pref.gtk"
+#include "reslist.gtk"
 
 void updatewrite(void)
 {
@@ -1092,6 +1100,30 @@ void handleresps(void)
 		}
 		ksquerytag = -1;
 		ksupdatecb(NULL);
+	    } else if((lsrestag >= 0) && (lsrestag == resp->tag)) {
+		for(i = 0; i < resp->numlines; i++)
+		{
+		    if(!wcsncmp(resp->rlines[i].argv[1], L"id:", 3))
+		    {
+			gtk_list_store_append(reslist, &titer);
+			gtk_list_store_set(reslist, &titer, 0, icswcstombs(resp->rlines[i].argv[1] + 3, "UTF-8", NULL), -1);
+		    } else if(!wcsncmp(resp->rlines[i].argv[1], L"size:", 5)) {
+			gtk_list_store_set(reslist, &titer, 1, wcstol(resp->rlines[i].argv[1] + 5, NULL, 10), -1);
+		    } else if(!wcsncmp(resp->rlines[i].argv[1], L"prog:", 5)) {
+			gtk_list_store_set(reslist, &titer, 2, wcstol(resp->rlines[i].argv[1] + 5, NULL, 10), -1);
+		    } else if(!wcsncmp(resp->rlines[i].argv[1], L"name:", 5)) {
+			gtk_list_store_set(reslist, &titer, 3, icswcstombs(resp->rlines[i].argv[1] + 5, "UTF-8", NULL), -1);
+		    } else if(!wcsncmp(resp->rlines[i].argv[1], L"lock:", 5)) {
+			if(!wcscmp(resp->rlines[i].argv[1] + 5, L"yes"))
+			    gtk_list_store_set(reslist, &titer, 4, TRUE, -1);
+			else
+			    gtk_list_store_set(reslist, &titer, 4, FALSE, -1);
+		    } else if(!wcsncmp(resp->rlines[i].argv[1], L"hash:", 5)) {
+			gtk_list_store_set(reslist, &titer, 5, icswcstombs(resp->rlines[i].argv[1] + 5, "UTF-8", NULL), -1);
+		    }
+		}
+		lsrestag = -1;
+		gtk_widget_set_sensitive(reslist_reload, TRUE);
 	    }
 	}
 	dc_freeresp(resp);
@@ -1150,6 +1182,19 @@ void cb_main_prefmenu_activate(GtkWidget *widget, gpointer data)
 	autoconn = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(pref_autoconn));
     }
     gtk_widget_destroy(dialog);
+}
+
+void cb_main_lsres_activate(GtkWidget *widget, gpointer data)
+{
+    gtk_list_store_clear(reslist);
+    gtk_widget_set_sensitive(reslist_delete, FALSE);
+    gtk_widget_set_sensitive(reslist_search, FALSE);
+    gtk_widget_show(reslist_wnd);
+    if(lsrestag == -1)
+    {
+	lsrestag = dc_queuecmd(NULL, NULL, L"filtercmd", L"lsres", NULL);
+	gtk_widget_set_sensitive(reslist_reload, FALSE);
+    }
 }
 
 void dcconnect(char *host)
@@ -1881,12 +1926,15 @@ gboolean cb_main_srpopup(GtkWidget *widget, GdkEventButton *event, gpointer data
     if(gtk_tree_selection_get_selected(sel, &model, &iter))
     {
 	gtk_tree_model_get(model, &iter, 9, &hash, -1);
-	if((nextsrch != -1) || (hash == NULL) || (*hash == 0))
+	if((hash == NULL) || (*hash == 0))
 	{
 	    gtk_widget_set_sensitive(main_srhash, FALSE);
 	    gtk_widget_set_sensitive(main_srcopy, FALSE);
 	} else {
-	    gtk_widget_set_sensitive(main_srhash, TRUE);
+	    if(nextsrch == -1)
+		gtk_widget_set_sensitive(main_srhash, TRUE);
+	    else
+		gtk_widget_set_sensitive(main_srhash, FALSE);
 	    gtk_widget_set_sensitive(main_srcopy, TRUE);
 	}
 	g_free(hash);
@@ -1914,12 +1962,15 @@ gboolean cb_main_trpopup(GtkWidget *widget, GdkEventButton *event, gpointer data
     if(gtk_tree_selection_get_selected(sel, &model, &iter))
     {
 	gtk_tree_model_get(model, &iter, 12, &hash, -1);
-	if((nextsrch != -1) || (hash == NULL) || (*hash == 0))
+	if((hash == NULL) || (*hash == 0))
 	{
 	    gtk_widget_set_sensitive(main_trhash, FALSE);
 	    gtk_widget_set_sensitive(main_trcopy, FALSE);
 	} else {
-	    gtk_widget_set_sensitive(main_trhash, TRUE);
+	    if(nextsrch == -1)
+		gtk_widget_set_sensitive(main_trhash, TRUE);
+	    else
+		gtk_widget_set_sensitive(main_trhash, FALSE);
 	    gtk_widget_set_sensitive(main_trcopy, TRUE);
 	}
 	g_free(hash);
@@ -1930,6 +1981,143 @@ gboolean cb_main_trpopup(GtkWidget *widget, GdkEventButton *event, gpointer data
 	gtk_menu_popup(GTK_MENU(main_trpopup), NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time());
     else
 	gtk_menu_popup(GTK_MENU(main_trpopup), NULL, NULL, NULL, NULL, event->button, event->time);
+    return(FALSE);
+}
+
+void cb_reslist_reload_clicked(GtkWidget *widget, gpointer data)
+{
+    if(lsrestag != -1)
+	return;
+    gtk_widget_set_sensitive(reslist_delete, FALSE);
+    gtk_widget_set_sensitive(reslist_search, FALSE);
+    gtk_list_store_clear(reslist);
+    lsrestag = dc_queuecmd(NULL, NULL, L"filtercmd", L"lsres", NULL);
+    gtk_widget_set_sensitive(reslist_reload, FALSE);
+}
+
+int rmres(char *id)
+{
+    int tag, ret;
+    struct dc_response *resp;
+    
+    ret = -1;
+    tag = dc_queuecmd(NULL, NULL, L"filtercmd", L"rmres", L"%%s", id, NULL);
+    if((resp = dc_gettaggedrespsync(tag)) != NULL)
+    {
+	if(resp->numlines > 0)
+	{
+	    if(!wcscmp(resp->rlines[0].argv[1], L"ok"))
+		ret = 0;
+	    else if(!wcsncmp(resp->rlines[0].argv[1], L"err:", 4))
+		msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("An error occurred (%ls)"), resp->rlines[0].argv[1] + 4);
+	}
+	dc_freeresp(resp);
+    }
+    handleresps();
+    return(ret);
+}
+
+void cb_reslist_delete_clicked(GtkWidget *widget, gpointer data)
+{
+    GtkTreeIter iter;
+    GtkTreeModel *model;
+    char *id;
+    gboolean locked;
+    
+    if(nextsrch != -1)
+	return;
+    if(!gtk_tree_selection_get_selected(gtk_tree_view_get_selection(GTK_TREE_VIEW(reslist_list)), &model, &iter))
+	return;
+    gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 0, &id, 4, &locked, -1);
+    if(locked)
+    {
+	g_free(id);
+	return;
+    }
+    if(!rmres(id))
+	gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
+    g_free(id);
+}
+
+void cb_reslist_search_clicked(GtkWidget *widget, gpointer data)
+{
+    GtkTreeIter iter;
+    GtkTreeModel *model;
+    char *hash, *buf;
+    
+    if(nextsrch != -1)
+	return;
+    if(!gtk_tree_selection_get_selected(gtk_tree_view_get_selection(GTK_TREE_VIEW(reslist_list)), &model, &iter))
+	return;
+    gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 5, &hash, -1);
+    buf = sprintf2("H=%s", hash);
+    gtk_entry_set_text(GTK_ENTRY(main_realsrch), buf);
+    free(buf);
+    g_free(hash);
+    cb_main_srchbtn_clicked(widget, NULL);
+}
+
+void cb_reslist_list_cchange(GtkWidget *widget, gpointer data)
+{
+    GtkTreeIter iter;
+    GtkTreeModel *model;
+    gboolean locked;
+    char *hash;
+    
+    if(!gtk_tree_selection_get_selected(gtk_tree_view_get_selection(GTK_TREE_VIEW(reslist_list)), &model, &iter))
+    {
+	gtk_widget_set_sensitive(reslist_delete, FALSE);
+	gtk_widget_set_sensitive(reslist_search, FALSE);
+	return;
+    }
+    gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 4, &locked, 5, &hash, -1);
+    gtk_widget_set_sensitive(reslist_delete, !locked);
+    gtk_widget_set_sensitive(reslist_search, hash && *hash);
+    g_free(hash);
+}
+
+void cb_reslist_list_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *col, gpointer data)
+{
+    GtkTreeIter iter;
+    GtkTreeModel *model;
+    char *hash, *buf;
+
+    model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
+    if(!gtk_tree_model_get_iter(GTK_TREE_MODEL(model), &iter, path))
+	return;
+    if(nextsrch != -1)
+	return;
+    gtk_tree_model_get(model, &iter, 5, &hash, -1);
+    buf = sprintf2("H=%s", hash);
+    gtk_entry_set_text(GTK_ENTRY(main_realsrch), buf);
+    free(buf);
+    g_free(hash);
+    cb_main_srchbtn_clicked(widget, NULL);
+}
+
+gboolean cb_reslist_list_keypress(GtkWidget *widget, GdkEventKey *event, gpointer data)
+{
+    GtkTreeSelection *sel;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    char *id;
+    gboolean locked;
+    
+    if((event->type == GDK_KEY_PRESS) && (event->keyval == GDK_Delete))
+    {
+	sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+	if(gtk_tree_selection_get_selected(sel, &model, &iter))
+	{
+	    gtk_tree_model_get(model, &iter, 0, &id, 4, &locked, -1);
+	    if(!locked)
+	    {
+		if(!rmres(id))
+		    gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
+	    }
+	    g_free(id);
+	}
+	return(TRUE);
+    }
     return(FALSE);
 }
 
@@ -1985,12 +2173,17 @@ int main(int argc, char **argv)
     }
     connectas = sstrdup(pwent->pw_name);
     wnd = create_main_wnd();
+    create_reslist_wnd();
+    gtk_window_resize(GTK_WINDOW(reslist_wnd), 600, 400);
     initchattags();
 
     fnmodel = gtk_list_store_new(6, G_TYPE_INT, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(main_fnetnodes), GTK_TREE_MODEL(fnmodel));
     gtk_tree_view_set_model(GTK_TREE_VIEW(main_chatnodes), GTK_TREE_MODEL(fnmodel));
-
+    
+    reslist = gtk_list_store_new(6, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_STRING);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(reslist_list), GTK_TREE_MODEL(reslist));
+    
     pubhubmodel = gtk_list_store_new(4, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT);
     sortmodel = gtk_tree_model_sort_new_with_model(GTK_TREE_MODEL(pubhubmodel));
     gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(sortmodel), 3, GTK_SORT_DESCENDING);
