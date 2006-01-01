@@ -27,6 +27,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -534,17 +535,23 @@ int main(int argc, char **argv)
     char res[24];
     char *statefile;
     FILE *state;
+    int progress, bytes;
+    struct stat sb;
     
     filter = 0;
     output = 4;
     outfd = 3;
+    progress = 0;
     statefile = NULL;
-    while((c = getopt(argc, argv, "hf456F:s:")) != -1) {
+    while((c = getopt(argc, argv, "phf456F:s:")) != -1) {
 	switch(c) {
 	case '4':
 	case '5':
 	case '6':
 	    output = c - '0';
+	    break;
+	case 'p':
+	    progress = 1;
 	    break;
 	case 'f':
 	    filter = 1;
@@ -672,6 +679,12 @@ int main(int argc, char **argv)
 		    exit(1);
 		}
 	    }
+	    if(progress) {
+		fstat(fd, &sb);
+		if(!S_ISREG(sb.st_mode))
+		    sb.st_size = -1;
+		bytes = 0;
+	    }
 	    inittigertree(&tth);
 	    while(1) {
 		ret = read(fd, buf, sizeof(buf));
@@ -679,10 +692,29 @@ int main(int argc, char **argv)
 		    perror("tigersum: read");
 		    exit(1);
 		}
+		if(progress) {
+		    if((bytes == 0) || ((bytes & ~0xFFFFF) != ((bytes + ret) & ~0xFFFFF))) {
+			bytes += ret;
+			fprintf(stderr, "\033[1G");
+			if(argc - optind > 1)
+			    fprintf(stderr, "%s: ", argv[i]);
+			if(sb.st_size < 0) {
+			    fprintf(stderr, "%i", bytes);
+			} else {
+			    fprintf(stderr, "%i%%", (int)(((float)bytes / (float)sb.st_size) * 100.0));
+			}
+			fprintf(stderr, "\033[K");
+			fflush(stderr);
+		    } else {
+			bytes += ret;
+		    }
+		}
 		if(ret == 0)
 		    break;
 		dotigertree(&tth, buf, ret);
 	    }
+	    if(progress)
+		fprintf(stderr, "\n");
 	    synctigertree(&tth);
 	    restigertree(&tth, res);
 	    if(output == 4)
@@ -695,6 +727,7 @@ int main(int argc, char **argv)
 		printf("%s %s\n", dbuf, argv[i]);
 	    else
 		printf("%s\n", dbuf);
+	    fflush(stdout);
 	    close(fd);
 	}
     }
