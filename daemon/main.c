@@ -381,7 +381,7 @@ int main(int argc, char **argv)
     syslogfac = LOG_DAEMON;
     configfile = NULL;
     pidfile = NULL;
-    while((c = getopt(argc, argv, "p:C:f:hn")) != -1)
+    while((c = getopt(argc, argv, "p:C:f:hns")) != -1)
     {
 	switch(c)
 	{
@@ -424,6 +424,9 @@ int main(int argc, char **argv)
 	case 'n':
 	    nofork = 1;
 	    break;
+	case 's':
+	    logtosyslog = 1;
+	    logtostderr = 0;
 	case 'h':
 	case ':':
 	case '?':
