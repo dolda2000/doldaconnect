@@ -427,6 +427,7 @@ int main(int argc, char **argv)
 	case 's':
 	    logtosyslog = 1;
 	    logtostderr = 0;
+	    break;
 	case 'h':
 	case ':':
 	case '?':
