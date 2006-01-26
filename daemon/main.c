@@ -431,7 +431,7 @@ int main(int argc, char **argv)
 	case ':':
 	case '?':
 	default:
-	    printf("usage: doldacond [-hn] [-C configfile] [-p pidfile] [-f facility]\n");
+	    printf("usage: doldacond [-hns] [-C configfile] [-p pidfile] [-f facility]\n");
 	    exit(c != 'h');
 	}
     }
