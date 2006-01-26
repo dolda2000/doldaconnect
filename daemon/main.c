@@ -562,5 +562,7 @@ int main(int argc, char **argv)
     }
     flog(LOG_INFO, "terminating...");
     terminate();
+    if(pidfile != NULL)
+	unlink(pidfile);
     return(0);
 }
