@@ -23,6 +23,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip6.h>
+#include <arpa/inet.h>
 #include <errno.h>
 #include <string.h>
 #include <stdarg.h>
@@ -315,6 +316,7 @@ static int haspriv(struct uidata *data, int perm)
 static void cmd_connect(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
 {
     int valid;
+    struct in6_addr mv4lo;
     
     if(confgetint("ui", "onlylocal"))
     {
@@ -324,7 +326,12 @@ static void cmd_connect(struct socket *sk, struct uidata *data, int argc, wchar_
 	    valid = ((struct sockaddr_in *)sk->remote)->sin_addr.s_addr == INADDR_LOOPBACK;
 	    break;
 	case AF_INET6:
-	    valid = !memcmp(&((struct sockaddr_in6 *)sk->remote)->sin6_addr, &in6addr_loopback, sizeof(in6addr_loopback));
+	    inet_pton(AF_INET6, "::ffff:127.0.0.1", &mv4lo);
+	    valid = 0;
+	    if(!memcmp(&((struct sockaddr_in6 *)sk->remote)->sin6_addr, &in6addr_loopback, sizeof(in6addr_loopback)))
+		valid = 1;
+	    if(!memcmp(&((struct sockaddr_in6 *)sk->remote)->sin6_addr, &mv4lo, sizeof(in6addr_loopback)))
+		valid = 1;
 	    break;
 	default:
 	    valid = 0;
