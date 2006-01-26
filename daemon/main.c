@@ -371,13 +371,13 @@ int main(int argc, char **argv)
     char *configfile;
     char *pidfile;
     FILE *pfstream, *confstream;
-    int delay;
+    int delay, immsyslog;
     struct module *mod;
     struct timer *timer, *ntimer;
     struct child *child;
     double now;
     
-    nofork = 0;
+    immsyslog = nofork = 0;
     syslogfac = LOG_DAEMON;
     configfile = NULL;
     pidfile = NULL;
@@ -425,8 +425,7 @@ int main(int argc, char **argv)
 	    nofork = 1;
 	    break;
 	case 's':
-	    logtosyslog = 1;
-	    logtostderr = 0;
+	    immsyslog = 1;
 	    break;
 	case 'h':
 	case ':':
@@ -438,6 +437,11 @@ int main(int argc, char **argv)
     }
     setlocale(LC_ALL, "");
     initlog();
+    if(immsyslog)
+    {
+	logtosyslog = 1;
+	logtostderr = 0;
+    }
     signal(SIGPIPE, SIG_IGN);
     signal(SIGHUP, handler);
     signal(SIGINT, handler);
