@@ -2164,7 +2164,7 @@ int main(int argc, char **argv)
     gtk_init(&argc, &argv);
     dc_init();
     signal(SIGCHLD, SIG_IGN);
-    pubhubaddr = sstrdup("http://www.neo-modus.com/PublicHubList.config");
+    pubhubaddr = sstrdup("http://www.hublist.org/PublicHubList.config.bz2");
     dcserver = sstrdup("localhost");
     if((pwent = getpwuid(getuid())) == NULL)
     {
