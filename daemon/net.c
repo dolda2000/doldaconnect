@@ -90,7 +90,7 @@ int getpublicaddr(int af, struct sockaddr **addr, socklen_t *lenbuf)
 	    *lenbuf = sizeof(*ipv4);
 	    return(0);
 	}
-	if((pif = icwcstombs(confgetstr("net", "publicif"), NULL)) == NULL)
+	if((pif = icswcstombs(confgetstr("net", "publicif"), NULL, NULL)) == NULL)
 	{
 	    flog(LOG_ERR, "could not convert net.publicif into local charset: %s", strerror(errno));
 	    return(-1);
@@ -128,12 +128,14 @@ int getpublicaddr(int af, struct sockaddr **addr, socklen_t *lenbuf)
 		    memcpy(ipv4, &ifr->ifr_addr, sizeof(ifr->ifr_addr));
 		} else {
 		    free(ipv4);
+		    free(conf.ifc_buf);
 		    flog(LOG_WARNING, "could not locate an unambiguous interface for determining your public IP address - set net.publicif");
 		    errno = ENFILE; /* XXX: There's no appropriate one for this... */
 		    return(-1);
 		}
 	    }
 	}
+	free(conf.ifc_buf);
 	close(sock);
 	if(ipv4 != NULL)
 	{
