@@ -396,10 +396,12 @@ static struct reinfo analyzere(wchar_t *re, wchar_t **endret, wchar_t endc)
 	    if(ret.begstr != NULL)
 	    {
 		for(i = 0; (sinf.begstr[i] != L'\0') && (ret.begstr != L'\0') && (ret.begstr[i] == sinf.begstr[i]); i++);
-		if(i == 0)
+		if(i == 0) {
 		    free(ret.begstr);
-		else
+		    ret.begstr = NULL;
+		} else {
 		    ret.begstr[i] = L'\0';
+		}
 	    }
 	    free(sinf.begstr);
 	} else {
@@ -424,10 +426,12 @@ static struct reinfo analyzere(wchar_t *re, wchar_t **endret, wchar_t endc)
 		    maxlen = len1;
 		}
 		for(i = 1; (i <= minlen) && (ret.endstr[len1 - i] == sinf.endstr[len2 - i]); i++);
-		if(i == 1)
+		if(i == 1) {
 		    free(ret.endstr);
-		else if(i <= maxlen)
+		    ret.endstr = NULL;
+		} else if(i <= maxlen) {
 		    wmemmove(ret.endstr, ret.endstr + (len1 - i) + 1, i);
+		}
 	    }
 	    free(sinf.endstr);
 	} else {
