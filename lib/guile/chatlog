@@ -44,8 +44,8 @@
 	(let ((ires #f))
 	  (while (begin (set! ires (dc-intresp resp)) ires)
 		 (if (assoc (car ires) fnetnodes)
-		     (set-cdr! (assoc (car ires) fnetnodes) (caddr ires))
-		     (set! fnetnodes (cons (cons (car ires) (caddr ires)) fnetnodes))))))))
+		     (set-cdr! (assoc (car ires) fnetnodes) (list-ref ires 5))
+		     (set! fnetnodes (cons (cons (car ires) (list-ref ires 5)) fnetnodes))))))))
 
 (define (fn-getname id)
   (if (not (assoc id fnetnodes))
