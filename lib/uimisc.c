@@ -869,6 +869,9 @@ static int getfnlistcallback(struct dc_response *resp)
 		fn->name = swcsdup(ires->argv[2].val.str);
 		fn->numusers = ires->argv[3].val.num;
 		fn->state = ires->argv[4].val.num;
+		if(fn->pubid != NULL)
+		    free(fn->pubid);
+		fn->pubid = swcsdup(ires->argv[5].val.str);
 	    } else {
 		fn = newfn();
 		fn->id = ires->argv[0].val.num;
@@ -876,6 +879,7 @@ static int getfnlistcallback(struct dc_response *resp)
 		fn->name = swcsdup(ires->argv[2].val.str);
 		fn->numusers = ires->argv[3].val.num;
 		fn->state = ires->argv[4].val.num;
+		fn->pubid = swcsdup(ires->argv[5].val.str);
 		fn->found = 1;
 	    }
 	    dc_freeires(ires);

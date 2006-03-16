@@ -112,6 +112,8 @@ void putfnetnode(struct fnetnode *fn)
 	fnetdelpeer(fn->peers);
     if(fn->mynick != NULL)
 	free(fn->mynick);
+    if(fn->pubid != NULL)
+	free(fn->pubid);
     if(fn->name != NULL)
 	free(fn->name);
     if(fn->sk != NULL)
@@ -451,6 +453,9 @@ struct fnetnode *fnetinitconnect(wchar_t *name, char *addr, struct wcspair *args
 	return(NULL);
     }
     fn = newfn(fnet);
+    fn->pubid = icmbstowcs(addr, NULL);
+    if(fn->pubid == NULL)
+	fn->pubid = swcsdup(L"");
     fn->args = args;
     for(arg = fn->args; arg != NULL; arg = arg->next)
     {

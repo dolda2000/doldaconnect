@@ -605,7 +605,7 @@ static void cmd_lsnodes(struct socket *sk, struct uidata *data, int argc, wchar_
     }
     for(fn = fnetnodes; fn != NULL; fn = fn->next)
     {
-	sq(sk, (fn->next != NULL)?1:0, L"200", L"%%i", fn->id, fn->fnet->name, (fn->name == NULL)?L"":fn->name, L"%%i", fn->numpeers, L"%%i", fn->state, NULL);
+	sq(sk, (fn->next != NULL)?1:0, L"200", L"%%i", fn->id, fn->fnet->name, (fn->name == NULL)?L"":fn->name, L"%%i", fn->numpeers, L"%%i", fn->state, L"%%ls", fn->pubid, NULL);
     }
 }
 

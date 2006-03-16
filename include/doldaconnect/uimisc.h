@@ -53,6 +53,7 @@ struct dc_fnetnode
     void (*newpeercb)(struct dc_fnetpeer *peer);
     void (*delpeercb)(struct dc_fnetpeer *peer);
     void (*chpeercb)(struct dc_fnetpeer *peer);
+    wchar_t *pubid;
 };
 
 struct dc_fnetpeerdatum

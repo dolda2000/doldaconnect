@@ -100,7 +100,7 @@ struct fnetnode
     int linked;
     int regstatus;
     time_t srchwait, lastsrch;
-    wchar_t *name;
+    wchar_t *name, *pubid;
     wchar_t *mynick;
     struct fnet *fnet;
     struct socket *sk;
