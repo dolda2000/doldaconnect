@@ -373,7 +373,7 @@ int main(int argc, char **argv)
     FILE *pfstream, *confstream;
     int delay, immsyslog;
     struct module *mod;
-    struct timer *timer, *ntimer;
+    struct timer *timer;
     struct child *child;
     double now;
     
@@ -527,20 +527,23 @@ int main(int argc, char **argv)
 	}
 	pollsocks(delay);
 	now = ntime();
-	for(timer = timers; timer != NULL; timer = ntimer)
+	do
 	{
-	    ntimer = timer->next;
-	    if(now < timer->at)
-		continue;
-	    if(timer->prev != NULL)
-		timer->prev->next = timer->next;
-	    if(timer->next != NULL)
-		timer->next->prev = timer->prev;
-	    if(timer == timers)
-		timers = timer->next;
-	    timer->func(0, timer->data);
-	    free(timer);
-	}
+	    for(timer = timers; timer != NULL; timer = timer->next)
+	    {
+		if(now < timer->at)
+		    continue;
+		if(timer->prev != NULL)
+		    timer->prev->next = timer->next;
+		if(timer->next != NULL)
+		    timer->next->prev = timer->prev;
+		if(timer == timers)
+		    timers = timer->next;
+		timer->func(0, timer->data);
+		free(timer);
+		break;
+	    }
+	} while(timer != NULL);
 	do
 	{
 	    for(child = children; child != NULL; child = child->next)
