@@ -1338,12 +1338,16 @@ void pubhubfdcallback(gpointer data, gint source, GdkInputCondition condition)
 		{
 		    if((wbuf = icsmbstowcs(fields[i], DCCHARSET, NULL)) == NULL)
 		    {
+			/*
 			msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not decode hublist - aborting at this point: %s"), strerror(errno));
 			kill(pubhubproc, SIGINT);
 			break;
+			*/
+			fields[i] = sstrdup(_("(Invalid character)"));
+		    } else {
+			if((fields[i] = icwcstombs(wbuf, "UTF-8")) == NULL)
+			    break;
 		    }
-		    if((fields[i] = icwcstombs(wbuf, "UTF-8")) == NULL)
-			break;
 		}
 		if(i == 4)
 		{
