@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2005-12-26 01:15+0100\n"
-"PO-Revision-Date: 2006-01-26 04:28+0100\n"
+"POT-Creation-Date: 2006-04-08 13:50+0200\n"
+"PO-Revision-Date: 2006-04-08 13:51+0200\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -39,7 +39,7 @@ msgstr "%H:%M:%S"
 msgid "%s (reported at %s)"
 msgstr "%s (rapporterades kl. %s)"
 
-#: clients/gtk2/main.c:507 clients/gtk2/main.c:2232
+#: clients/gtk2/main.c:507 clients/gtk2/main.c:2236
 msgid "Disconnected"
 msgstr "Frånkopplad"
 
@@ -127,15 +127,15 @@ msgstr "Anslut"
 msgid "Server address:"
 msgstr "Serverns adress:"
 
-#: clients/gtk2/main.c:1234 clients/gtk2/main.c:1255 clients/gtk2/main.c:1439
-#: clients/gtk2/main.c:1481 clients/gtk2/main.c:1543 clients/gtk2/main.c:1631
-#: clients/gtk2/main.c:1728
+#: clients/gtk2/main.c:1234 clients/gtk2/main.c:1255 clients/gtk2/main.c:1443
+#: clients/gtk2/main.c:1485 clients/gtk2/main.c:1547 clients/gtk2/main.c:1635
+#: clients/gtk2/main.c:1732
 msgid "Not connected to DC server"
 msgstr "Ej ansluten till DC-servern"
 
-#: clients/gtk2/main.c:1241 clients/gtk2/main.c:1274 clients/gtk2/main.c:1452
-#: clients/gtk2/main.c:1499 clients/gtk2/main.c:1556 clients/gtk2/main.c:1649
-#: clients/gtk2/main.c:1704 clients/gtk2/main.c:1775 clients/gtk2/main.c:1902
+#: clients/gtk2/main.c:1241 clients/gtk2/main.c:1274 clients/gtk2/main.c:1456
+#: clients/gtk2/main.c:1503 clients/gtk2/main.c:1560 clients/gtk2/main.c:1653
+#: clients/gtk2/main.c:1708 clients/gtk2/main.c:1779 clients/gtk2/main.c:1906
 msgid "You do not have permission to do that"
 msgstr "Du har inte tillstånd att göra det"
 
@@ -143,7 +143,7 @@ msgstr "Du har inte tillstånd att göra det"
 msgid "Illegal address entered"
 msgstr "Ogiltig adress"
 
-#: clients/gtk2/main.c:1276 clients/gtk2/main.c:1501
+#: clients/gtk2/main.c:1276 clients/gtk2/main.c:1505
 msgid "The server could not parse that address"
 msgstr "Servern kunde inte tolka den adressen"
 
@@ -152,67 +152,66 @@ msgstr "Servern kunde inte tolka den adressen"
 msgid "Could not read from public hub listing process: %s"
 msgstr "Kunde inte läsa från processen som hämtar den publika hublistan: %s"
 
-#: clients/gtk2/main.c:1341
-#, c-format
-msgid "Could not decode hublist - aborting at this point: %s"
-msgstr "Kunde inte dekoda hublistan - stannar här: %s"
+#: clients/gtk2/main.c:1346
+msgid "(Invalid character)"
+msgstr "(Ogiltig bokstav)"
 
-#: clients/gtk2/main.c:1444 clients/gtk2/main.c:1548
+#: clients/gtk2/main.c:1448 clients/gtk2/main.c:1552
 msgid "No hub selected"
 msgstr "Ingen hub vald"
 
-#: clients/gtk2/main.c:1558
+#: clients/gtk2/main.c:1562
 msgid ""
 "This hub could not support all the types of characters in your chat message"
 msgstr "Den här hubben klarar inte av alla sorters bokstäver i ditt meddelande"
 
-#: clients/gtk2/main.c:1560
+#: clients/gtk2/main.c:1564
 msgid "This hub does not support chatting"
 msgstr "Den här hubben klarar inte av att chatta"
 
-#: clients/gtk2/main.c:1562
+#: clients/gtk2/main.c:1566
 #, c-format
 msgid "An error occurred while trying to chat (%i)"
 msgstr "Ett fel uppstod under försöket att chatta (%i)"
 
-#: clients/gtk2/main.c:1639
+#: clients/gtk2/main.c:1643
 msgid "Please enter a search expression before searching"
 msgstr "Skriv in ett sökuttryck först"
 
-#: clients/gtk2/main.c:1647
+#: clients/gtk2/main.c:1651
 msgid "Could not find any hubs to search on"
 msgstr "Kunde inte hitta någon hub att söka på"
 
-#: clients/gtk2/main.c:1651
+#: clients/gtk2/main.c:1655
 msgid "The server could not parse your search expression"
 msgstr "Servern kunde inte tolka ditt sökuttryck"
 
-#: clients/gtk2/main.c:1653
+#: clients/gtk2/main.c:1657
 #, c-format
 msgid "An error occurred while trying to search (%i)"
 msgstr "Ett fel uppstod under försöket att söka (%i)"
 
-#: clients/gtk2/main.c:1706 clients/gtk2/main.c:1904
+#: clients/gtk2/main.c:1710 clients/gtk2/main.c:1908
 #, c-format
 msgid "An error occurred while trying to cancel (%i)"
 msgstr "Ett fel uppstod under försöket att avbryta (%i)"
 
-#: clients/gtk2/main.c:1777
+#: clients/gtk2/main.c:1781
 #, c-format
 msgid "An error occurred while trying to queue the download (%i)"
 msgstr "Ett fel uppstod under försöket att lägga till nerladdningen (%i)"
 
-#: clients/gtk2/main.c:2012
+#: clients/gtk2/main.c:2016
 #, c-format
 msgid "An error occurred (%ls)"
 msgstr "Ett fel uppstod (%ls)"
 
-#: clients/gtk2/main.c:2130 clients/gtk2/mainwnd.gtk:448
+#: clients/gtk2/main.c:2134 clients/gtk2/mainwnd.gtk:448
 #, c-format
 msgid "Ready to search"
 msgstr "Redo att söka"
 
-#: clients/gtk2/main.c:2132
+#: clients/gtk2/main.c:2136
 #, c-format
 msgid "Search scheduled and will be submitted in %i seconds"
 msgstr "Sökningen är schemalagd och kommer genomföras om %i sekunder"
@@ -466,3 +465,6 @@ msgstr "Ingen överföring vald"
 #: clients/gnome-trans-applet/dolcon-trans-applet.c:131
 msgid "Initializing"
 msgstr "Förbereder"
+
+#~ msgid "Could not decode hublist - aborting at this point: %s"
+#~ msgstr "Kunde inte dekoda hublistan - stannar här: %s"
