@@ -618,6 +618,7 @@ int main(int argc, char **argv)
 		}
 		memcpy(&tth.block, dbuf, tth.offset);
 		fclose(state);
+		unlink(statefile);
 	    }
 	}
 	while(1) {
