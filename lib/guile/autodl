@@ -432,7 +432,7 @@
 	   (lambda (key . args)
 	     (logf (string-append "could not connect to server: " (apply format #f (cadr args) (caddr args))))
 	     (exit 2)))
-    (dc-ecmd-assert 200 "notify" "all" "on")
+    (dc-ecmd-assert 200 "notify" "trans:act" "on" "trans:prog" "on" "srch:act" "on")
     (for-each (lambda (sig) (sigaction sig (lambda (sig) (throw 'sig sig)))) (list SIGINT SIGTERM SIGHUP))
     (catch 'sig
 	   (lambda ()
