@@ -48,7 +48,7 @@ struct tigertreehash {
     int depth;
 };
 
-char buf[32768], dbuf[512];
+char buf[32768], dbuf[8192];
 
 static char *base64set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static int base64rev[] = {
