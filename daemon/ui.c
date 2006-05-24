@@ -437,19 +437,20 @@ static void cmd_login(struct socket *sk, struct uidata *data, int argc, wchar_t 
 	if(data->uid == -1)
 	{
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully, but no account existed", data->username);
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but no account existed", data->username, formataddress(sk->remote, sk->remotelen));
 	    logout(data);
 	} else if((data->userinfo == NULL) || (data->userinfo->perms & PERM_DISALLOW)) {
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully, but was not authorized", data->username);
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but was not authorized", data->username, formataddress(sk->remote, sk->remotelen));
 	    logout(data);
 	} else {
 	    sq(sk, 0, L"200", L"Welcome", NULL);
-	    flog(LOG_INFO, "%ls (UID %i) logged in", data->username, data->uid);
+	    flog(LOG_INFO, "%ls (UID %i) logged in from %s", data->username, data->uid, formataddress(sk->remote, sk->remotelen));
 	}
 	break;
     case AUTH_DENIED:
 	sq(sk, 0, L"506", L"Authentication error", L"%%ls", (data->auth->text == NULL)?L"":(data->auth->text), NULL);
+	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formataddress(sk->remote, sk->remotelen));
 	logout(data);
 	break;
     case AUTH_PASS:
@@ -510,19 +511,20 @@ static void cmd_pass(struct socket *sk, struct uidata *data, int argc, wchar_t *
 	if(data->uid == -1)
 	{
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully, but no account existed", data->username);
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but no account existed", data->username, formataddress(sk->remote, sk->remotelen));
 	    logout(data);
 	} else if((data->userinfo == NULL) || (data->userinfo->perms & PERM_DISALLOW)) {
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully, but was not authorized", data->username);
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but was not authorized", data->username, formataddress(sk->remote, sk->remotelen));
 	    logout(data);
 	} else {
 	    sq(sk, 0, L"200", L"Welcome", NULL);
-	    flog(LOG_INFO, "%ls (UID %i) logged in", data->username, data->uid);
+	    flog(LOG_INFO, "%ls (UID %i) logged in from %s", data->username, data->uid, formataddress(sk->remote, sk->remotelen));
 	}
 	break;
     case AUTH_DENIED:
 	sq(sk, 0, L"506", L"Authentication error", L"%%ls", (data->auth->text == NULL)?L"":(data->auth->text), NULL);
+	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formataddress(sk->remote, sk->remotelen));
 	logout(data);
 	break;
     case AUTH_PASS:
