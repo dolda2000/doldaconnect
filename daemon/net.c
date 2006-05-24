@@ -1124,7 +1124,7 @@ char *formataddress(struct sockaddr *arg, socklen_t arglen)
 	ipv6 = (struct sockaddr_in6 *)arg;
 	if(inet_ntop(AF_INET6, &ipv6->sin6_addr, buf, sizeof(buf)) == NULL)
 	    return(NULL);
-	ret = sprintf2("%s:%i", buf, (int)ntohs(ipv6->sin6_port));
+	ret = sprintf2("[%s]:%i", buf, (int)ntohs(ipv6->sin6_port));
 	break;
 #endif
     default:
