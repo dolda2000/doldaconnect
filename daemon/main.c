@@ -43,6 +43,10 @@
 #include "sysevents.h"
 #include "auth.h"
 
+#ifdef HAVE_KEYUTILS
+#include <keyutils.h>
+#endif
+
 struct module *modchain = NULL;
 static struct timer *timers = NULL;
 static struct child *children = NULL;
@@ -303,6 +307,9 @@ pid_t forksess(uid_t user, struct authhandle *auth, void (*ccbfunc)(pid_t, int, 
 	setpgrp();
 	signal(SIGHUP, SIG_IGN);
 	errno = 0;
+#ifdef HAVE_KEYUTILS
+	keyctl_join_session_keyring(NULL);
+#endif
 	if((authopensess(auth)) != AUTH_SUCCESS)
 	{
 	    flog(LOG_WARNING, "could not open session for user %s: %s", pwent->pw_name, (errno == 0)?"Unknown error - should be logged above":strerror(errno));
