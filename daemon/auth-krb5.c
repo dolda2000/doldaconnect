@@ -420,43 +420,67 @@ static int opensess(struct authhandle *auth)
 	    flog(LOG_ERR, "could not get passwd entry for forwarded tickets (user %s): %s", data->username, strerror(errno));
 	    return(AUTH_ERR);
 	}
-	buf = sprintf2("/tmp/krb5cc_dc_%i_XXXXXX", pwent->pw_uid);
-	if((fd = mkstemp(buf)) < 0)
+	if(confgetint("auth-krb5", "usedefcc"))
 	{
-	    free(buf);
-	    flog(LOG_ERR, "could not create temporary file for ccache: %s", strerror(errno));
-	    return(AUTH_ERR);
-	}
-	close(fd);
-	buf2 = sprintf2("FILE:%s", buf);
-	if((ret = krb5_cc_resolve(k5context, buf2, &data->ccache)) != 0)
-	{
-	    free(buf);
+	    buf = sprintf2("/tmp/krb5cc_dc_%i_XXXXXX", pwent->pw_uid);
+	    if((fd = mkstemp(buf)) < 0)
+	    {
+		free(buf);
+		flog(LOG_ERR, "could not create temporary file for ccache: %s", strerror(errno));
+		return(AUTH_ERR);
+	    }
+	    close(fd);
+	    buf2 = sprintf2("FILE:%s", buf);
+	    if((ret = krb5_cc_resolve(k5context, buf2, &data->ccache)) != 0)
+	    {
+		free(buf);
+		free(buf2);
+		flog(LOG_ERR, "could not resolve ccache name \"%s\": %s", buf2, error_message(ret));
+		return(AUTH_ERR);
+	    }
+	    setenv("KRB5CCNAME", buf2, 1);
 	    free(buf2);
-	    flog(LOG_ERR, "could not resolve ccache name \"%s\": %s", buf2, error_message(ret));
-	    return(AUTH_ERR);
-	}
-	setenv("KRB5CCNAME", buf2, 1);
-	free(buf2);
-	if((ret = krb5_cc_initialize(k5context, data->ccache, data->ticket->enc_part2->client)) != 0)
-	{
+	    if((ret = krb5_cc_initialize(k5context, data->ccache, data->ticket->enc_part2->client)) != 0)
+	    {
+		free(buf);
+		flog(LOG_ERR, "could not initialize ccache: %s", error_message(ret));
+		return(AUTH_ERR);
+	    }
+	    if((ret = krb5_cc_store_cred(k5context, data->ccache, data->creds)) != 0)
+	    {
+		free(buf);
+		flog(LOG_ERR, "could not store forwarded TGT into ccache: %s", error_message(ret));
+		return(AUTH_ERR);
+	    }
+	    if(chown(buf, pwent->pw_uid, pwent->pw_gid))
+	    {
+		free(buf);
+		flog(LOG_ERR, "could not chown new ccache to %i:%i: %s", pwent->pw_uid, pwent->pw_gid, strerror(errno));
+		return(AUTH_ERR);
+	    }
 	    free(buf);
-	    flog(LOG_ERR, "could not initialize ccache: %s", error_message(ret));
-	    return(AUTH_ERR);
+	} else {
+	    if((buf = krb5_cc_default_name(k5context)) == NULL) {
+		flog(LOG_ERR, "could not get default ccache name");
+		return(AUTH_ERR);
+	    }
+	    if((ret = krb5_cc_resolve(k5context, buf, &data->ccache)) != 0)
+	    {
+		flog(LOG_ERR, "could not resolve ccache name \"%s\": %s", buf2, error_message(ret));
+		return(AUTH_ERR);
+	    }
+	    setenv("KRB5CCNAME", buf, 1);
+	    if((ret = krb5_cc_initialize(k5context, data->ccache, data->ticket->enc_part2->client)) != 0)
+	    {
+		flog(LOG_ERR, "could not initialize ccache: %s", error_message(ret));
+		return(AUTH_ERR);
+	    }
+	    if((ret = krb5_cc_store_cred(k5context, data->ccache, data->creds)) != 0)
+	    {
+		flog(LOG_ERR, "could not store forwarded TGT into ccache: %s", error_message(ret));
+		return(AUTH_ERR);
+	    }
 	}
-	if((ret = krb5_cc_store_cred(k5context, data->ccache, data->creds)) != 0)
-	{
-	    free(buf);
-	    flog(LOG_ERR, "could not store forwarded TGT into ccache: %s", error_message(ret));
-	    return(AUTH_ERR);
-	}
-	if(chown(buf, pwent->pw_uid, pwent->pw_gid))
-	{
-	    free(buf);
-	    flog(LOG_ERR, "could not chown new ccache to %i:%i: %s", pwent->pw_uid, pwent->pw_gid, strerror(errno));
-	    return(AUTH_ERR);
-	}
-	free(buf);
     }
     return(AUTH_SUCCESS);
 }
@@ -571,6 +595,7 @@ static struct configvar myvars[] =
     {CONF_VAR_STRING, "service", {.str = L"doldacond"}},
     {CONF_VAR_STRING, "keytab", {.str = L""}},
     {CONF_VAR_BOOL, "renewcreds", {.num = 1}},
+    {CONF_VAR_BOOL, "usedefcc", {.num = 0}},
     {CONF_VAR_END}
 };
 
