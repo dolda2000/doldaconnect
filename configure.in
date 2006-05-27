@@ -144,6 +144,9 @@ AC_CHECK_MEMBER(struct sockaddr_in6.sin6_family, [ AC_DEFINE(HAVE_IPV6) ], , [#i
 AH_TEMPLATE(HAVE_RESOLVER, [define if your system supports the res_* functions to fetch DNS RRs])
 AC_CHECK_LIB(resolv, res_query, [ AC_DEFINE(HAVE_RESOLVER)
 				  LDFLAGS="$LDFLAGS -lresolv" ])
+AH_TEMPLATE(HAVE_KEYUTILS, [define if your system supports the Linux keyring functions])
+AC_CHECK_LIB(keyutils, keyctl_search, [ AC_DEFINE(HAVE_KEYUTILS)
+					LDFLAGS="$LDFLAGS -lkeyutils" ])
 
 AC_HEADER_STDC
 AC_HEADER_DIRENT
