@@ -309,6 +309,7 @@ pid_t forksess(uid_t user, struct authhandle *auth, void (*ccbfunc)(pid_t, int, 
 	errno = 0;
 #ifdef HAVE_KEYUTILS
 	keyctl_join_session_keyring(NULL);
+	keyctl_chown(KEY_SPEC_SESSION_KEYRING, pwent->pw_uid, pwent->pw_gid);
 #endif
 	if((authopensess(auth)) != AUTH_SUCCESS)
 	{
