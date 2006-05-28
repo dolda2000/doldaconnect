@@ -460,7 +460,7 @@ static int opensess(struct authhandle *auth)
 	    }
 	    free(buf);
 	} else {
-	    if((buf = krb5_cc_default_name(k5context)) == NULL) {
+	    if((buf = (char *)krb5_cc_default_name(k5context)) == NULL) {
 		flog(LOG_ERR, "could not get default ccache name");
 		return(AUTH_ERR);
 	    }
