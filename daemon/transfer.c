@@ -587,7 +587,7 @@ static void filterread(struct socket *sk, struct transfer *transfer)
 	    if(p2 != NULL)
 	    {
 		if((arg = icmbstowcs(p2, NULL)) == NULL)
-		    flog(LOG_WARNING, "filter sent a string which could not be converted into the local charset: %s: %s", transfer->filterbuf, strerror(errno));
+		    flog(LOG_WARNING, "filter sent a string which could not be converted into the local charset: %s: %s", p2, strerror(errno));
 	    }
 	    CBCHAINDOCB(transfer, trans_filterout, transfer, cmd, arg);
 	    if(arg != NULL)
