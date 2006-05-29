@@ -501,10 +501,10 @@
 					   (let* ((ires (dc-intresp resp)) (tr (and ires (assoc (car ires) trans))))
 					     (if tr
 						 (begin (if (eq? (cdr (assoc 'state (cdr tr))) 'done)
-							    (begin (logf (string-append "transfer " (number->string (car ires)) " done"))
+							    (begin (logf (string-append "transfer " (number->string (car ires)) " done (" (cadr ires) ")"))
 								   (set! trans (assq-remove! trans (car ires)))
 								   (set! done #t)
-								   (set! filterexit (cadr tr))
+								   (set! filterexit (cadr ires))
 								   (throw 'sig 0))
 							    (begin (logf (string-append "transfer " (number->string (car ires)) " disappeared"))
 								   (set! trans (assq-remove! trans (car ires)))))))))
