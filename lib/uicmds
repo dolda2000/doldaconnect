@@ -124,7 +124,7 @@
 614 i i		; Transfer error update
 615 i i		; Transfer progress
 616 i s		; Transfer path change
-617 i		; Transfer destroy
+617 i s		; Transfer destroy
 618 i s		; Transfer hash update
 620 i i
 621 i
