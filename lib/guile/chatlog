@@ -123,13 +123,13 @@
 					 (close-port p))
 				       ))
 				 )
-				((602)
-				 (let ((ires (dc-intresp resp)))
-				   (if ires
-				       (let ((ent (assoc (car ires) fnetnodes)))
-					 (if ent
-					     (set-cdr! ent (cadr ires))
-					     (set! fnetnodes (cons (cons (car ires) (cadr ires)) fnetnodes)))))))
+;				((602)
+;				 (let ((ires (dc-intresp resp)))
+;				   (if ires
+;				       (let ((ent (assoc (car ires) fnetnodes)))
+;					 (if ent
+;					     (set-cdr! ent (cadr ires))
+;					     (set! fnetnodes (cons (cons (car ires) (cadr ires)) fnetnodes)))))))
 				
 				)
 			      )
