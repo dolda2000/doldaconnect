@@ -565,7 +565,7 @@
 	     (logf "forcing quit")))
     (if (assoc 'estat-file session)
 	(let ((op (open-output-file (cdr (assoc 'estat-file session)))))
-	  (write filterexit op)
+	  (display filterexit op)
 	  (newline op)
 	  (close-port op)))
     (exit retval)
