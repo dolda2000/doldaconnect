@@ -80,6 +80,8 @@ void freetransfer(struct transfer *transfer)
 	free(transfer->filterbuf);
     if(transfer->hash != NULL)
 	freehash(transfer->hash);
+    if(transfer->exitstatus != NULL)
+	free(transfer->exitstatus);
     if(transfer->localend != NULL)
     {
 	transfer->localend->readcb = NULL;
@@ -566,6 +568,17 @@ static char *findfilter(struct passwd *pwd)
     return(NULL);
 }
 
+static void handletranscmd(struct transfer *transfer, wchar_t *cmd, wchar_t *arg)
+{
+    if(!wcscmp(cmd, L"status")) {
+	if(arg == NULL)
+	    arg = L"";
+	if(transfer->exitstatus != NULL)
+	    free(transfer->exitstatus);
+	transfer->exitstatus = swcsdup(arg);
+    }
+}
+
 static void filterread(struct socket *sk, struct transfer *transfer)
 {
     char *buf, *p, *p2;
@@ -589,6 +602,7 @@ static void filterread(struct socket *sk, struct transfer *transfer)
 		if((arg = icmbstowcs(p2, NULL)) == NULL)
 		    flog(LOG_WARNING, "filter sent a string which could not be converted into the local charset: %s: %s", p2, strerror(errno));
 	    }
+	    handletranscmd(transfer, cmd, arg);
 	    CBCHAINDOCB(transfer, trans_filterout, transfer, cmd, arg);
 	    if(arg != NULL)
 		free(arg);
