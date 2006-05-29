@@ -576,7 +576,7 @@ static void filterread(struct socket *sk, struct transfer *transfer)
 	return;
     bufcat(transfer->filterbuf, buf, bufsize);
     free(buf);
-    if((p = memchr(transfer->filterbuf, '\n', transfer->filterbufdata)) != NULL)
+    while((p = memchr(transfer->filterbuf, '\n', transfer->filterbufdata)) != NULL)
     {
 	*(p++) = 0;
 	if((p2 = strchr(transfer->filterbuf, ' ')) != NULL)
