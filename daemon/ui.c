@@ -1924,7 +1924,7 @@ static int transferdestroyed(struct transfer *transfer, void *uudata)
     for(data = actives; data != NULL; data = data->next)
     {
 	if(haspriv(data, PERM_TRANS) && data->notify.b.tract && ((transfer->owner == 0) || (transfer->owner == data->uid)))
-	    newnotif(data, 617, NOTIF_ID, transfer->id, NOTIF_END);
+	    newnotif(data, 617, NOTIF_ID, transfer->id, NOTIF_STR, (transfer->exitstatus == NULL)?L"":(transfer->exitstatus), NOTIF_END);
     }
     return(0);
 }
