@@ -84,6 +84,7 @@ struct transfer
     char *filterbuf;
     struct hash *hash;
     size_t filterbufsize, filterbufdata;
+    wchar_t *exitstatus;
     CBCHAIN(trans_ac, struct transfer *transfer, wchar_t *attrib);
     CBCHAIN(trans_p, struct transfer *transfer);
     CBCHAIN(trans_act, struct transfer *transfer);
