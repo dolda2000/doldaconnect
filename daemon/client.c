@@ -932,7 +932,7 @@ int doscan(int quantum)
 	    }
 	    type = FILE_REG;
 	} else {
-	    flog(LOG_WARNING, "unhandled file type: %i", sb.st_mode);
+	    flog(LOG_WARNING, "unhandled file type: %o", sb.st_mode);
 	    free(wcs);
 	    continue;
 	}
