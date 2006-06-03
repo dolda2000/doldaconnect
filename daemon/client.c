@@ -539,13 +539,10 @@ static void checkhashes(void)
     char *path;
     
     node = shareroot->child;
-    while(1)
+    for(node = shareroot->child; node != NULL; node = nextscnode(node))
     {
-	if(node->child != NULL)
-	{
-	    node = node->child;
+	if(node->f.b.type != FILE_REG)
 	    continue;
-	}
 	if(!node->f.b.hastth)
 	{
 	    if((hc = findhashcache(node->dev, node->inode)) != NULL)
@@ -559,19 +556,14 @@ static void checkhashes(void)
 		{
 		    flog(LOG_WARNING, "could not hash %s, unsharing it", path);
 		    freecache(node);
+		    free(path);
+		    flog(LOG_INFO, "sharing %lli bytes", sharesize);
+		    continue;
 		}
 		free(path);
 		return;
 	    }
 	}
-	while(node->next == NULL)
-	{
-	    if((node = node->parent) == shareroot)
-		break;
-	}
-	if(node == shareroot)
-	    break;
-	node = node->next;
     }
 }
 
