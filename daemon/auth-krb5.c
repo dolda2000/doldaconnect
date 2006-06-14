@@ -348,7 +348,7 @@ static int krbauth(struct authhandle *auth, char *passdata)
 		    authorized = 1;
 		if(authorized)
 		{
-		    flog(LOG_INFO, "krb5 principal %s successfully authorized as %s", data->cname, data->username);
+		    flog(LOG_INFO, "krb5 principal %s successfully authorized as %s%s", data->cname, data->username, (data->creds == NULL)?"":" (with fwd creds)");
 		    return(AUTH_SUCCESS);
 		} else {
 		    flog(LOG_INFO, "krb5 principal %s not authorized as %s", data->cname, data->username);
@@ -377,7 +377,6 @@ static int krbauth(struct authhandle *auth, char *passdata)
 		krb5_free_tgt_creds(k5context, fwdcreds);
 		return(AUTH_ERR);
 	    }
-	    flog(LOG_INFO, "received forwarded credentials for %s", data->username);
 	    /* Copy only the first credential. (Change this if it becomes a problem) */
 	    ret = krb5_copy_creds(k5context, *fwdcreds, &data->creds);
 	    krb5_free_tgt_creds(k5context, fwdcreds);
