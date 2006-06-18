@@ -151,6 +151,9 @@ end
 #endif
 								$textrend func: transnicebytefunc funcdata: "(gpointer)7"
 							end
+							:tvcol title: "Speed"
+								$textrend func: transspeedinfo
+							end
 							:tvcol title: "Error"
 								$textrend func: transerrorinfo
 							end

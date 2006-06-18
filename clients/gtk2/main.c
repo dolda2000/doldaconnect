@@ -33,6 +33,7 @@
 #include <regex.h>
 #include <signal.h>
 #include <time.h>
+#include <sys/time.h>
 #include <pwd.h>
 #include <locale.h>
 #include <libintl.h>
@@ -43,6 +44,14 @@
 #endif
 #include "progressbar.h"
 
+#define TRHISTSIZE 10
+
+struct trdata
+{
+    size_t poshist[TRHISTSIZE];
+    double timehist[TRHISTSIZE];
+    int hc;
+};
 
 struct fndata
 {
@@ -123,6 +132,7 @@ gboolean cb_reslist_list_keypress(GtkWidget *widget, GdkEventKey *event, gpointe
 void dcfdcallback(gpointer data, gint source, GdkInputCondition condition);
 void srchstatupdate(void);
 void transnicebytefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
+void transspeedinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
 void transerrorinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
 void percentagefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
 void hidezerofunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
@@ -154,6 +164,14 @@ void updatewrite(void)
     }
 }
 
+double ntime(void)
+{
+    struct timeval tv;
+    
+    gettimeofday(&tv, NULL);
+    return((double)tv.tv_sec + ((double)tv.tv_usec / 1000000.0));
+}
+
 void fndestroycb(struct dc_fnetnode *fn)
 {
     struct fndata *data;
@@ -180,6 +198,45 @@ void addfndata(struct dc_fnetnode *fn)
     data = smalloc(sizeof(*data));
     data->textbuf = gtk_text_buffer_new(chattags);
     fn->udata = data;
+}
+
+void trdestroycb(struct dc_transfer *tr)
+{
+    free(tr->udata);
+}
+
+void addtrdata(struct dc_transfer *tr)
+{
+    struct trdata *data;
+    
+    if(tr->udata != NULL)
+	return;
+    tr->destroycb = trdestroycb;
+    data = smalloc(sizeof(*data));
+    memset(data, 0, sizeof(*data));
+    tr->udata = data;
+}
+
+void updatetrdata(struct dc_transfer *tr)
+{
+    int i;
+    struct trdata *data;
+    
+    data = tr->udata;
+    if(data->hc < TRHISTSIZE)
+    {
+	data->poshist[data->hc] = tr->curpos;
+	data->timehist[data->hc] = ntime();
+	data->hc++;
+    } else {
+	for(i = 0; i < TRHISTSIZE - 1; i++)
+	{
+	    data->poshist[i] = data->poshist[i + 1];
+	    data->timehist[i] = data->timehist[i + 1];
+	}
+	data->poshist[i] = tr->curpos;
+	data->timehist[i] = ntime();
+    }
 }
 
 char *getfnstatestock(int state)
@@ -260,6 +317,30 @@ void updatehublist(void)
     }
 }
 
+char *bytes2si(int bytes)
+{
+    int i;
+    double b;
+    char *sd;
+    static char ret[64];
+    
+    b = bytes;
+    for(i = 0; (b > 1024) && (i < 4); i++)
+	b /= 1024;
+    if(i == 0)
+	sd = "B";
+    else if(i == 1)
+	sd = "kiB";
+    else if(i == 2)
+	sd = "MiB";
+    else if(i == 3)
+	sd = "GiB";
+    else
+	sd = "TiB";
+    snprintf(ret, 64, "%.1f %s", b, sd);
+    return(ret);
+}
+
 void percentagefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)
 {
     int colnum;
@@ -279,6 +360,10 @@ void transnicebytefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeMod
     
     colnum = (int)data;
     gtk_tree_model_get(model, iter, colnum, &val, -1);
+/*
+    if(val >= 0)
+	strcpy(buf, bytes2si(val));
+*/
     if(val >= 0)
 	snprintf(buf, 64, "%'i", val);
     else
@@ -321,6 +406,33 @@ void speedtimefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *
     g_object_set(rend, "text", buf, NULL);
 }
 
+void transspeedinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)
+{
+    int id;
+    struct dc_transfer *tr;
+    struct trdata *d;
+    char buf[64];
+    int speed;
+    
+    gtk_tree_model_get(model, iter, 0, &id, -1);
+    if((tr = dc_findtransfer(id)) != NULL)
+    {
+	d = tr->udata;
+	if((tr->state != DC_TRNS_MAIN) || (d == NULL))
+	{
+	    buf[0] = 0;
+	} else if(d->hc < 2) {
+	    strcpy(buf, "...");
+	} else {
+	    speed = (((double)(d->poshist[d->hc - 1] - d->poshist[0])) / (d->timehist[d->hc - 1] - d->timehist[0]));
+	    snprintf(buf, 64, "%s/s", bytes2si(speed));
+	}
+    } else {
+	buf[0] = 0;
+    }
+    g_object_set(rend, "text", buf, NULL);
+}
+
 void transerrorinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)
 {
     int error;
@@ -353,6 +465,24 @@ char *gettrstatestock(int state)
     if(state == DC_TRNS_DONE)
 	return("gtk-yes");
     return(NULL);
+}
+
+gint updatetransfers(gpointer data)
+{
+    struct dc_transfer *tr;
+    struct trdata *d;
+    double now;
+    
+    now = ntime();
+    for(tr = dc_transfers; tr != NULL; tr = tr->next)
+    {
+	if((d = tr->udata) != NULL)
+	{
+	    if((d->hc > 0) && ((now - d->timehist[d->hc - 1]) > 2))
+		updatetrdata(tr);
+	}
+    }
+    return(TRUE);
 }
 
 void updatetransferlists(void)
@@ -399,7 +529,11 @@ void updatetransferlists(void)
 			if(size != transfer->size)
 			    gtk_list_store_set(stores[i], &iter, 6, transfer->size, -1);
 			if(curpos != transfer->curpos)
+			{
 			    gtk_list_store_set(stores[i], &iter, 7, transfer->curpos, -1);
+			    if(transfer->udata != NULL)
+				updatetrdata(transfer);
+			}
 			if(error != transfer->error)
 			    gtk_list_store_set(stores[i], &iter, 10, transfer->error, -1);
 			if(errortime != transfer->errortime)
@@ -459,6 +593,7 @@ void updatetransferlists(void)
 		    free(path);
 		if(transfer->hash != NULL)
 		    free(hash);
+		addtrdata(transfer);
 	    }
 	}
     }
@@ -2239,6 +2374,7 @@ int main(int argc, char **argv)
 	dcconnect(dcserver);
     g_timeout_add(500, srchstatupdatecb, NULL);
     g_timeout_add(5000, ksupdatecb, NULL);
+    g_timeout_add(1000, updatetransfers, NULL);
     gtk_main();
     return(0);
 }
