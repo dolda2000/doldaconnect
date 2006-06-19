@@ -2456,10 +2456,10 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
 	if(minsize != 0)
 	{
 	    sizebuf2(sstr, sstrdata + 32, 1);
-	    snprintf(sstr + sstrdata, sstrsize - sstrdata, "T?F?%i?1?", minsize);
+	    sstrdata += snprintf(sstr + sstrdata, sstrsize - sstrdata, "T?F?%i?1?", minsize);
 	} else if(maxsize != -1) {
 	    sizebuf2(sstr, sstrdata + 32, 1);
-	    snprintf(sstr + sstrdata, sstrsize - sstrdata, "T?T?%i?1?", maxsize);
+	    sstrdata += snprintf(sstr + sstrdata, sstrsize - sstrdata, "T?T?%i?1?", maxsize);
 	} else {
 	    bufcat(sstr, "F?F?0?1?", 8);
 	}
