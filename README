@@ -1,0 +1,68 @@
+			Dolda Connect - README
+
+			     Introduction
+
+Dolda Connect is a  peer-to-peer file sharing program, designed around
+the  Direct Connect  protocol.  It is  written  in a  fashion that  is
+intended  for  flexibility  and  easy  extension.  It  currently  only
+supports  the normal  Direct  Connect protocol,  but  support is  also
+planned  for the  ADC protocol,  and  it can  most likely  be made  to
+support a great deal of other file sharing protocols as well.
+
+			    Extensibility
+
+Dolda Connect is  built around a client-server model,  in the way that
+there  is  a server  (daemon)  program  carrying  out all  the  actual
+file-sharing work, and a number of client programs that connect to the
+server in order to command  it and display its status. The interaction
+between  the client  and server  is carried  out using  a well-defined
+protocol, making it  fairly easy to write new  clients for specialized
+tasks.
+
+To make it  easier to write new clients, a C  library has been written
+to make  common functions easier, such  as connecting, authenticating,
+sending requests and  parsing the responses. The C  library also has a
+wrapper  module for  GNU  Guile, so  that  clients can  be written  in
+Scheme.
+
+None of these are documented (yet), but there are a number of examples
+scattered around the source tree, so  it should not be awfully hard to
+figure out  how to  do simple  things. If in  doubt, just  contact the
+author.
+
+			       Clients
+
+So far, the following clients are distributet along with the source
+tree:
+
+ * A Gtk2 based GUI, which loosely resembles a normal Direct Connect
+   client program.
+ * A GNOME panel applet for showing the status of current downloads in
+   progress.
+ * A Gaim chat plugin for chatting in hubs and writing private
+   messages.
+ * A command-line automatic downloader written in Scheme.
+ * A chat logger written in Scheme.
+
+The GNOME applet and Gaim plugin are somewhat experimental. The applet
+seems to be working well, but the installation have some quirks (since
+GNOME does  not normally look in  /usr/local, care must  be taken with
+the installation prefix). The  Gaim plugin has some performance issues
+and seems to  be leaking some memory. The  performance problems lie in
+Gaim itself, however, and the Gaim developers have indicated that they
+will be fixed in Gaim 2.0.0.
+
+			     Installation
+
+See the INSTALL file.
+
+			       Credits
+
+Dolda Connect is primarily written  by Fredrik Tolf. He can be reached
+through  the e-mail address  <fredrik@dolda2000.com>. His  homepage is
+<http://www.dolda2000.com/~fredrik/>.
+
+
+
+This documented was last updated 2006-06-24, reflecting release 0.1 of
+Dolda Connect.
