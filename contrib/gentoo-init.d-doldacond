@@ -1,0 +1,26 @@
+#!/sbin/runscript
+
+opts="start stop restart reload"
+
+depend() {
+    need net
+}
+
+start() {
+    ebegin "Starting doldacond"
+    ulimit -c unlimited
+    start-stop-daemon -S -p /var/run/doldacond.pid -qx /usr/local/bin/doldacond -- -p /var/run/doldacond.pid
+    eend $?
+}
+
+stop() {
+    ebegin "Stopping doldacond"
+    start-stop-daemon -K -p /var/run/doldacond.pid -qx /usr/local/bin/doldacond
+    eend $?
+}
+
+reload() {
+    ebegin "Reloading doldacond"
+    start-stop-daemon -K -p /var/run/doldacond.pid -qx /usr/local/bin/doldacond -s HUP
+    eend $?
+}
