@@ -64,6 +64,11 @@ support  for all  Linux  distributions,  so make  sure  to check  this
 thoroughly. Almost all Linux distributions support installing these as
 optional packages through its package manager.
 
+To use PAM authentication (see below),  you also need to install a PAM
+configuration   file.   On   most   Linux  distributions,   the   file
+pam.d-doldacond  in   the  contrib  directory  can   be  installed  as
+/etc/pam.d/doldacond and work perfectly.
+
 		  Customizing the configuration file
 
 When  installing Dolda  Connect,  the configuration  file is  normally
