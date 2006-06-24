@@ -1,182 +1,124 @@
-Basic Installation
-==================
+		     Dolda Connect - Installation
 
-   These are generic installation instructions.
+Three main  steps are required  in order to  get Dolda Connect  up and
+running:
 
-   The `configure' shell script attempts to guess correct values for
-various system-dependent variables used during compilation.  It uses
-those values to create a `Makefile' in each directory of the package.
-It may also create one or more `.h' files containing system-dependent
-definitions.  Finally, it creates a shell script `config.status' that
-you can run in the future to recreate the current configuration, a file
-`config.cache' that saves the results of its tests to speed up
-reconfiguring, and a file `config.log' containing compiler output
-(useful mainly for debugging `configure').
+1. Compile and install the sources
+2. Customize the configuration file
+3. Start the daemon
 
-   If you need to do unusual things to compile the package, please try
-to figure out how `configure' could check whether to do them, and mail
-diffs or instructions to the address given in the `README' so they can
-be considered for the next release.  If at some point `config.cache'
-contains results you don't want to keep, you may remove or edit it.
+Each of these steps are detailed below. However, it is first necessary
+to understand that Dolda Connect can be run in either single-user mode
+or multi-user mode, and that the chosen mode fundamentally changes how
+each step should  be carried out. The differences  between these modes
+will be described  right away. If you have read them  and are still in
+doubt which to choose, go with the single-user mode.
 
-   The file `configure.in' is used to create `configure' by a program
-called `autoconf'.  You only need `configure.in' if you want to change
-it or regenerate `configure' using a newer version of `autoconf'.
+In multi-user  mode, the  daemon runs as  root and can  serve multiple
+users simultaneously. The  primary advantage is that if  you know that
+several people will  be using Dolda Connect, there will  be no need to
+run several instances for each of them, and that they will all benefit
+from being connected  to the same hubs. The  primary disadvantages are
+that there may  be unknown security issues with  running the server as
+root, and  that, since the hubs  are shared, searches will  have to be
+arbitrated by  the server, which may  be annoying for  large values of
+simultaneous  searches.  Indirect advantages  are  mostly  that it  is
+easier to start the server at boot time when running as root.
 
-The simplest way to compile this package is:
+In single-user  mode, the daemon  runs as the  user who will  be using
+it. The primary advantages is that no root privileges are required for
+running the server in single-user  mode -- including for tasks such as
+editing the configuration file -- and that any unknown security issues
+will at least be restricted to  the user running the server. When only
+one  user is  using  Dolda  Connect, there  are  no known  significant
+disadvantages to running in single-user mode.
 
-  1. `cd' to the directory containing the package's source code and type
-     `./configure' to configure the package for your system.  If you're
-     using `csh' on an old version of System V, you might need to type
-     `sh ./configure' instead to prevent `csh' from trying to execute
-     `configure' itself.
+		 Compiling and installing the sources
 
-     Running `configure' takes awhile.  While running, it prints some
-     messages telling which features it is checking for.
+Compiling  the  sources  involve  the ordinary  GNU  autotools  steps:
+./configure,  make, and  make install,  where the  last  step normally
+needs to be carried out as root (unless you are installing in your own
+home directory). You are assumed to be familiar with these steps.
 
-  2. Type `make' to compile the package.
+However, there are special  notes that deserve attention regarding the
+configure script.  Some optional features  can be enabled  through the
+use of command-line parameters:
 
-  3. Optionally, type `make check' to run any self-tests that come with
-     the package.
+ * --with-guile enables the Guile extension library, necessary for any
+   clients written in Scheme (such as the automatic downloader).
+ * --enable-gtk2pbar enables graphical progress bars in the Gtk2 GUI
+   client, instead of textual percent indicators. However, these
+   progress bars have proven to be unstable with certain Gtk2 themes,
+   so if the GUI crashes with them enabled, try turning them off
+   before reporting a bug.
+ * --enable-gnomeapplet selects the GNOME panel applet for
+   compilation.
+ * --enable-gaimplugin selects the Gaim chat plugin for compilation.
 
-  4. Type `make install' to install the programs and any data files and
-     documentation.
+Gtk2  and  Kerberos  V  support  are  detected  automatically  by  the
+configure script. Make sure to check the output at the end so that all
+features  that you  want are  selected.  In  particular,  Gtk2 support
+requires  that  the  Gtk2  headers   can  be  found,  and  many  Linux
+distributions  ship without  these.  The  author cannot  possibly give
+support  for all  Linux  distributions,  so make  sure  to check  this
+thoroughly. Almost all Linux distributions support installing these as
+optional packages through its package manager.
 
-  5. You can remove the program binaries and object files from the
-     source code directory by typing `make clean'.  To also remove the
-     files that `configure' created (so you can compile the package for
-     a different kind of computer), type `make distclean'.  There is
-     also a `make maintainer-clean' target, but that is intended mainly
-     for the package's developers.  If you use it, you may have to get
-     all sorts of other programs in order to regenerate files that came
-     with the distribution.
+		  Customizing the configuration file
 
-Compilers and Options
-=====================
+When  installing Dolda  Connect,  the configuration  file is  normally
+named   /usr/local/etc/doldacond.conf,   but   it   depends   on   the
+installation  prefixes that  are  chosen.  If  Dolda  Connect will  be
+running in multi-user mode, it should  remain there, but if it will be
+running in single-user mode, it is recommended that you make a copy of
+it named ~/.doldacond (if ~/.doldacond does not exist, the server will
+still read the system-wide file, but it will be easier to edit a local
+copy, as you need not be root to do so).
 
-   Some systems require unusual options for compilation or linking that
-the `configure' script does not know about.  You can give `configure'
-initial values for variables by setting them in the environment.  Using
-a Bourne-compatible shell, you can do that on the command line like
-this:
-     CC=c89 CFLAGS=-O2 LIBS=-lposix ./configure
+Edit the configuration file. If you  do no other changes, make sure to
+at least  change the "cli.defnick", "share" and  "user" settings. Most
+directives are explained  in comments in the shipped  file and need no
+further explanation here. However, there are a few points to note.
 
-Or on systems that have the `env' program, you can do it like this:
-     env CPPFLAGS=-I/usr/local/include LDFLAGS=-s ./configure
+First, you need to choose how  you will authenticate to the server. If
+you are an  administrator of a Kerberos-enabled network  using the MIT
+Kerberos  libraries, you  can use  Kerberos V  authentication  and get
+secure single  sign-on, which  gives the best  of all worlds,  but for
+normal users, there are two choices:
 
-Compiling For Multiple Architectures
-====================================
+ * PAM based password authentication -- The clients will ask for your
+   password every time they connect to the server. This option can be
+   somewhat cumbersome, but should be perfectly secure.
+ * Password-less authentication -- The server will simply trust the
+   clients not to lie. This option is completely insecure, but may be
+   a better option where all users are trusted.
 
-   You can compile the package for more than one kind of computer at the
-same time, by placing the object files for each architecture in their
-own directory.  To do this, you must use a version of `make' that
-supports the `VPATH' variable, such as GNU `make'.  `cd' to the
-directory where you want the object files and executables to go and run
-the `configure' script.  `configure' automatically checks for the
-source code in the directory that `configure' is in and in `..'.
+PAM  authentication   is  always  enabled.   To  enable  password-less
+authentication, set  the "auth.authless" setting  in the configuration
+file to  "1". It is  also greatly recommended that  the "ui.onlylocal"
+setting be set to "1" when using password-less authentication, so that
+connections are only accepted from localhost. If you use password-less
+authentication without turning on "ui.onlylocal", you should make sure
+that you *really* know what you are doing before proceeding.
 
-   If you have to use a `make' that does not supports the `VPATH'
-variable, you have to compile the package for one architecture at a time
-in the source code directory.  After you have installed the package for
-one architecture, use `make distclean' before reconfiguring for another
-architecture.
+			 Starting the daemon
 
-Installation Names
-==================
+To  start the  daemon, just  run  "doldacond" --  as root  if you  are
+running  in multi-user  mode, and  as your  ordinary user  if  you are
+running in single-user  mode.
 
-   By default, `make install' will install the package's files in
-`/usr/local/bin', `/usr/local/man', etc.  You can specify an
-installation prefix other than `/usr/local' by giving `configure' the
-option `--prefix=PATH'.
+The first time you start the daemon, it will need to calculate the TTH
+hashes on all  the files you share (as required  by the Direct Connect
+protocol). The TTH  calculation process runs with a  higher nice value
+(+10)  than  the server  itself,  and  should  therefore not  conflict
+terribly with the  rest of the system CPU-wise, so  that you should be
+able to  work normally meanwhile. However,  if you have  a fast enough
+CPU, the I/O  bandwidth required to read all files  may slow down your
+system  (especially when  sharing  files from  a  network mount).  The
+server is usable  while calculating TTH hashes, but  some hubs may not
+allow you in if not all TTH hashes are calculated.
 
-   You can specify separate installation prefixes for
-architecture-specific files and architecture-independent files.  If you
-give `configure' the option `--exec-prefix=PATH', the package will use
-PATH as the prefix for installing programs and libraries.
-Documentation and other data files will still use the regular prefix.
 
-   In addition, if you use an unusual directory layout you can give
-options like `--bindir=PATH' to specify different values for particular
-kinds of files.  Run `configure --help' for a list of the directories
-you can set and what kinds of files go in them.
 
-   If the package supports it, you can cause programs to be installed
-with an extra prefix or suffix on their names by giving `configure' the
-option `--program-prefix=PREFIX' or `--program-suffix=SUFFIX'.
-
-Optional Features
-=================
-
-   Some packages pay attention to `--enable-FEATURE' options to
-`configure', where FEATURE indicates an optional part of the package.
-They may also pay attention to `--with-PACKAGE' options, where PACKAGE
-is something like `gnu-as' or `x' (for the X Window System).  The
-`README' should mention any `--enable-' and `--with-' options that the
-package recognizes.
-
-   For packages that use the X Window System, `configure' can usually
-find the X include and library files automatically, but if it doesn't,
-you can use the `configure' options `--x-includes=DIR' and
-`--x-libraries=DIR' to specify their locations.
-
-Specifying the System Type
-==========================
-
-   There may be some features `configure' can not figure out
-automatically, but needs to determine by the type of host the package
-will run on.  Usually `configure' can figure that out, but if it prints
-a message saying it can not guess the host type, give it the
-`--host=TYPE' option.  TYPE can either be a short name for the system
-type, such as `sun4', or a canonical name with three fields:
-     CPU-COMPANY-SYSTEM
-
-See the file `config.sub' for the possible values of each field.  If
-`config.sub' isn't included in this package, then this package doesn't
-need to know the host type.
-
-   If you are building compiler tools for cross-compiling, you can also
-use the `--target=TYPE' option to select the type of system they will
-produce code for and the `--build=TYPE' option to select the type of
-system on which you are compiling the package.
-
-Sharing Defaults
-================
-
-   If you want to set default values for `configure' scripts to share,
-you can create a site shell script called `config.site' that gives
-default values for variables like `CC', `cache_file', and `prefix'.
-`configure' looks for `PREFIX/share/config.site' if it exists, then
-`PREFIX/etc/config.site' if it exists.  Or, you can set the
-`CONFIG_SITE' environment variable to the location of the site script.
-A warning: not all `configure' scripts look for a site script.
-
-Operation Controls
-==================
-
-   `configure' recognizes the following options to control how it
-operates.
-
-`--cache-file=FILE'
-     Use and save the results of the tests in FILE instead of
-     `./config.cache'.  Set FILE to `/dev/null' to disable caching, for
-     debugging `configure'.
-
-`--help'
-     Print a summary of the options to `configure', and exit.
-
-`--quiet'
-`--silent'
-`-q'
-     Do not print messages saying which checks are being made.  To
-     suppress all normal output, redirect it to `/dev/null' (any error
-     messages will still be shown).
-
-`--srcdir=DIR'
-     Look for the package's source code in directory DIR.  Usually
-     `configure' can determine that directory automatically.
-
-`--version'
-     Print the version of Autoconf used to generate the `configure'
-     script, and exit.
-
-`configure' also accepts some other, not widely useful, options.
+This documented was last updated 2006-06-24, reflecting release 0.1 of
+Dolda Connect.
