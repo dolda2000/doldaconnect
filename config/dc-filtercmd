@@ -34,8 +34,8 @@ if [ "$cmd" = rmtag ]; then
 	    unset dcarg_tag
 	    . "$f"
 	    if [ "$dcarg_tag" = "$1" ]; then
-		rm "$f"
-		rm "${f%.info}"
+		base="${f%.info}"
+		rm -f "$base" "${base}.info" "${base}.tthstate"
 	    fi
 	fi
     done
@@ -110,6 +110,6 @@ if [ "$cmd" = rmres ]; then
 	echo "err:locked"
 	exit
     fi
-    rm -f "$resfile" "${resfile}.info"
+    rm -f "$resfile" "${resfile}.info" "${resfile}.tthstate"
     echo "ok"
 fi

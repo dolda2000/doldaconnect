@@ -1,25 +1,24 @@
-#!/bin/sh
+#!/bin/bash
+
 trap "" SIGHUP SIGPIPE
+
 if [ ! -d $HOME/dc ]; then mkdir $HOME/dc; fi
 if [ ! -d $HOME/dc/done ]; then mkdir $HOME/dc/done; fi
 if [ ! -d $HOME/dc/resume ]; then mkdir $HOME/dc/resume; fi
 if [ ! -d $HOME/dc/users ]; then mkdir $HOME/dc/users; fi
 exec 2>>$HOME/dc/filterlog
 cd $HOME/dc
-unset speedrec
-if which speedrec >/dev/null 2>&1; then
-    speedrec=speedrec
-fi
-if [ -z "$speedrec"]; then
-    for dir in /usr/libexec /usr/local/libexec; do
-	if [ -x "${dir}/speedrec" ]; then
-	    speedrec="${dir}/speedrec"
-	fi
-    done
-fi
-if [ -z "$speedrec" ]; then
+
+unset speedrecpath
+for dir in /usr/libexec /usr/local/libexec; do
+    if [ -x "${dir}/speedrec" ]; then
+	speedrecpath="${dir}/speedrec"
+    fi
+done
+if [ -z "$speedrecpath" ]; then
     echo "could not find speedrec - using cat instead" >&2
 fi
+
 maxsize=0
 unset resfile
 unset infofile
@@ -48,10 +47,12 @@ while [ -z "$resfile" -a "$found" = y ]; do
 	fi
     fi
 done
+
 unset "${!dcarg_@}"
 if [ -n "$resfile" ]; then
     . "${resfile}.info"
 fi
+
 origname="$1"
 shift
 filesize="$1"
@@ -65,6 +66,7 @@ while [ $# -gt 1 ]; do
     shift
     declare "dcarg_$rec"="$val"
 done
+
 if [ -z "$resfile" ]; then
     resfile="$(mktemp resume/resXXXXXX)"
     chmod 644 "$resfile"
@@ -72,23 +74,38 @@ if [ -z "$resfile" ]; then
     >"${resfile}.lock"
 fi
 declare -p origname filesize "${!dcarg_@}" >"${resfile}.info"
-echo "resume $maxsize"
-if [ -z "$speedrec" ]; then
-    cat >>"$resfile"
+
+echo "resume $maxsize" 2>/dev/null   # Avoid EPIPE warning if the server has already closed the transfer.
+
+if [ -z "$speedrecpath" ]; then
+    speedrec=(cat)
 else
+    speedrec=("$speedrecpath" "$HOME/dc/users/$(tr / _ <<<"$peername")")
     peerfile="$(tr / _ <<<"$peername")"
-    "$speedrec" "$HOME/dc/users/$peerfile" >>"$resfile"
 fi
+if ! which tthsum >/dev/null 2>&1; then
+    tthsum=(cat)
+else
+    tthsum=(tthsum -6 -F 3 -s "${resfile}.tthstate" -f)
+fi
+"${speedrec[@]}" | "${tthsum[@]}" 3>"${resfile}.tthfinal" >>"$resfile"
+
 size="$(wc -c <"$resfile")"
+
 if [ "$size" -eq 0 ]; then
-    rm -f "$resfile" "${resfile}.info" "${resfile}.lock"
+    rm -f "$resfile" "${resfile}.info" "${resfile}.lock" "${resfile}.tthstate" "${resfile}.tthfinal"
     exit 1
 fi
-rm -f "${resfile}.lock"
+
 if [ "$size" -lt "$filesize" ]; then
+    rm -f "${resfile}.lock" "${resfile}.tthfinal"
     exit 1   # Exit code != 0 means restart transfer
 fi
-rm -f "${resfile}.info"
+
+tth="$(cat "${resfile}.tthfinal")"
+if [ -z "$tth" ]; then unset tth; fi
+
+rm -f "${resfile}.info" "${resfile}.lock" "${resfile}.tthstate" "${resfile}.tthfinal"
 
 destdir="$HOME/dc/done"
 
@@ -98,7 +115,7 @@ if [ -e "$newname" ]; then
 fi
 mv "$resfile" "$newname"
 if [ -x $HOME/dc/complete ]; then
-    export "${!dcarg_@}"
+    export "${!dcarg_@}" tth
     exec $HOME/dc/complete "$newname"
 fi
 exit 0
