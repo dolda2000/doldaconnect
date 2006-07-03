@@ -945,7 +945,7 @@ static void cmd_myinfo(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     *p2 = 0;
     if((buf = icmbstowcs(p, DCCHARSET)) == NULL)
 	return;
-    if((wcslen(buf) > 0) && (buf[wcslen(buf) - 1] == L'>') && ((wp = wcschr(buf, L'<')) != NULL))
+    if((wcslen(buf) > 0) && (buf[wcslen(buf) - 1] == L'>') && ((wp = wcsrchr(buf, L'<')) != NULL))
     {
 	buf[wcslen(buf) - 1] = L'\0';
 	*(wp++) = L'\0';
