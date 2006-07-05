@@ -2848,7 +2848,7 @@ static void udpread(struct socket *sk, void *data)
 	{
 	    for(fn = fnetnodes; fn != NULL; fn = fn->next)
 	    {
-		if((fn->fnet == &dcnet) && addreq(fn->sk->remote, (struct sockaddr *)&hubaddr))
+		if((fn->fnet == &dcnet) && (fn->sk != NULL) && addreq(fn->sk->remote, (struct sockaddr *)&hubaddr))
 		{
 		    myfn = fn;
 		    break;
