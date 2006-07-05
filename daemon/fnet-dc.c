@@ -2790,7 +2790,7 @@ static void udpread(struct socket *sk, void *data)
 	    free(buf);
 	    return;
 	}
-	*(p2 + 1) = 0;
+	*(p2++) = 0;
 	hubaddr.sin_family = AF_INET;
 	if(!inet_aton(p, &hubaddr.sin_addr))
 	{
