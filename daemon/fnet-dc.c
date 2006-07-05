@@ -2724,6 +2724,7 @@ static void udpread(struct socket *sk, void *data)
     char *buf, *p, *p2, *hashbuf;
     size_t buflen, hashlen;
     char *nick, *filename, *hubname;
+    struct sockaddr_in hubaddr;
     int size, slots;
     struct fnetnode *fn, *myfn;
     struct dchub *hub;
@@ -2783,6 +2784,27 @@ static void udpread(struct socket *sk, void *data)
 	    return;
 	}
 	*p2 = 0;
+	p = p2 + 2;
+	if((p2 = strchr(p, ':')) == NULL)
+	{
+	    free(buf);
+	    return;
+	}
+	*(p2 + 1) = 0;
+	hubaddr.sin_family = AF_INET;
+	if(!inet_aton(p, &hubaddr.sin_addr))
+	{
+	    free(buf);
+	    return;
+	}
+	p = p2;
+	if((p2 = strchr(p, ')')) == NULL)
+	{
+	    free(buf);
+	    return;
+	}
+	*p2 = 0;
+	hubaddr.sin_port = htons(atoi(p));
 	if((wnick = icmbstowcs(nick, DCCHARSET)) == NULL)
 	{
 	    free(buf);
@@ -2819,6 +2841,17 @@ static void udpread(struct socket *sk, void *data)
 			    break;
 			}
 		    }
+		}
+	    }
+	}
+	if(myfn == NULL)
+	{
+	    for(fn = fnetnodes; fn != NULL; fn = fn->next)
+	    {
+		if((fn->fnet == &dcnet) && addreq(fn->sk->remote, (struct sockaddr *)&hubaddr))
+		{
+		    myfn = fn;
+		    break;
 		}
 	    }
 	}

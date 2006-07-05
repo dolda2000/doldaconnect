@@ -1092,6 +1092,40 @@ int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *l
     }
 }
 
+int addreq(struct sockaddr *x, struct sockaddr *y)
+{
+    struct sockaddr_un *u1, *u2;
+    struct sockaddr_in *n1, *n2;
+#ifdef HAVE_IPV6
+    struct sockaddr_in6 *s1, *s2;
+#endif
+    
+    if(x->sa_family != y->sa_family)
+	return(0);
+    switch(x->sa_family) {
+    case AF_UNIX:
+	u1 = (struct sockaddr_un *)x; u2 = (struct sockaddr_un *)y;
+	if(strncmp(u1->sun_path, u2->sun_path, sizeof(u1->sun_path)))
+	    return(0);
+	break;
+    case AF_INET:
+	n1 = (struct sockaddr_in *)x; n2 = (struct sockaddr_in *)y;
+	if(n1->sin_port != n2->sin_port)
+	    return(0);
+	if(n1->sin_addr.s_addr != n2->sin_addr.s_addr)
+	    return(0);
+	break;
+    case AF_INET6:
+	s1 = (struct sockaddr_in6 *)x; s2 = (struct sockaddr_in6 *)y;
+	if(s1->sin6_port != s2->sin6_port)
+	    return(0);
+	if(memcmp(s1->sin6_addr.s6_addr, s2->sin6_addr.s6_addr, sizeof(s1->sin6_addr.s6_addr)))
+	    return(0);
+	break;
+    }
+    return(1);
+}
+
 char *formataddress(struct sockaddr *arg, socklen_t arglen)
 {
     struct sockaddr_un *UNIX; /* Some wise guy has #defined unix with
