@@ -68,6 +68,7 @@ char *sprintf2(char *format, ...)
 ;
 wchar_t *vswprintf2(wchar_t *format, va_list al);
 wchar_t *swprintf2(wchar_t *format, ...);
+int havecharset(char *charset);
 wchar_t *icmbstowcs(char *mbs, char *charset);
 wchar_t *icsmbstowcs(char *mbs, char *charset, wchar_t *def);
 char *icwcstombs(wchar_t *wcs, char *charset);
