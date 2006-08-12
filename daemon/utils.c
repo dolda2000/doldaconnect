@@ -126,6 +126,19 @@ wchar_t *swprintf2(wchar_t *format, ...)
     return(buf);
 }
 
+int havecharset(char *charset)
+{
+    iconv_t cd;
+    
+    if((cd = iconv_open("wchar_t", charset)) == (iconv_t)-1)
+	return(0);
+    iconv_close(cd);
+    if((cd = iconv_open(charset, "wchar_t")) == (iconv_t)-1)
+	return(0);
+    iconv_close(cd);
+    return(1);
+}
+
 wchar_t *icmbstowcs(char *mbs, char *charset)
 {
     int ret;
