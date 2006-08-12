@@ -107,6 +107,7 @@ struct dchub
     size_t inbufdata, inbufsize;
     struct qcommand *queue;
     int extended, dcppemu;
+    char *charset;
     char *nativename;
     char *nativenick;
 };
@@ -139,6 +140,7 @@ struct dcpeer
     int compress;
     int hascurpos, fetchingtthl, notthl;
     struct tigertreehash tth;
+    char *charset;
     void *cprsdata;
     char *key;
     char *nativename;
@@ -388,7 +390,9 @@ static void hubrecvchat(struct socket *sk, struct fnetnode *fn, char *from, char
     wchar_t *chat, *wfrom, *wpeer;
     char *p, *end;
     struct fnetpeer *peer;
+    struct dchub *hub;
     
+    hub = fn->data;
     end = string + strlen(string);
     while((p = strchr(string, 13)) != NULL)
 	memmove(p, p + 1, (end-- - p));
@@ -396,7 +400,7 @@ static void hubrecvchat(struct socket *sk, struct fnetnode *fn, char *from, char
     {
 	if((strlen(string) > strlen(from) + 2) && (*string == '<') && !memcmp(string + 1, from, strlen(from)) && (*(string + strlen(from) + 1) == '>'))
 	    string += strlen(from) + 2;
-	if((wfrom = icmbstowcs(from, DCCHARSET)) == NULL)
+	if((wfrom = icmbstowcs(from, hub->charset)) == NULL)
 	    return;
 	wpeer = swcsdup(wfrom);
     } else {
@@ -414,7 +418,7 @@ static void hubrecvchat(struct socket *sk, struct fnetnode *fn, char *from, char
 		*(p++) = 0;
 		if(*p == ' ')
 		    p++;
-		if((wpeer = icmbstowcs(string + 1, DCCHARSET)) == NULL)
+		if((wpeer = icmbstowcs(string + 1, hub->charset)) == NULL)
 		    return;
 		string = p;
 	    }
@@ -422,7 +426,7 @@ static void hubrecvchat(struct socket *sk, struct fnetnode *fn, char *from, char
 	if(wpeer == NULL)
 	    wpeer = swcsdup(L"");
     }
-    if((chat = icmbstowcs(string, DCCHARSET)) == NULL)
+    if((chat = icmbstowcs(string, hub->charset)) == NULL)
     {
 	if(wfrom != NULL)
 	    free(wfrom);
@@ -623,13 +627,13 @@ static int trresumecb(struct transfer *transfer, wchar_t *cmd, wchar_t *arg, str
 
 static void sendmynick(struct dcpeer *peer)
 {
-    struct dchub *hub;
+    struct fnetnode *fn;
     
-    hub = (peer->fn == NULL)?NULL:(peer->fn->data);
-    if(hub == NULL)
-	qstrf(peer->sk, "$MyNick %s|", icswcstombs(confgetstr("cli", "defnick"), DCCHARSET, "DoldaConnectUser-IN"));
+    fn = peer->fn;
+    if(fn == NULL)
+	qstrf(peer->sk, "$MyNick %s|", icswcstombs(confgetstr("cli", "defnick"), peer->charset, "DoldaConnectUser-IN"));
     else
-	qstrf(peer->sk, "$MyNick %s|", hub->nativenick);
+	qstrf(peer->sk, "$MyNick %s|", icswcstombs(fn->mynick, peer->charset, "DoldaConnectUser-IN"));
 }
 
 static void sendpeerlock(struct dcpeer *peer)
@@ -654,6 +658,7 @@ static void requestfile(struct dcpeer *peer)
     
     if(peer->transfer->size == -1)
     {
+	/* Use DCCHARSET for $Get paths until further researched... */
 	if((buf = icswcstombs(peer->transfer->path, DCCHARSET, NULL)) == NULL)
 	{
 	    transferseterror(peer->transfer, TRNSE_NOTFOUND);
@@ -722,6 +727,7 @@ static void requestfile(struct dcpeer *peer)
 	}
 	qstrf(peer->sk, "$UGetBlock %i %i %s|", peer->transfer->curpos, peer->transfer->size - peer->transfer->curpos, buf);
     } else {
+	/* Use DCCHARSET for $Get paths until further researched... */
 	if((buf = icswcstombs(peer->transfer->path, DCCHARSET, NULL)) == NULL)
 	{
 	    transferseterror(peer->transfer, TRNSE_NOTFOUND);
@@ -741,7 +747,7 @@ static void sendmyinfo(struct socket *sk, struct fnetnode *fn)
     
     hub = fn->data;
     qstrf(sk, "$MyINFO $ALL %s ", hub->nativenick);
-    buf = tr(icswcstombs(confgetstr("dc", "desc"), DCCHARSET, "Charset_conv_failure"), "$_|_");
+    buf = tr(icswcstombs(confgetstr("dc", "desc"), hub->charset, "Charset_conv_failure"), "$_|_");
     qstrf(sk, "%s", buf);
     hn1 = hn2 = hn3 = 0;
     for(cfn = fnetnodes; cfn != NULL; cfn = cfn->next)
@@ -764,9 +770,9 @@ static void sendmyinfo(struct socket *sk, struct fnetnode *fn)
 	  confgetint("transfer", "slots")
 	  );
     qstrf(sk, "$ $");
-    buf = tr(icswcstombs(confgetstr("dc", "speedstring"), DCCHARSET, "Charset_conv_failure"), "$_|_");
+    buf = tr(icswcstombs(confgetstr("dc", "speedstring"), hub->charset, "Charset_conv_failure"), "$_|_");
     qstrf(sk, "%s\x01$", buf);
-    buf = tr(icswcstombs(confgetstr("dc", "email"), DCCHARSET, "Charset_conv_failure"), "$_|_");
+    buf = tr(icswcstombs(confgetstr("dc", "email"), hub->charset, "Charset_conv_failure"), "$_|_");
     qstrf(sk, "%s$", buf);
     qstrf(sk, "%llu$|", sharesize);
 }
@@ -825,7 +831,7 @@ static void cmd_hubname(struct socket *sk, struct fnetnode *fn, char *cmd, char 
     if(hub->nativename == NULL)
 	free(hub->nativename);
     hub->nativename = sstrdup(args);
-    buf = icmbstowcs(args, DCCHARSET);
+    buf = icmbstowcs(args, hub->charset);
     fnetsetname(fn, (buf == NULL)?L"Hubname conv error":buf);
     if(buf != NULL)
 	free(buf);
@@ -838,7 +844,7 @@ static void cmd_hello(struct socket *sk, struct fnetnode *fn, char *cmd, char *a
     struct dchub *hub;
     
     hub = fn->data;
-    if((nick = icmbstowcs(args, DCCHARSET)) == NULL)
+    if((nick = icmbstowcs(args, hub->charset)) == NULL)
 	return;
     if(strcmp(args, hub->nativenick) && (fnetfindpeer(fn, nick) == NULL))
 	fnetaddpeer(fn, nick, nick);
@@ -853,7 +859,7 @@ static void cmd_quit(struct socket *sk, struct fnetnode *fn, char *cmd, char *ar
     struct dchub *hub;
     
     hub = fn->data;
-    if((nick = icmbstowcs(args, DCCHARSET)) == NULL)
+    if((nick = icmbstowcs(args, hub->charset)) == NULL)
 	return;
     if((peer = fnetfindpeer(fn, nick)) != NULL)
 	fnetdelpeer(peer);
@@ -874,7 +880,7 @@ static void cmd_nicklist(struct socket *sk, struct fnetnode *fn, char *cmd, char
     while((p = strstr(args, "$$")) != NULL)
     {
 	*p = 0;
-	if((buf = icmbstowcs(args, DCCHARSET)) != NULL)
+	if((buf = icmbstowcs(args, hub->charset)) != NULL)
 	{
 	    if((peer = fnetfindpeer(fn, buf)) == NULL)
 		peer = fnetaddpeer(fn, buf, buf);
@@ -907,7 +913,7 @@ static void cmd_oplist(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     while((p = strstr(args, "$$")) != NULL)
     {
 	*p = 0;
-	if((buf = icmbstowcs(args, DCCHARSET)) != NULL)
+	if((buf = icmbstowcs(args, hub->charset)) != NULL)
 	{
 	    if((peer = fnetfindpeer(fn, buf)) != NULL)
 		peer->flags.b.op = 1;
@@ -934,7 +940,7 @@ static void cmd_myinfo(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     if((p2 = strchr(p, ' ')) == NULL)
 	return;
     *p2 = 0;
-    if((buf = icmbstowcs(p, DCCHARSET)) == NULL)
+    if((buf = icmbstowcs(p, hub->charset)) == NULL)
 	return;
     if((peer = fnetfindpeer(fn, buf)) == NULL)
 	peer = fnetaddpeer(fn, buf, buf);
@@ -943,7 +949,7 @@ static void cmd_myinfo(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     if((p2 = strstr(p, "$ $")) == NULL)
 	return;
     *p2 = 0;
-    if((buf = icmbstowcs(p, DCCHARSET)) == NULL)
+    if((buf = icmbstowcs(p, hub->charset)) == NULL)
 	return;
     if((wcslen(buf) > 0) && (buf[wcslen(buf) - 1] == L'>') && ((wp = wcsrchr(buf, L'<')) != NULL))
     {
@@ -972,7 +978,7 @@ static void cmd_myinfo(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     if((p2 = strchr(p, '$')) == NULL)
 	return;
     *(p2 - 1) = 0;
-    if((buf = icmbstowcs(p, DCCHARSET)) == NULL)
+    if((buf = icmbstowcs(p, hub->charset)) == NULL)
 	return;
     fnetpeersetstr(peer, L"dc-speed", buf);
     free(buf);
@@ -980,7 +986,7 @@ static void cmd_myinfo(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     if((p2 = strchr(p, '$')) == NULL)
 	return;
     *p2 = 0;
-    if((buf = icmbstowcs(p, DCCHARSET)) == NULL)
+    if((buf = icmbstowcs(p, hub->charset)) == NULL)
 	return;
     fnetpeersetstr(peer, L"email", buf);
     free(buf);
@@ -1020,7 +1026,7 @@ static void cmd_forcemove(struct socket *sk, struct fnetnode *fn, char *cmd, cha
 	free(args);
 }
 
-static char *getdcpath(struct sharecache *node, size_t *retlen)
+static char *getdcpath(struct sharecache *node, size_t *retlen, char *charset)
 {
     char *buf, *buf2;
     size_t len, len2;
@@ -1029,15 +1035,15 @@ static char *getdcpath(struct sharecache *node, size_t *retlen)
 	return(NULL);
     if(node->parent == shareroot)
     {
-	if((buf = icwcstombs(node->name, DCCHARSET)) == NULL)
+	if((buf = icwcstombs(node->name, charset)) == NULL)
 	    return(NULL);
 	if(retlen != NULL)
 	    *retlen = strlen(buf);
 	return(buf);
     } else {
-	if((buf2 = icwcstombs(node->name, DCCHARSET)) == NULL)
+	if((buf2 = icwcstombs(node->name, charset)) == NULL)
 	    return(NULL);
-	if((buf = getdcpath(node->parent, &len)) == NULL)
+	if((buf = getdcpath(node->parent, &len, charset)) == NULL)
 	{
 	    free(buf2);
 	    return(NULL);
@@ -1166,7 +1172,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		    memcpy(hashtth, buf, 24);
 		    free(buf);
 		} else {
-		    if((terms[termnum] = icmbstowcs(p, DCCHARSET)) != NULL)
+		    if((terms[termnum] = icmbstowcs(p, hub->charset)) != NULL)
 			termnum++;
 		}
 	    }
@@ -1214,7 +1220,8 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	}
 	if(!skipcheck && (satisfied == termnum))
 	{
-	    if((buf = getdcpath(node, NULL)) != NULL)
+	    /* Use DCCHARSET in $Get paths until further researched... */
+	    if((buf = getdcpath(node, NULL, DCCHARSET)) != NULL)
 	    {
 		if(node->f.b.hastth)
 		{
@@ -1405,8 +1412,9 @@ static void cmd_sr(struct socket *sk, struct fnetnode *fn, char *cmd, char *args
     if((p2 = strstr(p, " (")) == NULL)
 	return;
     *p2 = 0;
-    if((wnick = icmbstowcs(nick, DCCHARSET)) == NULL)
+    if((wnick = icmbstowcs(nick, hub->charset)) == NULL)
 	return;
+    /* Use DCCHARSET in $Get paths until further researched... */
     if((wfile = icmbstowcs(filename, DCCHARSET)) == NULL)
     {
 	free(wnick);
@@ -1448,7 +1456,7 @@ static void cmd_getpass(struct socket *sk, struct fnetnode *fn, char *cmd, char 
     
     hub = fn->data;
     pw = wpfind(fn->args, L"password");
-    if((pw == NULL) || ((mbspw = icwcstombs(pw, DCCHARSET)) == NULL))
+    if((pw == NULL) || ((mbspw = icwcstombs(pw, hub->charset)) == NULL))
     {
 	killfnetnode(fn);
 	return;
@@ -1478,7 +1486,7 @@ static void cmd_mynick(struct socket *sk, struct dcpeer *peer, char *cmd, char *
     peer->nativename = sstrdup(args);
     if(peer->wcsname != NULL)
 	free(peer->wcsname);
-    if((peer->wcsname = icmbstowcs(peer->nativename, DCCHARSET)) == NULL)
+    if((peer->wcsname = icmbstowcs(peer->nativename, peer->charset)) == NULL)
     {
 	freedcpeer(peer);
 	return;
@@ -1791,6 +1799,7 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
     }
     if(fd < 0)
     {
+	/* Use DCCHARSET in $Get paths until further researched... */
 	if((node = resdcpath(args, DCCHARSET, '\\')) == NULL)
 	{
 	    qstrf(sk, "$Error File not in share|");
@@ -1919,6 +1928,7 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
     if(!strcmp(cmd, "$UGetBlock") || !strcmp(cmd, "$UGetZBlock"))
 	charset = "UTF-8";
     else
+	/* Use DCCHARSET in $Get paths until further researched... */
 	charset = DCCHARSET;
     if(!strcmp(cmd, "$GetZBlock") || !strcmp(cmd, "$UGetZBlock"))
 	initcompress(peer, CPRS_ZLIB);
@@ -2262,7 +2272,7 @@ static int hubreqconn(struct fnetpeer *peer)
 	errno = EFAULT;
 	return(1);
     }
-    if((mbsnick = icwcstombs(peer->id, DCCHARSET)) == NULL)
+    if((mbsnick = icwcstombs(peer->id, hub->charset)) == NULL)
 	return(1); /* Shouldn't happen, of course, but who knows... */
     if(tcpsock != NULL)
     {
@@ -2281,12 +2291,12 @@ static int hubsendchat(struct fnetnode *fn, int public, wchar_t *to, wchar_t *st
     char *mbsstring, *mbsto;
     
     hub = fn->data;
-    if((mbsto = icwcstombs(to, DCCHARSET)) == NULL)
+    if((mbsto = icwcstombs(to, hub->charset)) == NULL)
     {
 	errno = EILSEQ;
 	return(1);
     }
-    if((mbsstring = icwcstombs(string, DCCHARSET)) == NULL)
+    if((mbsstring = icwcstombs(string, hub->charset)) == NULL)
     {
 	errno = EILSEQ;
 	return(1);
@@ -2467,6 +2477,7 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
 	{
 	    for(cur = list; cur != NULL; cur = cur->next)
 	    {
+		/* Use DCCHARSET in $Get paths until further researched... */
 		if((buf = icwcstombs(cur->str, DCCHARSET)) == NULL)
 		{
 		    /* Can't find anything anyway if the search expression
@@ -2805,14 +2816,9 @@ static void udpread(struct socket *sk, void *data)
 	}
 	*p2 = 0;
 	hubaddr.sin_port = htons(atoi(p));
-	if((wnick = icmbstowcs(nick, DCCHARSET)) == NULL)
-	{
-	    free(buf);
-	    return;
-	}
+	/* Use DCCHARSET in $Get paths until further researched... */
 	if((wfile = icmbstowcs(filename, DCCHARSET)) == NULL)
 	{
-	    free(wnick);
 	    free(buf);
 	    return;
 	}
@@ -2854,6 +2860,14 @@ static void udpread(struct socket *sk, void *data)
 		    break;
 		}
 	    }
+	}
+	hub = NULL;
+	if(myfn != NULL)
+	    hub = myfn->data;
+	if((wnick = icmbstowcs(nick, (hub == NULL)?DCCHARSET:(hub->charset))) == NULL)
+	{
+	    free(buf);
+	    return;
 	}
 	sr = newsrchres(&dcnet, wfile, wnick);
 	if(sr->peernick != NULL)
@@ -2911,7 +2925,7 @@ static int hubsetnick(struct fnetnode *fn, wchar_t *newnick)
     char *buf;
     
     hub = fn->data;
-    if((buf = icwcstombs(newnick, DCCHARSET)) == NULL)
+    if((buf = icwcstombs(newnick, (hub == NULL)?DCCHARSET:(hub->charset))) == NULL)
 	return(1);
     if((strchr(buf, ' ') != NULL) || (strchr(buf, '|') != NULL) || (strchr(buf, '$') != NULL))
     {
@@ -2933,6 +2947,8 @@ static struct dchub *newdchub(struct fnetnode *fn)
 {
     struct dchub *new;
     wchar_t *emu;
+    wchar_t *wcharset;
+    char *charset;
     
     new = smalloc(sizeof(*new));
     memset(new, 0, sizeof(*new));
@@ -2946,6 +2962,22 @@ static struct dchub *newdchub(struct fnetnode *fn)
 	if(*emu == L'n')
 	    new->dcppemu = 0;
     }
+    charset = NULL;
+    if((wcharset = wpfind(fn->args, L"charset")) != NULL)
+    {
+	if((charset = icwcstombs(wcharset, "US-ASCII")) != NULL)
+	{
+	    if(!havecharset(charset))
+	    {
+		free(charset);
+		charset = NULL;
+	    }
+	}
+    }
+    if(charset != NULL)
+	new->charset = charset;
+    else
+	new->charset = sstrdup(DCCHARSET);
     if(hubsetnick(fn, fn->mynick))
 	fnetsetnick(fn, L"DoldaConnectUser-IN");
     /* IN as in Invalid Nick */
@@ -3015,6 +3047,8 @@ static void freedcpeer(struct dcpeer *peer)
 	free(peer->wcsname);
     if(peer->nativename != NULL)
 	free(peer->nativename);
+    if(peer->charset != NULL)
+	free(peer->charset);
     if(peer->fn != NULL)
 	putfnetnode(peer->fn);
     while((qcmd = ulqcmd(&peer->queue)) != NULL)
@@ -3055,6 +3089,8 @@ static void hubdestroy(struct fnetnode *fn)
 	free(hub->nativename);
     if(hub->nativenick != NULL)
 	free(hub->nativenick);
+    if(hub->charset != NULL)
+	free(hub->charset);
     if(hub->inbuf != NULL)
 	free(hub->inbuf);
     free(hub);
@@ -3183,6 +3219,7 @@ static void updatehmlist(void)
     while(1)
     {
 	ic = 0;
+	/* Use DCCHARSET in $Get paths until further researched... */
 	if((buf2 = icwcstombs(node->name, DCCHARSET)) != NULL)
 	{
 	    for(i = 0; i < lev; i++)
