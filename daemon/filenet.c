@@ -68,7 +68,10 @@ void killfnetnode(struct fnetnode *fn)
     {
 	fn->sk->close = 1;
 	if(fn->sk->data == fn)
+	{
+	    fn->sk->data = NULL;
 	    putfnetnode(fn);
+	}
 	putsock(fn->sk);
 	fn->sk = NULL;
     }
