@@ -3073,13 +3073,10 @@ static void hubdestroy(struct fnetnode *fn)
     struct qcommand *qcmd;
     
     hub = (struct dchub *)fn->data;
-    if(fn->sk != NULL)
+    if((fn->sk != NULL) && (fn->sk->data == fn))
     {
-	if(fn->sk->data == fn)
-	{
-	    fn->sk->data = NULL;
-	    putfnetnode(fn);
-	}
+	fn->sk->data = NULL;
+	putfnetnode(fn);
     }
     if(hub == NULL)
 	return;
