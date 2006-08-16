@@ -419,7 +419,7 @@ static int opensess(struct authhandle *auth)
 	    flog(LOG_ERR, "could not get passwd entry for forwarded tickets (user %s): %s", data->username, strerror(errno));
 	    return(AUTH_ERR);
 	}
-	if(confgetint("auth-krb5", "usedefcc"))
+	if(!confgetint("auth-krb5", "usedefcc"))
 	{
 	    buf = sprintf2("/tmp/krb5cc_dc_%i_XXXXXX", pwent->pw_uid);
 	    if((fd = mkstemp(buf)) < 0)
