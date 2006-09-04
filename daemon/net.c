@@ -544,50 +544,6 @@ size_t sockqueuesize(struct socket *sk)
     return(ret);
 }
 
-struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data)
-{
-    struct socket *sk;
-    int intbuf;
-    
-    if(confgetint("net", "mode") == 1)
-    {
-	errno = EOPNOTSUPP;
-	return(NULL);
-    }
-    /* I don't know if this is actually correct (it probably isn't),
-     * but since, at on least Linux systems, PF_* are specifically
-     * #define'd to their AF_* counterparts, it allows for a severely
-     * smoother implementation. If it breaks something on your
-     * platform, please tell me so.
-     */
-    if(confgetint("net", "mode") == 0)
-    {
-	if((sk = mksock(name->sa_family, type)) == NULL)
-	    return(NULL);
-	sk->state = SOCK_LST;
-	if(confgetint("net", "reuseaddr"))
-	{
-	    intbuf = 1;
-	    setsockopt(sk->fd, SOL_SOCKET, SO_REUSEADDR, &intbuf, sizeof(intbuf));
-	}
-	if(bind(sk->fd, name, namelen) < 0)
-	{
-	    putsock(sk);
-	    return(NULL);
-	}
-	if(listen(sk->fd, 16) < 0)
-	{
-	    putsock(sk);
-	    return(NULL);
-	}
-	sk->acceptcb = func;
-	sk->data = data;
-	return(sk);
-    }
-    errno = EOPNOTSUPP;
-    return(NULL);
-}
-
 /*
  * The difference between netcslisten() and netcslistenlocal() is that
  * netcslistenlocal() always listens on the local host, instead of
@@ -628,6 +584,25 @@ struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namel
     sk->acceptcb = func;
     sk->data = data;
     return(sk);
+}
+
+struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data)
+{
+    if(confgetint("net", "mode") == 1)
+    {
+	errno = EOPNOTSUPP;
+	return(NULL);
+    }
+    /* I don't know if this is actually correct (it probably isn't),
+     * but since, at on least Linux systems, PF_* are specifically
+     * #define'd to their AF_* counterparts, it allows for a severely
+     * smoother implementation. If it breaks something on your
+     * platform, please tell me so.
+     */
+    if(confgetint("net", "mode") == 0)
+	return(netcslistenlocal(type, name, namelen, func, data));
+    errno = EOPNOTSUPP;
+    return(NULL);
 }
 
 struct socket *netcsdgram(struct sockaddr *name, socklen_t namelen)
