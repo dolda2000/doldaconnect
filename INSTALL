@@ -96,7 +96,8 @@ normal users, there are two choices:
    somewhat cumbersome, but should be perfectly secure.
  * Password-less authentication -- The server will simply trust the
    clients not to lie. This option is completely insecure, but may be
-   a better option where all users are trusted.
+   a better option where all users are trusted and/or Kerberos is not
+   available.
 
 PAM  authentication   is  always  enabled.   To  enable  password-less
 authentication, set  the "auth.authless" setting  in the configuration
@@ -105,6 +106,27 @@ setting be set to "1" when using password-less authentication, so that
 connections are only accepted from localhost. If you use password-less
 authentication without turning on "ui.onlylocal", you should make sure
 that you *really* know what you are doing before proceeding.
+
+If  the computer  running  the  daemon is  connected  directly to  the
+Internet, no  network configuration will be necessary.  However, if it
+is behind a  NAT router or similar, some configuration  has to be done
+since Direct  Connect requires clients to  be able to  connect to each
+other. There are currently two options available:
+
+ * Running in passive mode. No other clients will attempt to connect
+   to a client in passive mode, which makes Direct Connect work, but
+   with rather severe limitations. Obviously, no two passive mode
+   clients can connect to one another. Also, search results are
+   proxied through the hub, which drains a hub's bandwidth horribly,
+   and is therefore frowned upon by hub owners. Indeed, many hubs do
+   not even allow clients in passive mode. If you even so wish to use
+   passive mode, set the "net.mode" setting to "1" in the
+   configuration file.
+ * Tunnel a port through the NAT router and set up Dolda Connect to
+   listen specifically to that port. The port to use is set in the
+   configuration file using the "dc.udpport" and "dc.tcpport"
+   settings (evidently, both UDP and TCP need to be tunneled through
+   the NAT router).
 
 			 Starting the daemon
 
@@ -125,5 +147,5 @@ allow you in if not all TTH hashes are calculated.
 
 
 
-This documented was last updated 2006-06-24, reflecting release 0.1 of
+This documented was last updated 2006-09-04, reflecting release 0.2 of
 Dolda Connect.
