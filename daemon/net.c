@@ -33,7 +33,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/signal.h>
-#include <printf.h>
 #ifdef HAVE_LINUX_SOCKIOS_H
 #include <linux/sockios.h>
 #endif
