@@ -605,6 +605,35 @@ struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, v
     return(NULL);
 }
 
+struct socket *netcstcplisten(int port, int local, void (*func)(struct socket *, struct socket *, void *), void *data)
+{
+    struct sockaddr_in addr;
+#ifdef HAVE_IPV6
+    struct sockaddr_in6 addr6;
+#endif
+    struct socket *(*csfunc)(int, struct sockaddr *, socklen_t, void (*)(struct socket *, struct socket *, void *), void *);
+    struct socket *ret;
+    
+    if(local)
+	csfunc = netcslistenlocal;
+    else
+	csfunc = netcslisten;
+#ifdef HAVE_IPV6
+    memset(&addr6, 0, sizeof(addr6));
+    addr6.sin6_family = AF_INET6;
+    addr6.sin6_port = htons(port);
+    addr6.sin6_addr = in6addr_any;
+    if((ret = csfunc(SOCK_STREAM, (struct sockaddr *)&addr6, sizeof(addr6), func, data)) != NULL)
+	return(ret);
+    if((ret == NULL) && (errno != EAFNOSUPPORT))
+	return(NULL);
+#endif
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    return(csfunc(SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), func, data));
+}
+
 struct socket *netcsdgram(struct sockaddr *name, socklen_t namelen)
 {
     struct socket *sk;

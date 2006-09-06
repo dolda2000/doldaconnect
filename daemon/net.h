@@ -92,6 +92,7 @@ void putsock(struct socket *sk);
 void getsock(struct socket *sk);
 struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data);
 struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data);
+struct socket *netcstcplisten(int port, int local, void (*func)(struct socket *, struct socket *, void *), void *data);
 struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(struct socket *, int, void *), void *data);
 int pollsocks(int timeout);
 void sockqueue(struct socket *sk, void *data, size_t size);

@@ -2038,41 +2038,11 @@ static void preinit(int hup)
     }
 }
 
-#ifdef HAVE_IPV6
-static struct sockaddr *getnameforport(int port, socklen_t *len)
-{
-    static struct sockaddr_in6 addr;
-    
-    memset(&addr, 0, sizeof(addr));
-    addr.sin6_family = AF_INET6;
-    addr.sin6_port = htons(port);
-    addr.sin6_addr = in6addr_any;
-    if(len != NULL)
-	*len = sizeof(addr);
-    return((struct sockaddr *)&addr);
-}
-#else
-static struct sockaddr *getnameforport(int port, socklen_t *len)
-{
-    static struct sockaddr_in addr;
-    
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    if(len != NULL)
-	*len = sizeof(addr);
-    return((struct sockaddr *)&addr);
-}
-#endif
-
 static int portupdate(struct configvar *var, void *uudata)
 {
-    struct sockaddr *addr;
-    socklen_t addrlen;
     struct socket *newsock;
     
-    addr = getnameforport(var->val.num, &addrlen);
-    if((uisocket = netcslistenlocal(SOCK_STREAM, addr, addrlen, uiaccept, NULL)) == NULL)
+    if((uisocket = netcstcplisten(var->val.num, 1, uiaccept, NULL)) == NULL)
     {
 	flog(LOG_WARNING, "could not create new UI socket, reverting to old: %s", strerror(errno));
 	return(0);
@@ -2085,8 +2055,6 @@ static int portupdate(struct configvar *var, void *uudata)
 
 static int init(int hup)
 {
-    struct sockaddr *addr;
-    socklen_t addrlen;
     struct uiuser *user, *next;
     
     if(hup)
@@ -2102,8 +2070,7 @@ static int init(int hup)
     {
 	if(uisocket != NULL)
 	    putsock(uisocket);
-	addr = getnameforport(confgetint("ui", "port"), &addrlen);
-	if((uisocket = netcslistenlocal(SOCK_STREAM, addr, addrlen, uiaccept, NULL)) == NULL)
+	if((uisocket = netcstcplisten(confgetint("ui", "port"), 1, uiaccept, NULL)) == NULL)
 	{
 	    flog(LOG_CRIT, "could not create UI socket: %s", strerror(errno));
 	    return(1);
