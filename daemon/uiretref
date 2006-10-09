@@ -13,6 +13,7 @@
 512 - No such transfer
 513 - Not supported for this fnet
 514 - No such search
+515 - Quota exceeded
 
 600 - Chat receipt
 601 - FN state change
