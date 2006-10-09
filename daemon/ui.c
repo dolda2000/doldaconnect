@@ -571,6 +571,11 @@ static void cmd_fnetconnect(struct socket *sk, struct uidata *data, int argc, wc
     
     haveargs(3);
     havepriv(PERM_FNETCTL);
+    for(i = 0, fn = fnetnodes; fn != NULL; i++, fn = fn->next);
+    if((confgetint("fnet", "maxnodes") > 0) && (i >= confgetint("fnet", "maxnodes"))) {
+	sq(sk, 0, L"515", L"Too many fnetnodes connected already", NULL);
+	return;
+    }
     if((buf = icwcstombs(argv[2], NULL)) == NULL)
     {
 	sq(sk, 0, L"504", L"Could not convert data to locale charset", NULL);
