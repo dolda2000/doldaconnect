@@ -1409,6 +1409,8 @@ void cb_main_fnaddr_activate(GtkWidget *widget, gpointer data)
 	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("You do not have permission to do that"));
 	if(resp->code == 509)
 	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("The server could not parse that address"));
+	if(resp->code == 515)
+	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("There are too many hubs connected"));
 	dc_freeresp(resp);
     }
     gtk_entry_set_text(GTK_ENTRY(main_fnaddr), "");
@@ -1638,6 +1640,8 @@ void cb_main_phublist_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeView
 	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("You do not have permission to do that"));
 	if(resp->code == 509)
 	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("The server could not parse that address"));
+	if(resp->code == 515)
+	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("There are too many hubs connected"));
 	dc_freeresp(resp);
     }
     handleresps();
