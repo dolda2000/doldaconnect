@@ -502,6 +502,7 @@ static struct configvar myvars[] =
     {CONF_VAR_INT, "srchwait", {.num = 15}},
     {CONF_VAR_INT, "fntos", {.num = 0}},
     {CONF_VAR_INT, "fnptos", {.num = 0}},
+    {CONF_VAR_INT, "maxnodes", {.num = 0}},
     {CONF_VAR_END}
 };
 
