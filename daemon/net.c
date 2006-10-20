@@ -592,12 +592,6 @@ struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, v
 	errno = EOPNOTSUPP;
 	return(NULL);
     }
-    /* I don't know if this is actually correct (it probably isn't),
-     * but since, at on least Linux systems, PF_* are specifically
-     * #define'd to their AF_* counterparts, it allows for a severely
-     * smoother implementation. If it breaks something on your
-     * platform, please tell me so.
-     */
     if(confgetint("net", "mode") == 0)
 	return(netcslistenlocal(type, name, namelen, func, data));
     errno = EOPNOTSUPP;
