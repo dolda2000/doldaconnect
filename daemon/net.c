@@ -128,6 +128,7 @@ int getpublicaddr(int af, struct sockaddr **addr, socklen_t *lenbuf)
 		} else {
 		    free(ipv4);
 		    free(conf.ifc_buf);
+		    close(sock);
 		    flog(LOG_WARNING, "could not locate an unambiguous interface for determining your public IP address - set net.publicif");
 		    errno = ENFILE; /* XXX: There's no appropriate one for this... */
 		    return(-1);
