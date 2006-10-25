@@ -472,6 +472,7 @@ int dc_handleread(void)
     int ret, done;
     char *p1, *p2;
     size_t len;
+    socklen_t optlen;
     int errnobak;
     /* Ewww... this really is soo ugly. I need to clean this up some day. */
     static int pstate = 0;
@@ -481,7 +482,8 @@ int dc_handleread(void)
     static size_t cbufsize = 0, cbufdata = 0;
     static wchar_t *pptr = NULL;
     static wchar_t **argv = NULL;
-    static int argc = 0, args = 0;
+    static int argc = 0;
+    static size_t args = 0;
     static wchar_t *cw = NULL;
     static size_t cwsize = 0, cwdata = 0;
     static struct dc_response *curresp = NULL;
@@ -493,8 +495,8 @@ int dc_handleread(void)
     case -1:
 	return(-1);
     case 0:
-	len = sizeof(ret);
-	getsockopt(fd, SOL_SOCKET, SO_ERROR, &ret, &len);
+	optlen = sizeof(ret);
+	getsockopt(fd, SOL_SOCKET, SO_ERROR, &ret, &optlen);
 	if(ret)
 	{
 	    int newfd;
@@ -1039,7 +1041,7 @@ struct dc_intresp *dc_interpret(struct dc_response *resp)
     struct command *cmd;
     struct respclass *cls;
     int code;
-    int args;
+    size_t args;
     
     if((resp->numlines == 0) || (resp->rlines[0].argc == 0) || (resp->curline >= resp->numlines))
 	return(NULL);
