@@ -278,10 +278,15 @@ static char *findhashcachefile(int filldef)
     }
     if(filldef)
     {
-	if(getenv("HOME") != NULL)
+	if((hcname = icswcstombs(confgetstr("cli", "hashcache"), NULL, NULL)) != NULL)
+	{
+	    strcpy(ret, hcname);
+	    return(ret);
+	} else if(getenv("HOME") != NULL) {
 	    snprintf(ret, sizeof(ret), "%s/.dc-hashcache", getenv("HOME"));
-	else
+	} else {
 	    snprintf(ret, sizeof(ret), "/etc/%s", hcname);
+	}
 	return(ret);
     } else {
 	return(NULL);
