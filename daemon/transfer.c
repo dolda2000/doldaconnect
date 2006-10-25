@@ -617,6 +617,8 @@ static void filterread(struct socket *sk, struct transfer *transfer)
 static void filterexit(pid_t pid, int status, void *data)
 {
     struct transfer *transfer;
+    struct fnet *fnet;
+    wchar_t *peerid;
     
     for(transfer = transfers; transfer != NULL; transfer = transfer->next)
     {
@@ -624,13 +626,14 @@ static void filterexit(pid_t pid, int status, void *data)
 	{
 	    transfer->filter = -1;
 	    killfilter(transfer);
+	    fnet = transfer->fnet;
+	    peerid = swcsdup(transfer->peerid);
 	    if(WEXITSTATUS(status))
-	    {
 		resettransfer(transfer);
-	    } else {
+	    else
 		freetransfer(transfer);
-	    }
-	    trytransferbypeer(transfer->fnet, transfer->peerid);
+	    trytransferbypeer(fnet, peerid);
+	    free(peerid);
 	    break;
 	}
     }
