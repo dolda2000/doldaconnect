@@ -1083,7 +1083,8 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     struct sockaddr_in addr;
     struct sharecache *node;
     int minsize, maxsize;
-    int dotth, buflen;
+    int dotth;
+    size_t buflen;
     int termnum, satisfied, skipcheck;
     int level, tersat[32];
     wchar_t *terms[32];
@@ -2597,7 +2598,7 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
 {
     int ret;
     void *buf;
-    char outbuf[1024];
+    unsigned char outbuf[1024];
     z_stream *cstr;
     size_t bufsize;
     
