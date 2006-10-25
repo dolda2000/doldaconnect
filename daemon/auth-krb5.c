@@ -305,6 +305,7 @@ static int krbauth(struct authhandle *auth, char *passdata)
 		if(auth->text != NULL)
 		    free(auth->text);
 		auth->text = icmbstowcs((char *)error_message(ret), NULL);
+		free(msg);
 		return(AUTH_DENIED);
 	    }
 	    free(msg);
@@ -369,8 +370,10 @@ static int krbauth(struct authhandle *auth, char *passdata)
 	    if((ret = krb5_rd_cred(k5context, data->context, &k5d, &fwdcreds, NULL)) != 0)
 	    {
 		flog(LOG_ERR, "krb5_rd_cred returned an error: %s", error_message(ret));
+		free(msg);
 		return(AUTH_ERR);
 	    }
+	    free(msg);
 	    if(*fwdcreds == NULL)
 	    {
 		flog(LOG_ERR, "forwarded credentials array was empty (from %s)", data->username);
