@@ -15,7 +15,7 @@ struct dc_response
 	int argc;
 	wchar_t **argv;
     } *rlines;
-    int linessize;
+    size_t linessize;
     int numlines;
     int curline;
 };
