@@ -590,6 +590,7 @@ static char *getadcid(struct dcpeer *peer)
     char *ret;
     int isfilelist;
     
+    isfilelist = 0;
     if(!wcscmp(peer->transfer->path, L"files.xml") || !wcscmp(peer->transfer->path, L"files.xml.bz2") || !wcscmp(peer->transfer->path, L"MyList.DcLst"))
 	isfilelist = 1;
     if(!isfilelist && (peer->transfer->hash != NULL) && isdchash(peer->transfer->hash) && supports(peer, "tthf"))
