@@ -449,7 +449,7 @@ static void hashread(struct socket *sk, void *uudata)
     }
 }
 
-static void hashexit(pid_t pid, int status, void *uudata)
+static void hashexit(pid_t pid, int status, struct socket *outsock)
 {
     if(pid != hashjob)
 	flog(LOG_ERR, "BUG: hashing process changed PID?! old: %i new %i", hashjob, pid);
@@ -457,6 +457,7 @@ static void hashexit(pid_t pid, int status, void *uudata)
 	flog(LOG_WARNING, "hashing process exited with non-zero status: %i", status);
     hashjob = 0;
     checkhashes();
+    putsock(outsock);
 }
 
 static int hashfile(char *path)
@@ -525,7 +526,7 @@ static int hashfile(char *path)
     close(pfd[1]);
     outsock = wrapsock(pfd[0]);
     outsock->readcb = hashread;
-    childcallback(hashjob, hashexit, NULL);
+    childcallback(hashjob, (void (*)(pid_t, int, void *))hashexit, outsock);
     return(0);
 }
 
