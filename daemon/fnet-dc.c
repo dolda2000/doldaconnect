@@ -1600,6 +1600,7 @@ static void cmd_peerlock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	peer->transfer = transfer;
 	qstrf(sk, "$Direction %s %i|", (peer->direction == TRNSD_UP)?"Upload":"Download", rand() % 10000);
 	qstrf(sk, "$Key %s|", key);
+	free(key);
     } else {
 	if(peer->key != NULL)
 	    free(peer->key);
