@@ -3173,6 +3173,7 @@ static void peerconnect(struct socket *sk, int err, struct fnetnode *fn)
     if(err != 0)
     {
 	putfnetnode(fn);
+	putsock(sk);
 	return;
     }
     hub = fn->data;
