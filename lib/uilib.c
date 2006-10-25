@@ -935,7 +935,7 @@ static int getsrvrr(char *name, char **host, int *port)
 #else
 static int getsrvrr(char *name, char **host, int *port)
 {
-    errno = EOPNOTSUP;
+    errno = EOPNOTSUPP;
     return(-1);
 }
 #endif
