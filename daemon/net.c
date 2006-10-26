@@ -109,7 +109,7 @@ int getpublicaddr(int af, struct sockaddr **addr, socklen_t *lenbuf)
 	ipv4 = NULL;
 	for(ifr = conf.ifc_ifcu.ifcu_req; (void *)ifr < bufend; ifr++)
 	{
-	    if(strcmp(ifr->ifrname, pif))
+	    if(strcmp(ifr->ifr_name, pif))
 		continue;
 	    memset(&req, 0, sizeof(req));
 	    memcpy(req.ifr_name, ifr->ifr_name, sizeof(ifr->ifr_name));
