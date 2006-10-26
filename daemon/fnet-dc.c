@@ -1167,10 +1167,11 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		if(!dotth && !strncmp(p, "TTH:", 4))
 		{
 		    dotth = 1;
-		    if((buf = base32decode(p + 4, &buflen)) == NULL)
+		    if(((buf = base32decode(p + 4, &buflen)) == NULL) || (buflen != 24))
+		    {
+			free(buf);
 			goto out;
-		    if(buflen != 24)
-			goto out;
+		    }
 		    memcpy(hashtth, buf, 24);
 		    free(buf);
 		} else {
