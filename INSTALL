@@ -126,7 +126,9 @@ other. There are currently two options available:
    listen specifically to that port. The port to use is set in the
    configuration file using the "dc.udpport" and "dc.tcpport"
    settings (evidently, both UDP and TCP need to be tunneled through
-   the NAT router).
+   the NAT router). The daemon also needs to be told of the public
+   IPv4 address of the NAT router, by way of the "net.visibleipv4"
+   setting.
 
 			 Starting the daemon
 
@@ -147,5 +149,5 @@ allow you in if not all TTH hashes are calculated.
 
 
 
-This documented was last updated 2006-09-04, reflecting release 0.2 of
+This documented was last updated 2006-10-27, reflecting release 0.3 of
 Dolda Connect.
