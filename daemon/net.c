@@ -94,6 +94,8 @@ int getpublicaddr(int af, struct sockaddr **addr, socklen_t *lenbuf)
 	    flog(LOG_ERR, "could not convert net.publicif into local charset: %s", strerror(errno));
 	    return(-1);
 	}
+	if(!strcmp(pif, ""))
+	    return(1);
 	if((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 	    return(-1);
 	conf.ifc_buf = smalloc(conf.ifc_len = 65536);
@@ -107,33 +109,25 @@ int getpublicaddr(int af, struct sockaddr **addr, socklen_t *lenbuf)
 	ipv4 = NULL;
 	for(ifr = conf.ifc_ifcu.ifcu_req; (void *)ifr < bufend; ifr++)
 	{
+	    if(strcmp(ifr->ifrname, pif))
+		continue;
 	    memset(&req, 0, sizeof(req));
 	    memcpy(req.ifr_name, ifr->ifr_name, sizeof(ifr->ifr_name));
 	    if(ioctl(sock, SIOCGIFFLAGS, &req) < 0)
-	    {
-		free(conf.ifc_buf);
-		close(sock);
-		return(-1);
-	    }
+		break;
 	    if(!(req.ifr_flags & IFF_UP))
-		continue;
-	    if(ifr->ifr_addr.sa_family == AF_INET)
 	    {
-		if(ntohl(((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr.s_addr) == 0x7f000001)
-		    continue;
-		if(ipv4 == NULL)
-		{
-		    ipv4 = smalloc(sizeof(*ipv4));
-		    memcpy(ipv4, &ifr->ifr_addr, sizeof(ifr->ifr_addr));
-		} else {
-		    free(ipv4);
-		    free(conf.ifc_buf);
-		    close(sock);
-		    flog(LOG_WARNING, "could not locate an unambiguous interface for determining your public IP address - set net.publicif");
-		    errno = ENFILE; /* XXX: There's no appropriate one for this... */
-		    return(-1);
-		}
+		flog(LOG_WARNING, "public interface is down");
+		break;
 	    }
+	    if(ifr->ifr_addr.sa_family != AF_INET)
+	    {
+		flog(LOG_WARNING, "address of the public interface is not AF_INET");
+		break;
+	    }
+	    ipv4 = smalloc(sizeof(*ipv4));
+	    memcpy(ipv4, &ifr->ifr_addr, sizeof(ifr->ifr_addr));
+	    break;
 	}
 	free(conf.ifc_buf);
 	close(sock);
@@ -146,8 +140,7 @@ int getpublicaddr(int af, struct sockaddr **addr, socklen_t *lenbuf)
 	errno = ENETDOWN;
 	return(-1);
     }
-    errno = EPFNOSUPPORT;
-    return(-1);
+    return(1);
 }
 
 static struct socket *newsock(int type)
@@ -1038,7 +1031,7 @@ int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *le
     len = sizeof(name);
     if(getsockname(sk->fd, (struct sockaddr *)&name, &len) < 0)
     {
-	flog(LOG_ERR, "BUG: alive socket with dead fd in sockgetlocalname");
+	flog(LOG_ERR, "BUG: alive socket with dead fd in sockgetlocalname (%s)", strerror(errno));
 	return(-1);
     }
     *namebuf = memcpy(smalloc(len), &name, len);
@@ -1048,11 +1041,9 @@ int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *le
 
 int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
 {
+    int ret;
     socklen_t len;
-    struct sockaddr_storage name;
-    struct sockaddr_in *ipv4;
-    struct sockaddr *pname;
-    socklen_t pnamelen;
+    struct sockaddr *name;
     
     switch(confgetint("net", "mode"))
     {
@@ -1060,26 +1051,25 @@ int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *l
 	*namebuf = NULL;
 	if((sk->state == SOCK_STL) || (sk->fd < 0))
 	    return(-1);
-	len = sizeof(name);
-	if(getsockname(sk->fd, (struct sockaddr *)&name, &len) < 0)
+	if((ret = getpublicaddr(sk->family, &name, &len)) < 0)
 	{
-	    flog(LOG_ERR, "BUG: alive socket with dead fd in sockgetremotename");
+	    flog(LOG_ERR, "could not get public address: %s", strerror(errno));
 	    return(-1);
 	}
-	if(name.ss_family == AF_INET)
+	if(ret == 0)
 	{
-	    ipv4 = (struct sockaddr_in *)&name;
-	    if(getpublicaddr(AF_INET, &pname, &pnamelen) < 0)
-	    {
-		flog(LOG_WARNING, "could not determine public IP address - strange things may happen");
-		return(-1);
-	    }
-	    ipv4->sin_addr.s_addr = ((struct sockaddr_in *)pname)->sin_addr.s_addr;
-	    free(pname);
+	    *namebuf = name;
+	    *lenbuf = len;
+	    return(0);
 	}
-	*namebuf = memcpy(smalloc(len), &name, len);
-	*lenbuf = len;
-	return(0);
+	if(!sockgetlocalname(sk, &name, &len))
+	{
+	    *namebuf = name;
+	    *lenbuf = len;
+	    return(0);
+	}
+	flog(LOG_ERR, "could not get remotely accessible name by any means");
+	return(-1);
     case 1:
 	errno = EOPNOTSUPP;
 	return(-1);
