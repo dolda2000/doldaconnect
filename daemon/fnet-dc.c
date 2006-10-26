@@ -1310,7 +1310,7 @@ static void sendctm(struct socket *sk, char *nick)
     
     if(tcpsock == NULL)
 	return;
-    if(sockgetremotename(tcpsock, &addr, &addrlen) < 0)
+    if(sockgetremotename(sk, &addr, &addrlen) < 0)
 	return;
     if(addr->sa_family == AF_INET)
 	qstrf(sk, "$ConnectToMe %s %s|", nick, formataddress(addr, addrlen));
@@ -2519,7 +2519,7 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
     addtobuf(sstr, 0);
     if(tcpsock != NULL)
     {
-	if(sockgetremotename(udpsock, &name, &namelen) < 0)
+	if(sockgetremotename(fn->sk, &name, &namelen) < 0)
 	{
 	    flog(LOG_WARNING, "cannot get address of UDP socket");
 	} else {
