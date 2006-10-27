@@ -546,7 +546,7 @@ static void checkhashes(void)
 	    continue;
 	if(!node->f.b.hastth)
 	{
-	    if((hc = findhashcache(node->dev, node->inode)) != NULL)
+	    if(((hc = findhashcache(node->dev, node->inode)) != NULL) && (hc->mtime == node->mtime))
 	    {
 		memcpy(node->hashtth, hc->tth, 24);
 		node->f.b.hastth = 1;
