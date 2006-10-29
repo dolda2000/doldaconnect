@@ -597,8 +597,8 @@ static void cmd_fnetconnect(struct socket *sk, struct uidata *data, int argc, wc
     }
     linkfnetnode(fn);
     fnetsetname(fn, argv[2]);
+    sq(sk, 0, L"200", L"%%i", fn->id, L"Connection under way", NULL);
     putfnetnode(fn);
-    sq(sk, 0, L"200", L"Connection under way", NULL);
 }
 
 static void cmd_lsnodes(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
