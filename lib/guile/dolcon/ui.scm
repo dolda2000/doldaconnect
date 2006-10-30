@@ -47,9 +47,10 @@
 (define-public dc-ecmd
   (lambda args
     (let ((tag (dc-qcmd args)))
-      (do ((resp (dc-getresp tag) (dc-getresp tag)))
-	  (resp resp)
-	(dc-select))
+      (if (>= tag 0)
+	  (do ((resp (dc-getresp tag) (dc-getresp tag)))
+	      (resp resp)
+	    (dc-select)))
       )
     )
   )
