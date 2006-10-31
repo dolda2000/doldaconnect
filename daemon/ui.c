@@ -144,7 +144,7 @@ struct uidata
     size_t inbufsize, indata;
     /* Wordset storage */
     wchar_t **argv;
-    int argc, args;
+    size_t argc, args;
     /* WCS conversation stuff */
     wchar_t *cb; /* Conversation buffer */
     size_t cbsize, cbdata;
