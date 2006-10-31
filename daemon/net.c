@@ -702,7 +702,8 @@ struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(
 
 int pollsocks(int timeout)
 {
-    int i, num, ret, retlen;
+    int i, num, ret;
+    socklen_t retlen;
     int newfd;
     struct pollfd *pfds;
     struct socket *sk, *next, *newsk;
@@ -1039,9 +1040,47 @@ int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *le
     return(0);
 }
 
-int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+static void sethostaddr(struct sockaddr *dst, struct sockaddr *src)
+{
+    if(dst->sa_family != src->sa_family)
+    {
+	flog(LOG_ERR, "BUG: non-matching socket families in sethostaddr (%i -> %i)", src->sa_family, dst->sa_family);
+	return;
+    }
+    switch(src->sa_family)
+    {
+    case AF_INET:
+	((struct sockaddr_in *)dst)->sin_addr = ((struct sockaddr_in *)src)->sin_addr;
+	break;
+    case AF_INET6:
+	((struct sockaddr_in6 *)dst)->sin6_addr = ((struct sockaddr_in6 *)src)->sin6_addr;
+	break;
+    default:
+	flog(LOG_WARNING, "sethostaddr unimplemented for family %i", src->sa_family);
+	break;
+    }
+}
+
+static int makepublic(struct sockaddr *addr)
 {
     int ret;
+    socklen_t plen;
+    struct sockaddr *pname;
+    
+    if((ret = getpublicaddr(addr->sa_family, &pname, &plen)) < 0)
+    {
+	flog(LOG_ERR, "could not get public address: %s", strerror(errno));
+	return(-1);
+    }
+    if(ret)
+	return(0);
+    sethostaddr(addr, pname);
+    free(pname);
+    return(0);
+}
+
+int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
     socklen_t len;
     struct sockaddr *name;
     
@@ -1050,22 +1089,15 @@ int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *l
     case 0:
 	*namebuf = NULL;
 	if((sk->state == SOCK_STL) || (sk->fd < 0))
-	    return(-1);
-	if((ret = getpublicaddr(sk->family, &name, &len)) < 0)
 	{
-	    flog(LOG_ERR, "could not get public address: %s", strerror(errno));
+	    errno = EBADF;
 	    return(-1);
-	}
-	if(ret == 0)
-	{
-	    *namebuf = name;
-	    *lenbuf = len;
-	    return(0);
 	}
 	if(!sockgetlocalname(sk, &name, &len))
 	{
 	    *namebuf = name;
 	    *lenbuf = len;
+	    makepublic(name);
 	    return(0);
 	}
 	flog(LOG_ERR, "could not get remotely accessible name by any means");
