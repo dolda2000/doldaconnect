@@ -24,8 +24,6 @@
 #include <netinet/in.h>
 #include <utils.h>
 
-#define CONFIG_PATH "/usr/local/etc/doldacond.conf:/usr/etc/doldacond.conf:/etc/doldacond.conf"
-
 #define CONF_VAR_END -1
 #define CONF_VAR_BOOL 0
 #define CONF_VAR_INT 1
@@ -70,6 +68,5 @@ struct configvar *confgetvar(char *modname, char *varname);
 #define confgetstr(m, v) (confgetvar((m), (v))->val.str)
 void confregmod(struct configmod *mod);
 void readconfig(FILE *stream);
-char *findconfigfile(void);
 
 #endif
