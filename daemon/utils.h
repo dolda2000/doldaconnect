@@ -89,7 +89,7 @@ char *base32encode(char *data, size_t datalen);
 char *base32decode(char *data, size_t *datalen);
 void _freeparr(void **arr);
 int _parrlen(void **arr);
-char *findfile(char *gname, char *uname, char *homedir);
+char *findfile(char *gname, char *uname, char *homedir, int filldef);
 struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list);
 void freewcspair(struct wcspair *pair, struct wcspair **list);
 wchar_t *wpfind(struct wcspair *list, wchar_t *key);
