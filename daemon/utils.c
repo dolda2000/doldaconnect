@@ -720,15 +720,20 @@ char *getetcpath(char *binpath)
     return(etcpath);
 }
 
-char *findfile(char *gname, char *uname, char *homedir)
+char *findfile(char *gname, char *uname, char *homedir, int filldef)
 {
     char *path, *binpath, *etcpath, *p;
+    struct passwd *pw;
     
-    if((homedir != NULL) && ((path = sprintf2("%s/.%s", homedir, uname)) != NULL))
-    {
-	if(!access(path, F_OK))
-	    return(path);
-	free(path);
+    if(uname != NULL) {
+	if((homedir == NULL) && ((pw = getpwuid(getuid())) != NULL))
+	    homedir = pw->pw_dir;
+	if((homedir != NULL) && ((path = sprintf2("%s/.%s", homedir, uname)) != NULL))
+	{
+	    if(!access(path, F_OK))
+		return(path);
+	    free(path);
+	}
     }
     if(gname != NULL)
     {
@@ -756,7 +761,13 @@ char *findfile(char *gname, char *uname, char *homedir)
 	    free(etcpath);
 	}
     }
-    return(NULL);
+    if(filldef) {
+	if(uname && homedir)
+	    return("%s/.%s", homedir, uname);
+	return("/etc/%s", gname);
+    } else {
+	return(NULL);
+    }
 }
 
 struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list)
