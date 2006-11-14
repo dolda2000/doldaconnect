@@ -271,36 +271,6 @@ int runconfcmd(int argc, wchar_t **argv)
     return(ret);
 }
 
-char *findconfigfile(void)
-{
-    static char pathbuf[128];
-    char *p, *p2;
-    
-    if(getenv("HOME") != NULL)
-    {
-	snprintf(pathbuf, sizeof(pathbuf), "%s/.doldacond", getenv("HOME"));
-	if(!access(pathbuf, R_OK))
-	    return(pathbuf);
-    }
-    p = CONFIG_PATH;
-    do
-    {
-	p2 = strchr(p, ':');
-	if(p2 != NULL)
-	{
-	    memcpy(pathbuf, p, p2 - p);
-	    pathbuf[p2 - p] = 0;
-	    if(!access(pathbuf, R_OK))
-		return(pathbuf);
-	} else {
-	    if(!access(p, R_OK))
-		return(p);
-	}
-	p = p2 + 1;
-    } while(p2 != NULL);
-    return(NULL);
-}
-
 void readconfig(FILE *stream)
 {
     int state;
