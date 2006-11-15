@@ -1135,6 +1135,7 @@ int addreq(struct sockaddr *x, struct sockaddr *y)
 	if(n1->sin_addr.s_addr != n2->sin_addr.s_addr)
 	    return(0);
 	break;
+#ifdef HAVE_IPV6
     case AF_INET6:
 	s1 = (struct sockaddr_in6 *)x; s2 = (struct sockaddr_in6 *)y;
 	if(s1->sin6_port != s2->sin6_port)
@@ -1142,6 +1143,7 @@ int addreq(struct sockaddr *x, struct sockaddr *y)
 	if(memcmp(s1->sin6_addr.s6_addr, s2->sin6_addr.s6_addr, sizeof(s1->sin6_addr.s6_addr)))
 	    return(0);
 	break;
+#endif
     }
     return(1);
 }
