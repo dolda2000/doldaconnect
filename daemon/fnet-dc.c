@@ -2540,7 +2540,7 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
 #undef qstrf
 
 #define cc(c) ((void (*)(struct socket *, void *, char *, char *))(c))
-struct command hubcmds[] =
+static struct command hubcmds[] =
 {
     {"$Lock", cc(cmd_lock)},
     {"$HubName", cc(cmd_hubname)},
@@ -2563,7 +2563,7 @@ struct command hubcmds[] =
     {NULL, NULL}
 };
 
-struct command peercmds[] =
+static struct command peercmds[] =
 {
     {"$MyNick", cc(cmd_mynick)},
     {"$Lock", cc(cmd_peerlock)},
