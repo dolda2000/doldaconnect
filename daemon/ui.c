@@ -1251,7 +1251,7 @@ static void cmd_register(struct socket *sk, struct uidata *data, int argc, wchar
 	return;
     }
     for(d2 = actives; d2 != NULL; d2 = d2->next) {
-	if((d2 != data) && d2->regname && !wcscmp(d2->regname, argv[1])) {
+	if((d2 != data) && (d2->userinfo == data->userinfo) && d2->regname && !wcscmp(d2->regname, argv[1])) {
 	    sq(sk, 0, L"516", L"Name already in use", NULL);
 	    return;
 	}
@@ -1277,12 +1277,12 @@ static void cmd_sendmsg(struct socket *sk, struct uidata *data, int argc, wchar_
     if(argv[1][0] == L'#') {
 	rcptid = wcstol(argv[1] + 1, NULL, 0);
 	for(rcpt = actives; rcpt != NULL; rcpt = rcpt->next) {
-	    if(rcpt->id == rcptid)
+	    if((rcpt->userinfo == data->userinfo) && (rcpt->id == rcptid))
 		break;
 	}
     } else {
 	for(rcpt = actives; rcpt != NULL; rcpt = rcpt->next) {
-	    if(rcpt->regname && !wcscmp(rcpt->regname, argv[1]))
+	    if((rcpt->userinfo == data->userinfo) && rcpt->regname && !wcscmp(rcpt->regname, argv[1]))
 		break;
 	}
     }
