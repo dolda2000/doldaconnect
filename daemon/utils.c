@@ -724,13 +724,17 @@ char *findfile(char *gname, char *uname, char *homedir, int filldef)
 {
     char *path, *binpath, *etcpath, *p;
     struct passwd *pw;
+    int mode;
     
+    mode = R_OK | (filldef ? W_OK : 0);
     if(uname != NULL) {
+	if(homedir == NULL)
+	    homedir = getenv("HOME");
 	if((homedir == NULL) && ((pw = getpwuid(getuid())) != NULL))
 	    homedir = pw->pw_dir;
 	if((homedir != NULL) && ((path = sprintf2("%s/.%s", homedir, uname)) != NULL))
 	{
-	    if(!access(path, F_OK))
+	    if(!access(path, mode))
 		return(path);
 	    free(path);
 	}
@@ -739,7 +743,7 @@ char *findfile(char *gname, char *uname, char *homedir, int filldef)
     {
 	if(strchr(gname, '/') != NULL)
 	{
-	    if(!access(gname, F_OK))
+	    if(!access(gname, mode))
 		return(sstrdup(gname));
 	} else {
 	    if((binpath = getenv("PATH")) == NULL)
@@ -750,7 +754,7 @@ char *findfile(char *gname, char *uname, char *homedir, int filldef)
 	    {
 		if((path = sprintf2("%s/%s", p, gname)) != NULL)
 		{
-		    if(!access(path, F_OK))
+		    if(!access(path, mode))
 		    {
 			free(etcpath);
 			return(path);
@@ -763,8 +767,8 @@ char *findfile(char *gname, char *uname, char *homedir, int filldef)
     }
     if(filldef) {
 	if(uname && homedir)
-	    return("%s/.%s", homedir, uname);
-	return("/etc/%s", gname);
+	    return(sprintf2("%s/.%s", homedir, uname));
+	return(sprintf2("/etc/%s", gname));
     } else {
 	return(NULL);
     }
