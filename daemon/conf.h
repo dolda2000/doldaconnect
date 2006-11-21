@@ -68,5 +68,7 @@ struct configvar *confgetvar(char *modname, char *varname);
 #define confgetstr(m, v) (confgetvar((m), (v))->val.str)
 void confregmod(struct configmod *mod);
 void readconfig(FILE *stream);
+void storevar(char *key, void *val, size_t len);
+void *fetchvar(char *key, size_t *lenb);
 
 #endif

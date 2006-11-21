@@ -28,6 +28,7 @@
 #include <wchar.h>
 #include <iconv.h>
 #include <arpa/inet.h>
+#include <gdbm.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -359,4 +360,49 @@ void readconfig(FILE *stream)
 	flog(LOG_WARNING, "error on configuration stream: %s", strerror(errno));
     if(state != 0)
 	flog(LOG_WARNING, "unexpected end of file");
+}
+
+/* {store,fetch}var re-opens the database every time, just in case two
+ * doldacond processes would be running simultaneously. */
+void storevar(char *key, void *val, size_t len)
+{
+    char *dbname;
+    GDBM_FILE db;
+    datum k, v;
+    
+    dbname = findfile("dc-vardb", "dc-vardb", NULL, 1);
+    if((db = gdbm_open(dbname, 0, GDBM_WRCREAT, 0666, NULL)) == NULL)
+    {
+	flog(LOG_CRIT, "could not open var database for writing, cannot continue: %s", gdbm_strerror(gdbm_errno));
+	abort();
+    }
+    free(dbname);
+    k.dptr = key;
+    k.dsize = strlen(key);
+    v.dptr = val;
+    v.dsize = len;
+    gdbm_store(db, k, v, GDBM_REPLACE);
+    gdbm_close(db);
+}
+
+void *fetchvar(char *key, size_t *lenb)
+{
+    char *dbname;
+    GDBM_FILE db;
+    datum k, v;
+    
+    if((dbname = findfile("dc-vardb", "dc-vardb", NULL, 0)) == NULL)
+	return(NULL);
+    if((db = gdbm_open(dbname, 0, GDBM_READER, 0666, NULL)) == NULL)
+	return(NULL);
+    free(dbname);
+    k.dptr = key;
+    k.dsize = strlen(key);
+    v = gdbm_fetch(db, k);
+    gdbm_close(db);
+    if(v.dptr == NULL)
+	return(NULL);
+    if(lenb != NULL)
+	*lenb = v.dsize;
+    return(v.dptr);
 }
