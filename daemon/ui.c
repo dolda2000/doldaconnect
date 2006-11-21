@@ -128,11 +128,14 @@ struct uidata
 	    int tract:1;
 	    int trprog:1;
 	    int srch:1;
+	    int msg:1;
 	} b;
 	int w;
     } notify;
     wchar_t *username;
     struct uiuser *userinfo;
+    int id;
+    wchar_t *regname;
     uid_t uid;
     struct notif *fnotif, *lnotif;
     char *fcmdbuf;
@@ -159,6 +162,8 @@ struct uidata
 static int srcheta(struct search *srch, void *uudata);
 static int srchcommit(struct search *srch, void *uudata);
 static int srchres(struct search *srch, struct srchres *sr, void *uudata);
+static struct notif *newnotif(struct uidata *data, int code, ...);
+static void notifappend(struct notif *notif, ...);
 
 struct uiuser *users = NULL;
 struct uidata *actives = NULL;
@@ -857,6 +862,8 @@ static void cmd_notify(struct socket *sk, struct uidata *data, int argc, wchar_t
 	    data->notify.b.trprog = val;
 	} else if(!wcscasecmp(argv[i], L"srch:act")) {
 	    data->notify.b.srch = val;
+	} else if(!wcscasecmp(argv[i], L"msg")) {
+	    data->notify.b.msg = val;
 	}
     }
     sq(sk, 0, L"200", L"Notification alteration succeeded", NULL);
@@ -1230,6 +1237,73 @@ static void cmd_transstatus(struct socket *sk, struct uidata *data, int argc, wc
     free(buf2);
 }
 
+static void cmd_register(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
+{
+    struct uidata *d2;
+    
+    haveargs(2);
+    if(data->userinfo == NULL) {
+	sq(sk, 0, L"502", L"Must be logged in", NULL);
+	return;
+    }
+    if(argv[1][0] == L'#') {
+	sq(sk, 0, L"509", L"Name must not begin with a hash sign", NULL);
+	return;
+    }
+    for(d2 = actives; d2 != NULL; d2 = d2->next) {
+	if((d2 != data) && d2->regname && !wcscmp(d2->regname, argv[1])) {
+	    sq(sk, 0, L"516", L"Name already in use", NULL);
+	    return;
+	}
+    }
+    if(data->regname != NULL)
+	free(data->regname);
+    data->regname = swcsdup(argv[1]);
+    sq(sk, 0, L"200", L"Registered", NULL);
+}
+
+static void cmd_sendmsg(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
+{
+    int i, rcptid;
+    struct uidata *rcpt;
+    wchar_t *myname;
+    struct notif *notif;
+    
+    haveargs(2);
+    if(data->userinfo == NULL) {
+	sq(sk, 0, L"502", L"Must be logged in", NULL);
+	return;
+    }
+    if(argv[1][0] == L'#') {
+	rcptid = wcstol(argv[1] + 1, NULL, 0);
+	for(rcpt = actives; rcpt != NULL; rcpt = rcpt->next) {
+	    if(rcpt->id == rcptid)
+		break;
+	}
+    } else {
+	for(rcpt = actives; rcpt != NULL; rcpt = rcpt->next) {
+	    if(rcpt->regname && !wcscmp(rcpt->regname, argv[1]))
+		break;
+	}
+    }
+    if(rcpt == NULL) {
+	sq(sk, 0, L"517", L"No such recipient", NULL);
+	return;
+    }
+    if(!rcpt->notify.b.msg) {
+	sq(sk, 0, L"518", L"Recipient not listening for messages", NULL);
+	return;
+    }
+    if(data->regname != NULL)
+	myname = swcsdup(data->regname);
+    else
+	myname = swprintf2(L"#%i", data->id);
+    notif = newnotif(rcpt, 640, NOTIF_STR, myname, NOTIF_END);
+    for(i = 2; i < argc; i++)
+	notifappend(notif, NOTIF_STR, argv[i], NOTIF_END);
+    sq(sk, 0, L"200", L"Message sent", NULL);
+}
+
 #undef haveargs
 #undef havepriv
 
@@ -1266,6 +1340,8 @@ static struct command commands[] =
     {L"lstrarg", cmd_lstrarg},
     {L"hashstatus", cmd_hashstatus},
     {L"transstatus", cmd_transstatus},
+    {L"register", cmd_register},
+    {L"sendmsg", cmd_sendmsg},
     {NULL, NULL}
 };
 
@@ -1441,6 +1517,8 @@ static void freeuidata(struct uidata *data)
     }
     if(data->auth != NULL)
 	authputhandle(data->auth);
+    if(data->regname != NULL)
+	free(data->regname);
     if(data->username != NULL)
     {
 	if(data->userinfo != NULL)
@@ -1478,9 +1556,11 @@ static void queuecmd(struct uidata *data, struct command *cmd, int argc, wchar_t
 static struct uidata *newuidata(struct socket *sk)
 {
     struct uidata *data;
+    static int curid = 0;
     
     data = smalloc(sizeof(*data));
     memset(data, 0, sizeof(*data));
+    data->id = curid++;
     data->sk = sk;
     getsock(sk);
     data->inbuf = smalloc(1024);
