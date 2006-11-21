@@ -14,6 +14,9 @@
 513 - Not supported for this fnet
 514 - No such search
 515 - Quota exceeded
+516 - Duplicate recipient
+517 - No such recipient
+518 - Recipient not listening
 
 600 - Chat receipt
 601 - FN state change
@@ -36,3 +39,4 @@
 630 - Peer create
 631 - Peer delete
 632 - Peer change
+640 - Client-to-client message
