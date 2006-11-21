@@ -110,6 +110,18 @@
 :transstatus
 200 s s
 502
+:register
+200
+501
+502
+509
+516
+:sendmsg
+200
+501
+502
+517
+518
 : ; Nameless notification
 600 i i s s s	; FN chat
 601 i i		; FN state change
@@ -132,6 +144,7 @@
 630 i s s
 631 i s
 632 i s s       ; More data follows, but cannot be handled by dc_interpret
+640 s		; Client-to-client message, also variable length
 : ; Nameless connection
 200 s
 502
