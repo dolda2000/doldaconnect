@@ -11,7 +11,7 @@ def login(useauthless = True, **kw):
     return result[0]
 
 def mustconnect(host, port = -1):
-    connect(host, port)
+    fd = connect(host, port)
     while True:
         resp = getresp()
         if resp is not None and resp.getcmd() == u".connect":
@@ -19,16 +19,18 @@ def mustconnect(host, port = -1):
         select()
     if resp.getcode() != 200:
         raise RuntimeError, resp.intresp()[0][0]
+    return fd
 
 def cnl(host = None, port = -1, useauthless = True, **kw):
     if host is None:
         host = os.getenv("DCSERVER")
     if host is None:
         raise ValueError, "No DC host to connect to"
-    mustconnect(host, port)
+    fd = mustconnect(host, port)
     err, reason = login(useauthless, **kw)
     if err != "success":
         raise RuntimeError, (err, reason)
+    return fd
     
 def ecmd(*args):
     tag = qcmd(*args)
