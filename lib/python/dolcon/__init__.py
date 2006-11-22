@@ -88,3 +88,14 @@ def ecmda(code, *args):
     if resp.getcode() != code:
         raise ValueError, resp.getcode()
     return resp
+
+def ecmds(*args):
+    """Another convenience function for ecmd.
+
+    Like ecmda, but will fail on all 5xx codes, and succeed on all
+    others.
+    """
+    resp = ecmd(*args)
+    if resp.getcode() >= 500 and resp.getcode() < 600:
+        raise ValueError, resp.extract()[0]
+    return resp
