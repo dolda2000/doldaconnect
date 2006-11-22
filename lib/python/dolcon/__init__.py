@@ -1,4 +1,5 @@
 from dolmod import *
+import os
 
 def login(useauthless = True, **kw):
     result = [None]
@@ -19,7 +20,11 @@ def mustconnect(host, port = -1):
     if resp.getcode() != 200:
         raise RuntimeError, resp.intresp()[0][0]
 
-def cnl(host, port = -1, useauthless = True, **kw):
+def cnl(host = None, port = -1, useauthless = True, **kw):
+    if host is None:
+        host = os.getenv("DCSERVER")
+    if host is None:
+        raise ValueError, "No DC host to connect to"
     mustconnect(host, port)
     err, reason = login(useauthless, **kw)
     if err != "success":
