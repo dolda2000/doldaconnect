@@ -7,7 +7,10 @@ dolmod = Extension("dolmod", ["dolmod.c"],
 
 setup(name = "dolcon-py",
       version = "0.3",
-      description = "Python glue module for libdolcon",
+      description = "Python glue module for libdcui",
+      author = "Fredrik Tolf",
+      author_email = "fredrik@dolda2000.com",
+      url = "http://www.dolda2000.com/~fredrik/doldaconnect/",
       ext_modules = [dolmod],
       packages = ["dolcon"],
       license = "GPL-2")
