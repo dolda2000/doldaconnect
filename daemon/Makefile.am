@@ -9,6 +9,7 @@ doldacond_SOURCES=	main.c \
 			filenet.c \
 			filenet.h \
 			fnet-dc.c \
+			fnet-adc.c \
 			auth.c \
 			auth.h \
 			auth-pam.c \
