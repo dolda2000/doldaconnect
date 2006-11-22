@@ -1,6 +1,6 @@
 SUBDIRS=dolcon
 
-EXTRA_DIST=autodl chatlog
+EXTRA_DIST=autodl chatlog hubmgr
 
 lib_LTLIBRARIES=libdolcon-guile.la
 
