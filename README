@@ -23,7 +23,7 @@ To make it  easier to write new clients, a C  library has been written
 to make  common functions easier, such  as connecting, authenticating,
 sending requests and  parsing the responses. The C  library also has a
 wrapper  module for  GNU  Guile, so  that  clients can  be written  in
-Scheme.
+Scheme. As of 0.3, there is also a Python module available seperately.
 
 None of these are documented (yet), but there are a number of examples
 scattered around the source tree, so  it should not be awfully hard to
@@ -43,6 +43,7 @@ tree:
    messages.
  * A command-line automatic downloader written in Scheme.
  * A chat logger written in Scheme.
+ * A hub manager written in Scheme.
 
 The GNOME applet and Gaim plugin are somewhat experimental. The applet
 seems to be working well, but the installation have some quirks (since
@@ -70,5 +71,5 @@ through  the e-mail address  <fredrik@dolda2000.com>. His  homepage is
 
 
 
-This documented was last updated 2006-06-24, reflecting release 0.1 of
+This documented was last updated 2006-11-22, reflecting release 0.3 of
 Dolda Connect.
