@@ -97,5 +97,5 @@ def ecmds(*args):
     """
     resp = ecmd(*args)
     if resp.getcode() >= 500 and resp.getcode() < 600:
-        raise ValueError, resp.extract()[0]
+        raise ValueError, tuple(resp.extract()[0])
     return resp
