@@ -382,6 +382,14 @@ static PyObject *mod_lexsexpr(PyObject *self, PyObject *args)
     return(ret);
 }
 
+static PyObject *mod_wantwrite(PyObject *self)
+{
+    if(dc_wantwrite())
+	Py_RETURN_TRUE;
+    else
+	Py_RETURN_FALSE;
+}
+
 static PyMethodDef methods[] = {
     {"connect", mod_connect, METH_VARARGS,
      "Connect to a Dolda Connect server"},
@@ -399,6 +407,8 @@ static PyMethodDef methods[] = {
      "Perform an asynchronous login procedure"},
     {"lexsexpr", mod_lexsexpr, METH_VARARGS,
      "Use a standard algorithm to lex a search expression"},
+    {"wantwrite", (PyCFunction)mod_wantwrite, METH_NOARGS,
+     "Return a boolean indicating whether there is output to be fed to the server"},
     {NULL, NULL, 0, NULL}
 };
 
