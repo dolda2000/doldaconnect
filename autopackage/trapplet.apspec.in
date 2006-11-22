@@ -1,0 +1,35 @@
+# -*-shell-script-*-
+
+[Meta]
+RootName: @dolda2000.com/fredrik/doldaconnect/trapplet:$SOFTWAREVERSION
+DisplayName: Dolda Connect transfer monitor applet
+ShortName: doldaconnect-applet
+Maintainer: Fredrik Tolf <fredrik@dolda2000.com>
+Packager: Fredrik Tolf <fredrik@dolda2000.com>
+Summary: A GNOME applet for monitoring Dolda Connect transfers
+URL: http://www.dolda2000.com/~fredrik/doldaconnect/
+License: GNU General Public License, Version 2
+SoftwareVersion: @VERSION@
+AutopackageTarget: 1.0
+
+[Description]
+The Dolda Connect transfer monitor applet can be used to easily
+monitor transfers in a Dolda Connect session.
+
+[BuildPrepare]
+prepareBuild --enable-gnomeapplet
+
+[BuildUnprepare]
+unprepareBuild
+
+[Imports]
+echo libexec/dolcon-trans-applet lib/bonobo share/pixmaps | import
+
+[Prepare]
+require @mit.edu/krb5 3.2
+
+[Install]
+installLib lib/libdcui.so.0.0.0
+
+[Uninstall]
+uninstallFromLog
