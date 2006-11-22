@@ -241,12 +241,15 @@ static PyObject *mod_qcmd(PyObject *self, PyObject *args, PyObject *kwargs)
     toks = NULL;
     tokssize = toksdata = 0;
     cmd = NULL;
+    ret = NULL;
     for(i = 0; i < PySequence_Size(args); i++) {
-	c = PySequence_GetItem(args, i);
+	if((c = PySequence_GetItem(args, i)) == NULL)
+	    goto out;
 	if(!PyUnicode_Check(c)) {
 	    n = PyUnicode_FromObject(c);
 	    Py_DECREF(c);
-	    c = n;
+	    if((c = n) == NULL)
+		goto out;
 	}
 	tok = smalloc((toksize = (PyUnicode_GetSize(c) + 1)) * sizeof(*tok));
 	tok[PyUnicode_AsWideChar((PyUnicodeObject *)c, tok, toksize)] = L'\0';
@@ -258,7 +261,7 @@ static PyObject *mod_qcmd(PyObject *self, PyObject *args, PyObject *kwargs)
     }
     if(cmd == NULL) {
 	PyErr_SetString(PyExc_TypeError, "qcmd needs at least 1 argument");
-	return(NULL);
+	goto out;
     }
     addtobuf(toks, NULL);
     ret = NULL;
@@ -273,8 +276,11 @@ static PyObject *mod_qcmd(PyObject *self, PyObject *args, PyObject *kwargs)
     } else {
 	ret = PyInt_FromLong(dc_queuecmd(NULL, NULL, cmd, L"%%a", toks, NULL));
     }
+
+out:
     dc_freewcsarr(toks);
-    free(cmd);
+    if(cmd != NULL)
+	free(cmd);
     return(ret);
 }
 
