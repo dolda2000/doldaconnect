@@ -1,4 +1,4 @@
-EXTRA_DIST = makecmds uicmds python
+EXTRA_DIST = makecmds uicmds
 
 SUBDIRS=. @extlibs@
 DIST_SUBDIRS=guile
