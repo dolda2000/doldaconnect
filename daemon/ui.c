@@ -168,6 +168,7 @@ static void notifappend(struct notif *notif, ...);
 struct uiuser *users = NULL;
 struct uidata *actives = NULL;
 struct socket *uisocket = NULL;
+static time_t starttime;
 
 static wchar_t *quoteword(wchar_t *word)
 {
@@ -1304,6 +1305,11 @@ static void cmd_sendmsg(struct socket *sk, struct uidata *data, int argc, wchar_
     sq(sk, 0, L"200", L"Message sent", NULL);
 }
 
+static void cmd_uptime(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
+{
+    sq(sk, 0, L"200", L"%%i", time(NULL) - starttime, NULL);
+}
+
 #undef haveargs
 #undef havepriv
 
@@ -1342,6 +1348,7 @@ static struct command commands[] =
     {L"transstatus", cmd_transstatus},
     {L"register", cmd_register},
     {L"sendmsg", cmd_sendmsg},
+    {L"uptime", cmd_uptime},
     {NULL, NULL}
 };
 
@@ -2153,6 +2160,7 @@ static int init(int hup)
     }
     if(!hup)
     {
+	starttime = time(NULL);
 	if(uisocket != NULL)
 	    putsock(uisocket);
 	if((uisocket = netcstcplisten(confgetint("ui", "port"), 1, uiaccept, NULL)) == NULL)
