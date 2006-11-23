@@ -453,7 +453,7 @@
     (if (not dc-server) (set! dc-server "localhost"))
     (catch 'system-error
 	   (lambda ()
-	     (dc-c&l #t dc-server #t))
+	     (dc-c&l #f dc-server #t))
 	   (lambda (key . args)
 	     (logf "could not connect to server: ~a" (apply format #f (cadr args) (caddr args)))
 	     (exit 2)))
