@@ -28,7 +28,7 @@
 	       (lambda (key . err) #f))))
   )
 
-(define (infomgs fmt . msg)
+(define (infomsg fmt . msg)
   (if infoport
       (begin
 	(apply format (cons* infoport (string-append fmt "\n") msg))
