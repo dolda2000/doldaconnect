@@ -47,14 +47,14 @@ def cnl(host = None, port = -1, useauthless = True, **kw):
     """A convenience function for connect and loginasync.
 
     This function will connect to the given server, or the server in
-    the environment variable $DCSERVER if none is given, and
-    authenticate to the server. If any of the steps fail, an exception
-    is raised.
+    the environment variable $DCSERVER if none is given, or, if that
+    fails, localhost, and authenticate to the server. If any of the
+    steps fail, an exception is raised.
     """
     if host is None:
         host = os.getenv("DCSERVER")
     if host is None:
-        raise ValueError, "No DC host to connect to"
+        host = "localhost"
     fd = mustconnect(host, port)
     err, reason = login(useauthless, **kw)
     if err != "success":
