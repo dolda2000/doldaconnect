@@ -16,12 +16,25 @@
 (define trans '())
 (define dpeers '())
 (define lastdl 0)
+(define logport (current-output-port))
+(define infoport #f)
 
 (define (logf fmt . msg)
-  (apply format (cons* (current-output-port) (string-append fmt "\n") msg))
-  (catch 'system-error (lambda ()
-			 (fsync (current-output-port)))
-	 (lambda (key . err) #f))
+  (if logport
+      (begin
+	(apply format (cons* logport (string-append fmt "\n") msg))
+	(catch 'system-error (lambda ()
+			       (fsync logport))
+	       (lambda (key . err) #f))))
+  )
+
+(define (infomgs fmt . msg)
+  (if infoport
+      (begin
+	(apply format (cons* infoport (string-append fmt "\n") msg))
+	(catch 'system-error (lambda ()
+			       (fsync infoport))
+	       (lambda (key . err) #f))))
   )
 
 (define (make-getopt opts optdesc)
@@ -144,10 +157,11 @@
       (logf "downloading ~a from ~a, ~a bytes (id ~a, ~a slots), timing out in ~a seconds"
 	    (cdr (assoc 'filename sr))
 	    (cadr (cdr (assoc 'peer sr)))
-	    (number->string (cdr (assoc 'size sr)))
-	    (number->string id)
-	    (number->string (cdr (assoc 'slots sr)))
-	    (number->string (max 10 (* (cdr (assoc 'resptime sr)) 2))))))
+	    (cdr (assoc 'size sr))
+	    id
+	    (cdr (assoc 'slots sr))
+	    (max 10 (* (cdr (assoc 'resptime sr)) 2)))
+      (infomsg "dl ~a ~a" (cdr (assoc 'size sr)) id)))
   (set! lastdl (current-time))
   )
 
@@ -179,6 +193,7 @@
 		(if (and (memq (cdr (assoc 'state (cdr o))) '(wait hs))
 			 (> (- time (cdr (assoc 'lastprog (cdr o)))) (max 10 (* (cdr (assoc 'resptime (cdr o))) 2))))
 		    (begin (logf "transfer ~a timing out" (car o))
+			   (infomsg "dlstop ~a timeout" (car o))
 			   (dc-ecmd-assert 200 "cancel" (car o))
 			   (disablepeer (cdr (assoc 'peer (cdr o))))
 			   (set! trans (assq-remove! trans (car o)))
@@ -186,6 +201,7 @@
 		(if (and (eq? (cdr (assoc 'state (cdr o))) 'main)
 			 (> (- time (cdr (assoc 'lastprog (cdr o)))) 60))
 		    (begin (logf "transfer ~a seems to have stalled" (car o))
+			   (infomsg "dlstop ~a stall" (car o))
 			   (dc-ecmd-assert 200 "cancel" (car o))
 			   (set! trans (assq-remove! trans (car o)))
 			   (write-info-file)))
@@ -218,6 +234,8 @@
   (logf "entering parseresults with ~a results in ~a sizes"
 	(apply + (map (lambda (o) (length (cdr o))) sr))
 	(number->string (length sr)))
+  (infomsg "srs ~a"
+	   (apply + (map (lambda (o) (length (cdr o))) sr)))
   (let ((retval #t) (numreal 0) (numtotal 0) (numavail 0))
     (catch 'ret
 	   (lambda ()
@@ -302,6 +320,7 @@
 						       (> (- (or (cdr (assoc 'speed sr)) (defspeed sr)) (cdr (assoc 'curspeed tr))) 10000))
 						  (begin (logf "abandoning transfer ~a for possible faster sender"
 									      (cdr (assoc 'id tr)))
+							 (infomsg "dlstop ~a tryother" (cdr (assoc 'id tr)))
 							 (dc-ecmd-assert 200 "cancel" (cdr (assoc 'id tr)))
 							 (set! trans (assq-remove! trans (cdr (assoc 'id tr))))
 							 (download sr)))))))))
@@ -321,7 +340,8 @@
 (define (handlesr filename fnet peer size slots resptime hash)
   (if (eq? (cdr (assoc 'search-mode session)) 'wait)
       (begin (set-cdr! (assoc 'search-mode session) 'normal)
-	     (logf "reverting to normal mode")))
+	     (logf "reverting to normal mode")
+	     (infomsg "searchmode normal")))
   (let ((cl (or (assoc size sr)
 		(let ((newp (cons size '()))) (set! sr (append sr (list newp))) newp)))
 	(newsr (list
@@ -374,7 +394,7 @@
 
 (define (autodl-main args)
   (let ((dc-server #f) (done #f) (retval 0) (filterexit ""))
-    (let ((getopt (make-getopt (cdr args) "whs:S:e:p:t:a:I:E:x:")) (arg #f))
+    (let ((getopt (make-getopt (cdr args) "whis:S:e:p:t:a:I:E:x:")) (arg #f))
       (do ((arg (getopt) (getopt))) ((not (and (pair? arg) (char? (car arg)))) (set! args arg))
 	(cond ((eq? (car arg) #\h)
 	       (begin (display "usage: autodl [-s server] -S sessfile\n" (current-error-port))
@@ -402,6 +422,9 @@
 	       (let ((c (assoc 'info-file session)))
 		 (if c (set-cdr! c (cdr arg))
 		     (set! session (cons (cons 'info-file (cdr arg)) session)))))
+	      ((eq? (car arg) #\i)
+	       (set! infoport logport)
+	       (set! logport #f))
 	      ((eq? (car arg) #\E)
 	       (let ((c (assoc 'estat-file session)))
 		 (if c (set-cdr! c (cdr arg))
@@ -450,14 +473,16 @@
 			      ((200)
 			       (begin (set! srchid (car ires))
 				      (logf "search scheduled in ~a seconds (id ~a)"
-					    (number->string (cadr ires))
-					    (number->string srchid))
+					    (cadr ires)
+					    srchid)
+				      (infomsg "search pending ~a" (cadr ires))
 				      (set! info-searcheta (+ (current-time) (cadr ires)))
 				      (set! lastsearch -1)
 				      (write-info-file)))
 			      ((501)
 			       (begin (set! srchid -1)
 				      (logf "no fnetnodes available to search on")
+				      (infomsg "nofns")
 				      (set! lastsearch (current-time))))
 			      ((509)
 			       (begin (logf "illegal search expression")
@@ -487,6 +512,7 @@
 					   (let ((ires (dc-intresp resp)))
 					     (if (and ires (assoc (car ires) trans))
 						 (begin (logf "transfer ~a encountered error ~a" (car ires) (cadr ires))
+							(infomsg "dlstop ~a error ~a" (car ires) (cadr ires))
 							(dc-ecmd-assert 200 "cancel" (car ires))
 							(let ((tr (cdr (assoc (car ires) trans))))
 							  (disablepeer (cdr (assoc 'peer tr))))
@@ -502,22 +528,26 @@
 					     (if tr
 						 (begin (if (eq? (cdr (assoc 'state (cdr tr))) 'done)
 							    (begin (logf "transfer ~a done (~a)" (car ires) (cadr ires))
+								   (infomsg "dldone ~a ~a" (car ires) (cadr ires))
 								   (set! trans (assq-remove! trans (car ires)))
 								   (set! done #t)
 								   (set! filterexit (cadr ires))
 								   (throw 'sig 0))
 							    (begin (logf "transfer ~a disappeared" (car ires))
+								   (infomsg "dlstop ~a gone" (car ires))
 								   (set! trans (assq-remove! trans (car ires)))))))))
 					  ((620) ; Search rescheduled
 					   (let ((ires (dc-intresp resp)))
 					     (if (and ires (= (car ires) srchid))
 						 (begin (set! info-searcheta (+ (current-time) (cadr ires)))
 							(logf "search rescheduled to T+~a" (cadr ires))
+							(infomsg "search pending ~a" (cadr ires))
 							(write-info-file)))))
 					  ((621) ; Search committed
 					   (let ((ires (dc-intresp resp)))
 					     (if (and ires (= (car ires) srchid))
 						 (begin (logf "search committed")
+							(infomsg "search commit")
 							(set! info-searcheta 0)
 							(set! lastsearch (current-time))
 							(write-info-file)))))
