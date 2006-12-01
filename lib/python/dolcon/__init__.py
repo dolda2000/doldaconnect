@@ -99,3 +99,14 @@ def ecmds(*args):
     if resp.getcode() >= 500 and resp.getcode() < 600:
         raise ValueError, tuple(resp.extract()[0])
     return resp
+
+def getresps():
+    """A generator function which will iterate over all responses from
+    getresp.
+    """
+    while True:
+        resp = getresp()
+        if resp is None:
+            break
+        else:
+            yield resp
