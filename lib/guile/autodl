@@ -528,7 +528,8 @@
 					     (if tr
 						 (begin (if (eq? (cdr (assoc 'state (cdr tr))) 'done)
 							    (begin (logf "transfer ~a done (~a)" (car ires) (cadr ires))
-								   (infomsg "dldone ~a ~a" (car ires) (cadr ires))
+								   (infomsg "dldone ~a" (car ires))
+								   (infomsg "estat ~a" (cadr ires))
 								   (set! trans (assq-remove! trans (car ires)))
 								   (set! done #t)
 								   (set! filterexit (cadr ires))
