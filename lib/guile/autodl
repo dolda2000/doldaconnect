@@ -331,7 +331,7 @@
     (set! info-numavail numavail)
     (set! info-numreal numreal)
     (set! info-numtotal numtotal)
-    (info-msg "srs ~a ~a ~a" numtotal numreal numavail)
+    (infomsg "srs ~a ~a ~a" numtotal numreal numavail)
     (write-info-file)
     retval)
   )
