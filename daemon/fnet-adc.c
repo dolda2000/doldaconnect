@@ -376,13 +376,15 @@ static int hubreqconn(struct fnetpeer *peer)
     return(0);
 }
 
-static struct fnet adcnet = {
+static struct fnet adcnet_store = {
     .connect = hubconnect,
     .destroy = hubdestroy,
     .setnick = hubsetnick,
     .reqconn = hubreqconn,
     .name = L"adc"
 };
+
+static struct fnet *adcnet = &adcnet_store;
 
 static int run(void)
 {
@@ -394,7 +396,7 @@ static int run(void)
     ret = 0;
     for(fn = fnetnodes; fn != NULL; fn = nextfn) {
 	nextfn = fn->next;
-	if(fn->fnet != &adcnet)
+	if(fn->fnet != adcnet)
 	    continue;
 	if((hub = fn->data) == NULL)
 	    continue;
@@ -413,7 +415,7 @@ static void preinit(int hup)
 {
     if(hup)
 	return;
-    regfnet(&adcnet);
+    regfnet(adcnet);
 }
 
 static int init(int hup)
