@@ -21,6 +21,7 @@ experimental=no
 
 AC_CHECK_PROG([PKG_CONFIG], pkg-config, yes, no)
 
+# Gtk 2.0 check
 AC_ARG_WITH(gtk2, [  --with-gtk2             Enable GTK2 support])
 if test "$with_gtk2" = no; then
 	HAS_GTK2=no
@@ -51,16 +52,40 @@ if test "$with_gtk2" = yes -a "$HAS_GTK2" = no; then
 	AC_MSG_ERROR([*** cannot find GTK2 on this system])
 fi
 
+# libxml2 check
+AC_MSG_CHECKING([for libxml2 package information])
+if test "$PKG_CONFIG" = yes; then
+	if pkg-config --modversion libxml-2.0 >/dev/null 2>&1; then
+		AC_MSG_RESULT(yes)
+	else
+		AC_MSG_RESULT(no)
+		HAS_LIBXML=no
+	fi
+	if test "$HAS_LIBXML" != no; then
+		AC_CHECK_LIB(xml2, xmlReadFile, [HAS_LIBXML=yes], [HAS_LIBXML=no], `pkg-config --libs libxml-2.0`)
+	fi
+else
+	AC_MSG_RESULT(no)
+	HAS_LIBXML=no
+fi
+
+# Gtk GUI check
 gtk2ui_msg=No
 AC_ARG_ENABLE(gtk2ui, [  --enable-gtk2ui         Enable the GTK2 user interface])
-if test "$enable_gtk2ui" = yes -a "$HAS_GTK2" = no; then
-	AC_MSG_ERROR([*** cannot build the GTK2 UI without a GTK2 library])
+if test "$enable_gtk2ui" = yes; then
+	if "$HAS_GTK2" = no; then
+		AC_MSG_ERROR([*** cannot build the GTK2 UI without a GTK2 library])
+	fi
+	if "$HAS_LIBXML" = no; then
+		AC_MSG_ERROR([*** the GTK2 UI needs libxml2])
+	fi
 fi
 if test "$enable_gtk2ui" != no -a "$HAS_GTK2" = yes; then
 	clients="$clients gtk2"
 	gtk2ui_msg=Yes
 fi
 
+# Gtk progress bar check
 gtk2pbar_msg=No
 AH_TEMPLATE(ENABLE_GTK2PBAR, [define to compile GTK2 progress bars (experimental)])
 AC_ARG_ENABLE(gtk2pbar, [  --enable-gtk2pbar       Enable GTK2 progress bars (experimental)])
@@ -73,6 +98,7 @@ if test "$enable_gtk2pbar" = yes; then
 	AC_DEFINE(ENABLE_GTK2PBAR)
 fi
 
+# Gnome applet check
 gnometrapplet_msg=No
 AC_ARG_ENABLE(gnomeapplet, [  --enable-gnomeapplet    Enable GNOME transfer applet (experimental)])
 if test "$enable_gnomeapplet" = yes; then
@@ -81,6 +107,7 @@ if test "$enable_gnomeapplet" = yes; then
 	clients="$clients gnome-trans-applet"
 fi
 
+# Gaim plugin check
 gaimplugin_msg=No
 AC_ARG_ENABLE(gaimplugin, [  --enable-gaimplugin     Enable GNOME transfer applet (experimental)])
 if test "$enable_gaimplugin" = yes; then
@@ -89,6 +116,7 @@ if test "$enable_gaimplugin" = yes; then
 	clients="$clients gaim"
 fi
 
+# Guile check (XXX: Shouldn't have to be enabled manually)
 guile_msg=No
 if test "$with_guile" = yes; then
 	GUILE_FLAGS
@@ -96,6 +124,7 @@ if test "$with_guile" = yes; then
 	guile_msg=Yes
 fi
 
+# Kerberos check
 krb_msg=No
 AH_TEMPLATE(HAVE_KRB5, [define to compile support for Kerberos 5 (not GSS-API) authentication])
 AC_ARG_WITH(krb5, [  --with-krb5[=PATH]        Enable Kerberos 5 (not GSSAPI) authentication])
@@ -132,6 +161,7 @@ if test "$with_krb5" != no -a "$HAS_KRB5" = yes; then
 fi
 AC_SUBST([KRB5_LDADD])
 
+# Misc. functions checks
 AC_CHECK_FUNC(vswprintf, , AC_MSG_ERROR([*** must have vswprintf]))
 AH_TEMPLATE(HAVE_WCSCASECMP, [define if your system implements wcscasecmp])
 AC_CHECK_FUNC(wcscasecmp, [ AC_DEFINE(HAVE_WCSCASECMP) ])
