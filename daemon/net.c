@@ -1122,9 +1122,9 @@ int sockgetremotename2(struct socket *sk, struct socket *sk2, struct sockaddr **
 	flog(LOG_ERR, "using sockgetremotename2 with sockets of differing family: %i %i", sk->family, sk2->family);
 	return(-1);
     }
-    if(sockgetlocalname(sk, &name1, &len1))
+    if(sockgetremotename(sk, &name1, &len1))
 	return(-1);
-    if(sockgetlocalname(sk2, &name2, &len2)) {
+    if(sockgetremotename(sk2, &name2, &len2)) {
 	free(name1);
 	return(-1);
     }
