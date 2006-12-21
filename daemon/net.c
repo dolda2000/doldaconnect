@@ -1112,6 +1112,29 @@ int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *l
     }
 }
 
+int sockgetremotename2(struct socket *sk, struct socket *sk2, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct sockaddr *name1, *name2;
+    socklen_t len1, len2;
+    
+    if(sk->family != sk2->family)
+    {
+	flog(LOG_ERR, "using sockgetremotename2 with sockets of differing family: %i %i", sk->family, sk2->family);
+	return(-1);
+    }
+    if(sockgetlocalname(sk, &name1, &len1))
+	return(-1);
+    if(sockgetlocalname(sk2, &name2, &len2)) {
+	free(name1);
+	return(-1);
+    }
+    sethostaddr(name1, name2);
+    free(name2);
+    *namebuf = name1;
+    *lenbuf = len1;
+    return(0);
+}
+
 int addreq(struct sockaddr *x, struct sockaddr *y)
 {
     struct sockaddr_un *u1, *u2;
