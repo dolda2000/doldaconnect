@@ -103,6 +103,7 @@ struct socket *netdupsock(struct socket *sk);
 void netdgramconn(struct socket *sk, struct sockaddr *addr, socklen_t addrlen);
 int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf);
 int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf);
+int sockgetremotename2(struct socket *sk, struct socket *sk2, struct sockaddr **namebuf, socklen_t *lenbuf);
 void closesock(struct socket *sk);
 void *sockgetinbuf(struct socket *sk, size_t *size);
 struct socket *wrapsock(int fd);
