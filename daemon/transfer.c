@@ -155,6 +155,18 @@ struct transfer *finddownload(wchar_t *peerid)
     return(transfer);
 }
 
+struct transfer *hasupload(struct fnet *fnet, wchar_t *peerid)
+{
+    struct transfer *transfer;
+    
+    for(transfer = transfers; transfer != NULL; transfer = transfer->next)
+    {
+	if((transfer->fnet == fnet) && !wcscmp(transfer->peerid, peerid))
+	    break;
+    }
+    return(transfer);
+}
+
 struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nickid, struct transferiface *iface, void *data)
 {
     struct transfer *transfer;
