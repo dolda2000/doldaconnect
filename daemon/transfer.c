@@ -161,7 +161,7 @@ struct transfer *hasupload(struct fnet *fnet, wchar_t *peerid)
     
     for(transfer = transfers; transfer != NULL; transfer = transfer->next)
     {
-	if((transfer->fnet == fnet) && !wcscmp(transfer->peerid, peerid))
+	if((transfer->dir == TRNSD_UP) && (transfer->fnet == fnet) && !wcscmp(transfer->peerid, peerid))
 	    break;
     }
     return(transfer);
