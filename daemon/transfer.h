@@ -98,6 +98,7 @@ void linktransfer(struct transfer *transfer);
 int slotsleft(void);
 void bumptransfer(struct transfer *transfer);
 struct transfer *findtransfer(int id);
+struct transfer *hasupload(struct fnet *fnet, wchar_t *peerid);
 struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nickid, struct transferiface *iface, void *data);
 void transfersetnick(struct transfer *transfer, wchar_t *newnick);
 void transfersetpath(struct transfer *transfer, wchar_t *newpath);
