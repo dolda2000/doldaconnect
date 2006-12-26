@@ -99,20 +99,22 @@ static int pamconv(int nmsg, const struct pam_message **msg, struct pam_response
 	}
 	if(data->converr)
 	{
-	    for(; i < nmsg; i++)
-	    {
-		(*resp)[i].resp = sstrdup("");
-		(*resp)[i].resp_retcode = PAM_SUCCESS;
-	    }
+	    for(i--; i >= 0; i--)
+		free((*resp)[i].resp);
+	    free(*resp);
+	    *resp = NULL;
 	    return(PAM_CONV_ERR);
 	}
+	(*resp)[i].resp_retcode = PAM_SUCCESS;
 	switch(msg[i]->msg_style)
 	{
 	case PAM_PROMPT_ECHO_OFF:
 	case PAM_PROMPT_ECHO_ON:
 	    (*resp)[i].resp = sstrdup((char *)data->passdata);
 	    memset((void *)data->passdata, 0, strlen((char *)data->passdata));
-	    (*resp)[i].resp_retcode = PAM_SUCCESS;
+	    break;
+	default:
+	    (*resp)[i].resp = NULL;
 	    break;
 	}
     }
