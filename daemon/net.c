@@ -253,12 +253,14 @@ void putsock(struct socket *sk)
 	    {
 		sk->outbuf.d.f = buf->next;
 		free(buf->data);
+		free(buf->addr);
 		free(buf);
 	    }
 	    while((buf = sk->inbuf.d.f) != NULL)
 	    {
 		sk->inbuf.d.f = buf->next;
 		free(buf->data);
+		free(buf->addr);
 		free(buf);
 	    }
 	    break;
