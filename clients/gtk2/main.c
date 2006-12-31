@@ -147,6 +147,7 @@ gboolean cb_reslist_list_keypress(GtkWidget *widget, GdkEventKey *event, gpointe
 void dcfdcallback(gpointer data, gint source, GdkInputCondition condition);
 void srchstatupdate(void);
 void transnicebytefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
+void transnicebytefunc2(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
 void transspeedinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
 void transerrorinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
 void percentagefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
@@ -332,7 +333,7 @@ void updatehublist(void)
     }
 }
 
-char *bytes2si(int bytes)
+char *bytes2si(long long bytes)
 {
     int i;
     double b;
@@ -340,7 +341,7 @@ char *bytes2si(int bytes)
     static char ret[64];
     
     b = bytes;
-    for(i = 0; (b > 1024) && (i < 4); i++)
+    for(i = 0; (b >= 1024) && (i < 4); i++)
 	b /= 1024;
     if(i == 0)
 	sd = "B";
@@ -375,12 +376,23 @@ void transnicebytefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeMod
     
     colnum = (int)data;
     gtk_tree_model_get(model, iter, colnum, &val, -1);
-/*
-    if(val >= 0)
-	strcpy(buf, bytes2si(val));
-*/
     if(val >= 0)
 	snprintf(buf, 64, "%'i", val);
+    else
+	strcpy(buf, _("Unknown"));
+    g_object_set(rend, "text", buf, NULL);
+}
+
+void transnicebytefunc2(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)
+{
+    int colnum;
+    long long val;
+    char buf[64];
+    
+    colnum = (int)data;
+    gtk_tree_model_get(model, iter, colnum, &val, -1);
+    if(val >= 0)
+	strcpy(buf, bytes2si(val));
     else
 	strcpy(buf, _("Unknown"));
     g_object_set(rend, "text", buf, NULL);
@@ -1435,13 +1447,23 @@ void cb_main_fnaddr_activate(GtkWidget *widget, gpointer data)
 void setpubhubmodel(GtkTreeModel *model, int sortcol, int numcols, int *cols, char **names)
 {
     GtkTreeViewColumn *col;
+    GtkCellRenderer *rnd;
     GtkTreeModel *sortmodel;
     int i;
     
     while((col = gtk_tree_view_get_column(GTK_TREE_VIEW(main_phublist), 0)) != NULL)
 	gtk_tree_view_remove_column(GTK_TREE_VIEW(main_phublist), col);
     for(i = 0; i < numcols; i++) {
-	col = gtk_tree_view_column_new_with_attributes(names[i], gtk_cell_renderer_text_new(), "text", cols[i], NULL);
+	if(gtk_tree_model_get_column_type(model, cols[i]) == G_TYPE_INT64)
+	{
+	    col = gtk_tree_view_column_new();
+	    gtk_tree_view_column_set_title(col, names[i]);
+	    rnd = gtk_cell_renderer_text_new();
+	    gtk_tree_view_column_pack_start(col, rnd, TRUE);
+	    gtk_tree_view_column_set_cell_data_func(col, rnd, transnicebytefunc2, (gpointer)cols[i], NULL);
+	} else {
+	    col = gtk_tree_view_column_new_with_attributes(names[i], gtk_cell_renderer_text_new(), "text", cols[i], NULL);
+	}
 	gtk_tree_view_column_set_sort_column_id(col, cols[i]);
 	gtk_tree_view_column_set_resizable(col, TRUE);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(main_phublist), col);
