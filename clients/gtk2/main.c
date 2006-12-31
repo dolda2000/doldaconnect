@@ -1607,6 +1607,7 @@ int pubhubxmlhandler(int op, char *buf, size_t *len)
 	}
 	setpubhubmodel(GTK_TREE_MODEL(model), sortcol, numcols - 1, cols, names + 1);
 	free(cols);
+	g_object_unref(model);
 	break;
     case PHO_FINI:
 	if(ctxt != NULL)
