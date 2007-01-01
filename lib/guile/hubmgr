@@ -68,6 +68,7 @@
 					    (begin (set-cdr! (assq hub connlist) (car ir))
 						   (logf "~a state syn (~a)" (cadr hub) (car ir)))
 					    (begin (set! connlist (delq (assq hub connlist) connlist))
+						   (set! statelist (cons (list hub (current-time) 10) statelist))
 						   (logf "~a failed (~a)" (cadr hub) (cdr (assq 'code er))))))))))))
 	    hublist))
 
