@@ -73,10 +73,10 @@ fi
 gtk2ui_msg=No
 AC_ARG_ENABLE(gtk2ui, [  --enable-gtk2ui         Enable the GTK2 user interface])
 if test "$enable_gtk2ui" = yes; then
-	if "$HAS_GTK2" = no; then
+	if test "$HAS_GTK2" = no; then
 		AC_MSG_ERROR([*** cannot build the GTK2 UI without a GTK2 library])
 	fi
-	if "$HAS_LIBXML" = no; then
+	if test "$HAS_LIBXML" = no; then
 		AC_MSG_ERROR([*** the GTK2 UI needs libxml2])
 	fi
 fi
