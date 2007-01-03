@@ -11,9 +11,12 @@ BUILT_SOURCES=mainwnd.gtk inpdialog.gtk pref.gtk reslist.gtk
 main.c: mainwnd.gtk inpdialog.gtk pref.gtk reslist.gtk
 
 localedir=$(datadir)/locale
-dolcon_LDFLAGS=$(shell pkg-config --libs gtk+-2.0)
+dolcon_LDFLAGS=	$(shell pkg-config --libs gtk+-2.0) \
+		$(shell pkg-config --libs libxml-2.0)
 dolcon_LDADD=$(top_srcdir)/lib/libdcui.la
-dolcon_CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0) -DLOCALEDIR=\"$(localedir)\"
+dolcon_CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0) \
+		$(shell pkg-config --cflags libxml-2.0) \
+		-DLOCALEDIR=\"$(localedir)\"
 
 %.gtk: %.desc makegdesc
 	cpp $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< | ./makegdesc >$@
