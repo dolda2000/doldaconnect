@@ -121,6 +121,8 @@ void putfnetnode(struct fnetnode *fn)
 	free(fn->name);
     if(fn->sk != NULL)
 	putsock(fn->sk);
+    if(fn->owner != NULL)
+	free(fn->owner);
     free(fn);
     numfnetnodes--;
 }
@@ -444,7 +446,7 @@ struct fnet *findfnet(wchar_t *name)
     return(fnet);
 }
 
-struct fnetnode *fnetinitconnect(wchar_t *name, char *addr, struct wcspair *args)
+struct fnetnode *fnetinitconnect(wchar_t *name, wchar_t *owner, char *addr, struct wcspair *args)
 {
     struct fnet *fnet;
     struct fnetnode *fn;
@@ -456,6 +458,7 @@ struct fnetnode *fnetinitconnect(wchar_t *name, char *addr, struct wcspair *args
 	return(NULL);
     }
     fn = newfn(fnet);
+    fn->owner = swcsdup(owner);
     fn->pubid = icmbstowcs(addr, NULL);
     if(fn->pubid == NULL)
 	fn->pubid = swcsdup(L"");

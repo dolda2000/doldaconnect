@@ -590,7 +590,7 @@ static void cmd_fnetconnect(struct socket *sk, struct uidata *data, int argc, wc
     args = NULL;
     for(i = 3; i < argc - 1; i += 2)
 	newwcspair(argv[i], argv[i + 1], &args);
-    fn = fnetinitconnect(argv[1], buf, args);
+    fn = fnetinitconnect(argv[1], data->userinfo->name, buf, args);
     err = errno;
     free(buf);
     if(fn == NULL)

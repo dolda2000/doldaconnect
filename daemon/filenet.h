@@ -102,6 +102,7 @@ struct fnetnode
     time_t srchwait, lastsrch;
     wchar_t *name, *pubid;
     wchar_t *mynick;
+    wchar_t *owner;
     struct fnet *fnet;
     struct socket *sk;
     struct fnetpeerdatum *peerdata;
@@ -123,7 +124,7 @@ void fnetsetname(struct fnetnode *fn, wchar_t *newname);
 void fnetsetstate(struct fnetnode *fn, int newstate);
 int fnetsetnick(struct fnetnode *fn, wchar_t *newnick);
 struct fnet *findfnet(wchar_t *name);
-struct fnetnode *fnetinitconnect(wchar_t *name, char *addr, struct wcspair *args);
+struct fnetnode *fnetinitconnect(wchar_t *name, wchar_t *owner, char *addr, struct wcspair *args);
 void linkfnetnode(struct fnetnode *fn);
 void unlinkfnetnode(struct fnetnode *fn);
 void getfnetnode(struct fnetnode *fn);
