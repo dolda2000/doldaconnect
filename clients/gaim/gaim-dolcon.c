@@ -150,7 +150,6 @@ static void logincb(int err, wchar_t *reason, struct conndata *data)
 	return;
     }
     gaim_connection_set_state(data->gc, GAIM_CONNECTED);
-    serv_finish_login(data->gc);
     dc_queuecmd(NULL, NULL, L"notify", L"fn:chat", L"on", L"fn:act", L"on", L"fn:peer", L"on", NULL);
     dc_getfnlistasync((void (*)(int, void *))getfnlistcb, data);
 }
@@ -194,17 +193,18 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
 			    if((conv = gaim_find_chat(data->gc, fn->id)) != NULL)
 			    {
 				peer = icwcstombs(ires->argv[3].val.str, "UTF-8");
-				msg = gaim_escape_html(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL));
+				/* XXX: No more gaim_escape_html?! */
+				msg = sstrdup(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL));
 				serv_got_chat_in(data->gc, gaim_conv_chat_get_id(GAIM_CONV_CHAT(conv)), peer, 0, msg, time(NULL));
-				g_free(msg);
+				free(msg);
 				free(peer);
 			    }
 			} else {
 			    peer = sprintf2("%i:%s", fn->id, icswcstombs(ires->argv[3].val.str, "UTF-8", NULL));
-			    msg = gaim_escape_html(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL));
-			    if(!gaim_account_get_bool(data->gc->account, "represspm", FALSE) || (gaim_find_conversation_with_account(peer, data->gc->account) != NULL))
+			    msg = sstrdup(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL));
+			    if(!gaim_account_get_bool(data->gc->account, "represspm", FALSE) || (gaim_find_conversation_with_account(GAIM_CONV_TYPE_IM, peer, data->gc->account) != NULL))
 				serv_got_im(data->gc, peer, msg, 0, time(NULL));
-			    g_free(msg);
+			    free(msg);
 			    free(peer);
 			}
 		    }
@@ -237,7 +237,7 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
     updatewrite(data);
 }
 
-static int gi_sendchat(GaimConnection *gc, int id, const char *what)
+static int gi_sendchat(GaimConnection *gc, int id, const char *what, GaimMessageFlags flags)
 {
     struct conndata *data;
     struct dc_fnetnode *fn;
@@ -255,7 +255,7 @@ static int gi_sendchat(GaimConnection *gc, int id, const char *what)
     return(0);
 }
 
-static int gi_sendim(GaimConnection *gc, const char *who, const char *what, GaimConvImFlags flags)
+static int gi_sendim(GaimConnection *gc, const char *who, const char *what, GaimMessageFlags flags)
 {
     struct conndata *data;
     struct dc_fnetnode *fn;
