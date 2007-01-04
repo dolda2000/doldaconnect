@@ -1545,6 +1545,11 @@ static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, cha
 	peer->direction = mydir;
 	if(peer->direction == TRNSD_UP)
 	{
+	    if(confgetint("transfer", "ulquota") && hasupload(&dcnet, peer->wcsname))
+	    {
+		freedcpeer(peer);
+		return;
+	    }
 	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, &dctransfer, peer);
 	} else {
 	    if((transfer = finddownload(peer->wcsname)) == NULL)
@@ -1591,6 +1596,11 @@ static void cmd_peerlock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	    sendsupports(peer);
 	if((transfer = finddownload(peer->wcsname)) == NULL)
 	{
+	    if(confgetint("transfer", "ulquota") && hasupload(&dcnet, peer->wcsname))
+	    {
+		freedcpeer(peer);
+		return;
+	    }
 	    peer->direction = TRNSD_UP;
 	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, &dctransfer, peer);
 	} else {

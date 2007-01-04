@@ -802,6 +802,7 @@ static struct configvar myvars[] =
     {CONF_VAR_INT, "ultos", {.num = SOCK_TOS_MAXTP}},
     {CONF_VAR_INT, "dltos", {.num = SOCK_TOS_MAXTP}},
     {CONF_VAR_STRING, "filter", {.str = L"dc-filter"}},
+    {CONF_VAR_BOOL, "ulquota", {.num = 0}},
     {CONF_VAR_END}
 };
 
