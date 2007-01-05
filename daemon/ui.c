@@ -641,6 +641,11 @@ static void cmd_disconnect(struct socket *sk, struct uidata *data, int argc, wch
 	    sq(sk, 0, L"510", L"No such node", NULL);
 	    return;
 	}
+	if(wpfind(fn->args, L"locked") && !((data->userinfo->perms & PERM_ADMIN) || !wcscmp(data->userinfo->name, fn->owner)))
+	{
+	    sq(sk, 0, L"502", L"This node is locked and you are neither administrator nor its owner", NULL);
+	    return;
+	}
 	killfnetnode(fn);
 	unlinkfnetnode(fn);
     }
