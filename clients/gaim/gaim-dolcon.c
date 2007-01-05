@@ -301,6 +301,32 @@ static const char *gi_listicon(GaimAccount *a, GaimBuddy *b)
     return("dolcon");
 }
 
+static char *gi_statustext(GaimBuddy *b)
+{
+    GaimPresence *p;
+
+    p = gaim_buddy_get_presence(b);
+    if (gaim_presence_is_online(p) && !gaim_presence_is_available(p))
+	return(g_strdup("Away"));
+    return(NULL);
+}
+
+static void gi_tiptext(GaimBuddy *b, GString *buf, gboolean full)
+{
+    /* Nothing for now */
+}
+
+static GList *gi_statustypes(GaimAccount *act)
+{
+    GList *ret;
+    
+    ret = NULL;
+    ret = g_list_append(ret, gaim_status_type_new(GAIM_STATUS_AVAILABLE, "avail", NULL, TRUE));
+    ret = g_list_append(ret, gaim_status_type_new(GAIM_STATUS_AWAY, "away", NULL, TRUE)); /* Coming up in ADC */
+    ret = g_list_append(ret, gaim_status_type_new(GAIM_STATUS_OFFLINE, "offline", NULL, TRUE));
+    return(ret);
+}
+
 static struct conndata *newconndata(void)
 {
     struct conndata *new;
@@ -411,6 +437,7 @@ static void gi_joinchat(GaimConnection *gc, GHashTable *chatdata)
     GaimConversation *conv;
     struct dc_fnetpeer *peer;
     char *buf;
+    GList *ul, *fl, *c;
     
     data = gc->proto_data;
     if((fn = dc_findfnetnode(GPOINTER_TO_INT(g_hash_table_lookup(chatdata, "id")))) == NULL)
@@ -418,17 +445,26 @@ static void gi_joinchat(GaimConnection *gc, GHashTable *chatdata)
     if(gaim_find_chat(gc, fn->id) != NULL)
 	return;
     conv = serv_got_joined_chat(data->gc, fn->id, icswcstombs(fn->name, "UTF-8", NULL));
+    ul = fl = NULL;
     for(peer = fn->peers; peer != NULL; peer = peer->next) {
 	buf = sprintf2("%i:%s", fn->id, icswcstombs(peer->nick, "UTF-8", NULL));
-	gaim_conv_chat_add_user(GAIM_CONV_CHAT(conv), buf, NULL, GAIM_CBFLAGS_NONE, FALSE);
-	free(buf);
+	ul = g_list_append(ul, buf);
+	fl = g_list_append(fl, GINT_TO_POINTER(0));
     }
+    gaim_conv_chat_add_users(GAIM_CONV_CHAT(conv), ul, NULL, fl, FALSE);
+    for(c = ul; c != NULL; c = c->next)
+	free(c->data);
+    g_list_free(ul);
+    g_list_free(fl);
 }
 
 static GaimPluginProtocolInfo protinfo = {
     .options 		= OPT_PROTO_PASSWORD_OPTIONAL,
     .icon_spec		= NO_BUDDY_ICONS,
     .list_icon		= gi_listicon,
+    .status_text	= gi_statustext,
+    .tooltip_text	= gi_tiptext,
+    .status_types	= gi_statustypes,
     .login		= gi_login,
     .close		= gi_close,
     .roomlist_get_list	= gi_getlist,
