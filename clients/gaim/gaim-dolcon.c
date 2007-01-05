@@ -193,18 +193,17 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
 			    if((conv = gaim_find_chat(data->gc, fn->id)) != NULL)
 			    {
 				peer = icwcstombs(ires->argv[3].val.str, "UTF-8");
-				/* XXX: No more gaim_escape_html?! */
-				msg = sstrdup(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL));
+				msg = g_markup_escape_text(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL), -1);
 				serv_got_chat_in(data->gc, gaim_conv_chat_get_id(GAIM_CONV_CHAT(conv)), peer, 0, msg, time(NULL));
-				free(msg);
+				g_free(msg);
 				free(peer);
 			    }
 			} else {
 			    peer = sprintf2("%i:%s", fn->id, icswcstombs(ires->argv[3].val.str, "UTF-8", NULL));
-			    msg = sstrdup(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL));
+			    msg = g_markup_escape_text(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL), -1);
 			    if(!gaim_account_get_bool(data->gc->account, "represspm", FALSE) || (gaim_find_conversation_with_account(GAIM_CONV_TYPE_IM, peer, data->gc->account) != NULL))
 				serv_got_im(data->gc, peer, msg, 0, time(NULL));
-			    free(msg);
+			    g_free(msg);
 			    free(peer);
 			}
 		    }
@@ -447,7 +446,7 @@ static void gi_joinchat(GaimConnection *gc, GHashTable *chatdata)
     conv = serv_got_joined_chat(data->gc, fn->id, icswcstombs(fn->name, "UTF-8", NULL));
     ul = fl = NULL;
     for(peer = fn->peers; peer != NULL; peer = peer->next) {
-	buf = sprintf2("%i:%s", fn->id, icswcstombs(peer->nick, "UTF-8", NULL));
+	buf = icwcstombs(peer->nick, "UTF-8");
 	ul = g_list_append(ul, buf);
 	fl = g_list_append(fl, GINT_TO_POINTER(0));
     }
@@ -456,6 +455,11 @@ static void gi_joinchat(GaimConnection *gc, GHashTable *chatdata)
 	free(c->data);
     g_list_free(ul);
     g_list_free(fl);
+}
+
+static char *gi_cbname(GaimConnection *gc, int id, const char *who)
+{
+    return(g_strdup_printf("%i:%s", id, who));
 }
 
 static GaimPluginProtocolInfo protinfo = {
@@ -472,6 +476,7 @@ static GaimPluginProtocolInfo protinfo = {
     .join_chat		= gi_joinchat,
     .chat_send		= gi_sendchat,
     .send_im		= gi_sendim,
+    .get_cb_real_name	= gi_cbname,
 };
 
 static GaimPluginInfo info = {
