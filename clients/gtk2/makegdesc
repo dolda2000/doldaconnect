@@ -268,6 +268,8 @@ sub printwidgets
 	    if(defined($widget->{"editable"})) {
 		print "${p}gtk_text_view_set_editable(GTK_TEXT_VIEW(stack[$sl]), " . $widget->{"editable"} . ");\n";
 	    }
+	} elsif($widget->{"type"} eq "pbar") {
+	    print "${p}stack[$sl] = gtk_progress_bar_new();\n";
 	} elsif($widget->{"type"} eq "hr") {
 	    print "${p}stack[$sl] = gtk_hseparator_new();\n";
 	} elsif($widget->{"type"} eq "sbar") {
