@@ -56,6 +56,7 @@ struct scanqueue
 static int conf_share(int argc, wchar_t **argv);
 static void freecache(struct sharecache *node);
 static void checkhashes(void);
+static void writehashcache(int now);
 
 static struct configvar myvars[] =
 {
@@ -76,6 +77,7 @@ static struct scanstate *scanjob = NULL;
 static struct scanqueue *scanqueue = NULL;
 static struct sharepoint *shares = NULL;
 static struct hashcache *hashcache = NULL;
+static struct timer *hashwritetimer = NULL;
 /* Set initially to -1, but changed to 0 the first time run() is
  * called. This is to avoid forking a hash job before daemonizing,
  * since that would make the daemon unable to wait() for the hash
@@ -364,13 +366,28 @@ static void readhashcache(void)
     fclose(stream);
 }
 
-static void writehashcache(void)
+static void hashtimercb(int cancelled, void *uudata)
+{
+    hashwritetimer = NULL;
+    if(!cancelled)
+	writehashcache(1);
+}
+
+static void writehashcache(int now)
 {
     char *buf;
     char *hcname;
     FILE *stream;
     struct hashcache *hc;
     
+    if(!now)
+    {
+	if(hashwritetimer == NULL)
+	    hashwritetimer = timercallback(ntime() + 300, (void (*)(int, void *))hashtimercb, NULL);
+	return;
+    }
+    if(hashwritetimer != NULL)
+	canceltimer(hashwritetimer);
     hcname = findhashcachefile(1);
     if((stream = fopen(hcname, "w")) == NULL)
     {
@@ -443,7 +460,7 @@ static void hashread(struct socket *sk, void *uudata)
 	    buf = base64decode(wv[3], NULL);
 	    memcpy(hc->tth, buf, 24);
 	    free(buf);
-	    writehashcache();
+	    writehashcache(0);
 	}
 	memmove(hashbuf, lp, hashbufdata -= (lp - hashbuf));
     }
