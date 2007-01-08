@@ -99,6 +99,7 @@ static gboolean updatetip(struct appletdata *data)
 static void update(struct appletdata *data)
 {
     char buf[256];
+    size_t l;
     
     switch(data->conduit->state)
     {
@@ -130,7 +131,15 @@ static void update(struct appletdata *data)
 		gtk_progress_bar_set_fraction(data->pbar, 0);
 		gtk_progress_bar_set_text(data->pbar, _("Initializing"));
 	    }
-	    gtk_label_set_text(data->label, data->curdisplay->tag);
+	    if((l = strlen(data->curdisplay->tag)) > 50) {
+		memcpy(buf, data->curdisplay->tag, 20);
+		memcpy(buf + 20, "...", 3);
+		memcpy(buf + 23 , data->curdisplay->tag + l - 20, 20);
+		buf[43] = 0;
+		gtk_label_set_text(data->label, buf);
+	    } else {
+		gtk_label_set_text(data->label, data->curdisplay->tag);
+	    }
 	}
 	break;
     }
