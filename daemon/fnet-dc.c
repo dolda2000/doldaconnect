@@ -158,6 +158,7 @@ static struct dcexppeer *expected = NULL;
 static char *hmlistname = NULL;
 static char *xmllistname = NULL;
 static char *xmlbz2listname = NULL;
+static struct timer *listwritetimer = NULL;
 
 static void peerconnect(struct socket *sk, int err, struct fnetnode *fn);
 static void freedcpeer(struct dcpeer *peer);
@@ -168,6 +169,7 @@ static void updatehmlist(void);
 static void updatexmllist(void);
 static void updatexmlbz2list(void);
 static void requestfile(struct dcpeer *peer);
+static void updatelists(int now);
 
 static int reservedchar(unsigned char c)
 {
@@ -3512,11 +3514,31 @@ static void updatexmlbz2list(void)
     fclose(real);
 }
 
-static int shareupdate(unsigned long long uusharesize, void *data)
+static void listtimercb(int cancelled, void *uudata)
 {
+    listwritetimer = NULL;
+    if(!cancelled)
+	updatelists(1);
+}
+
+static void updatelists(int now)
+{
+    if(!now)
+    {
+	if(listwritetimer == NULL)
+	    listwritetimer = timercallback(ntime() + 300, listtimercb, NULL);
+	return;
+    }
+    if(listwritetimer != NULL)
+	canceltimer(listwritetimer);
     updatehmlist();
     updatexmllist();
     updatexmlbz2list();
+}
+
+static int shareupdate(unsigned long long uusharesize, void *data)
+{
+    updatelists(0);
     return(0);
 }
 
