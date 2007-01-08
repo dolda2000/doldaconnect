@@ -18,6 +18,7 @@
 */
 
 #include <unistd.h>
+#include <stdlib.h>
 /* I'm very unsure about this, but for now it defines wcstoll (which
  * should be defined anyway) and doesn't break anything... let's keep
  * two eyes wide open, though. */
@@ -989,13 +990,49 @@ static int gettrlistcallback(struct dc_response *resp)
     return(1);
 }
 
+static int sortlist1(const struct dc_respline *l1, const struct dc_respline *l2)
+{
+    return(wcscmp(l1->argv[1], l2->argv[1]));
+}
+
+static int sortlist2(const struct dc_fnetpeer *p1, const struct dc_fnetpeer *p2)
+{
+    return(wcscmp(p1->id, p2->id));
+}
+
+static void fillpeer(struct dc_fnetpeer *peer, struct dc_respline *r)
+{
+    int i;
+    struct dc_fnetpeerdatum *datum;
+    
+    for(i = 3; i < r->argc; i += 2)
+    {
+	if((datum = finddatum(peer->fn, r->argv[i])) != NULL)
+	{
+	    switch(datum->dt)
+	    {
+	    case DC_FNPD_INT:
+		peersetnum(peer, datum->id, wcstol(r->argv[i + 1], NULL, 10));
+		break;
+	    case DC_FNPD_LL:
+		peersetlnum(peer, datum->id, wcstoll(r->argv[i + 1], NULL, 10));
+		break;
+	    case DC_FNPD_STR:
+		peersetstr(peer, datum->id, r->argv[i + 1]);
+		break;
+	    }
+	}
+    }
+}
+
 static int getpeerlistcallback(struct dc_response *resp)
 {
-    int i, o;
+    int i, o, c;
     struct dc_fnetnode *fn;
     struct fnetcbdata *data;
-    struct dc_fnetpeer *peer, *next;
-    struct dc_fnetpeerdatum *datum;
+    struct dc_fnetpeer *peer;
+    struct dc_fnetpeer **plist;
+    size_t plistsize, plistdata;
     
     data = resp->data;
     if((fn = dc_findfnetnode(data->fnid)) == NULL)
@@ -1006,38 +1043,43 @@ static int getpeerlistcallback(struct dc_response *resp)
     }
     if(resp->code == 200)
     {
-	for(peer = fn->peers; peer != NULL; peer = peer->next)
-	    peer->found = 0;
-	for(i = 0; i < resp->numlines; i++)
+	qsort(resp->rlines, resp->numlines, sizeof(*resp->rlines), (int (*)(const void *, const void *))sortlist1);
+	plist = NULL;
+	plistsize = plistdata = 0;
+	for(i = 0, peer = fn->peers; peer != NULL; peer = peer->next)
+	    addtobuf(plist, peer);
+	qsort(plist, plistdata, sizeof(*plist), (int (*)(const void *, const void *))sortlist2);
+	i = o = 0;
+	while(1)
 	{
-	    if((peer = dc_fnetfindpeer(fn, resp->rlines[i].argv[1])) == NULL)
-		peer = addpeer(fn, resp->rlines[i].argv[1], resp->rlines[i].argv[2]);
-	    peer->found = 1;
-	    for(o = 3; o < resp->rlines[i].argc; o += 2)
+	    if((i < resp->numlines) && (o < plistdata))
 	    {
-		if((datum = finddatum(fn, resp->rlines[i].argv[o])) != NULL)
+		c = wcscmp(resp->rlines[i].argv[1], plist[o]->id);
+		if(c < 0)
 		{
-		    switch(datum->dt)
-		    {
-		    case DC_FNPD_INT:
-			peersetnum(peer, datum->id, wcstol(resp->rlines[i].argv[o + 1], NULL, 10));
-			break;
-		    case DC_FNPD_LL:
-			peersetlnum(peer, datum->id, wcstoll(resp->rlines[i].argv[o + 1], NULL, 10));
-			break;
-		    case DC_FNPD_STR:
-			peersetstr(peer, datum->id, resp->rlines[i].argv[o + 1]);
-			break;
-		    }
+		    peer = addpeer(fn, resp->rlines[i].argv[1], resp->rlines[i].argv[2]);
+		    fillpeer(peer, resp->rlines + i);
+		    i++;
+		} else if(c > 0) {
+		    delpeer(plist[o]);
+		    o++;
+		} else {
+		    i++;
+		    o++;
+		    fillpeer(plist[o], resp->rlines + i);
 		}
+	    } else if(i < resp->numlines) {
+		peer = addpeer(fn, resp->rlines[i].argv[1], resp->rlines[i].argv[2]);
+		fillpeer(peer, resp->rlines + i);
+		i++;
+	    } else if(o < plistdata) {
+		delpeer(plist[o]);
+		o++;
+	    } else {
+		break;
 	    }
 	}
-	for(peer = fn->peers; peer != NULL; peer = next)
-	{
-	    next = peer->next;
-	    if(!peer->found)
-		delpeer(peer);
-	}
+	free(plist);
     } else if(resp->code == 201) {
 	while(fn->peers != NULL)
 	    delpeer(fn->peers);
