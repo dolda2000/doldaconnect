@@ -995,9 +995,9 @@ static int sortlist1(const struct dc_respline *l1, const struct dc_respline *l2)
     return(wcscmp(l1->argv[1], l2->argv[1]));
 }
 
-static int sortlist2(const struct dc_fnetpeer *p1, const struct dc_fnetpeer *p2)
+static int sortlist2(const struct dc_fnetpeer **p1, const struct dc_fnetpeer **p2)
 {
-    return(wcscmp(p1->id, p2->id));
+    return(wcscmp((*p1)->id, (*p2)->id));
 }
 
 static void fillpeer(struct dc_fnetpeer *peer, struct dc_respline *r)
@@ -1064,9 +1064,9 @@ static int getpeerlistcallback(struct dc_response *resp)
 		    delpeer(plist[o]);
 		    o++;
 		} else {
+		    fillpeer(plist[o], resp->rlines + i);
 		    i++;
 		    o++;
-		    fillpeer(plist[o], resp->rlines + i);
 		}
 	    } else if(i < resp->numlines) {
 		peer = addpeer(fn, resp->rlines[i].argv[1], resp->rlines[i].argv[2]);
