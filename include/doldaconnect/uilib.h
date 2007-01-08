@@ -10,7 +10,7 @@ struct dc_response
     wchar_t *cmdname;
     void *data;
     void *internal;
-    struct
+    struct dc_respline
     {
 	int argc;
 	wchar_t **argv;
