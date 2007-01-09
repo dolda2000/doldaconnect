@@ -38,7 +38,7 @@
 #include "transfer.h"
 #include "sysevents.h"
 #include "net.h"
-#include "tiger.h"
+#include <tiger.h>
 
 /* Protocol states */
 #define ADC_PROTOCOL 0
@@ -67,6 +67,7 @@ struct adchub {
     wchar_t **sup;
     iconv_t ich;
     int state;
+    struct wcspair *hubinf;
     struct qcmd *queue;
 };
 
@@ -215,6 +216,7 @@ ADC_CMDFN(cmd_sup)
 	} else if(!wcsncmp(argv[i], L"RM", 2)) {
 	    if(!f)
 		continue;
+	    free(hub->sup[o]);
 	    memmove(hub->sup[o], hub->sup[o + 1], parrlen(hub->sup) - o);
 	}
     }
@@ -232,9 +234,19 @@ ADC_CMDFN(cmd_sid)
     }
 }
 
+ADC_CMDFN(cmd_inf)
+{
+    ADC_CMDCOM;
+    
+    if(sender == NULL) {
+	
+    }
+}
+
 static struct command hubcmds[] = {
     {L"SUP", 1, 0, cmd_sup},
     {L"SID", 2, 0, cmd_sid},
+    {L"INF", 0, 0, cmd_inf},
     {NULL, 0, 0, NULL}
 };
 
