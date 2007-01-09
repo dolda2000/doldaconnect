@@ -203,6 +203,7 @@ clients/gtk2/Makefile
 clients/gnome-trans-applet/Makefile
 clients/gaim/Makefile
 include/Makefile
+include/doldaconnect/Makefile
 po/Makefile.in
 config/Makefile
 autopackage/dolcon.apspec
