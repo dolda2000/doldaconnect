@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2007-01-02 04:02+0100\n"
+"POT-Creation-Date: 2007-01-09 01:42+0100\n"
 "PO-Revision-Date: 2007-01-02 04:04+0100\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -116,7 +116,7 @@ msgstr ""
 "%s"
 
 #: clients/gtk2/main.c:1374
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:110
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:111
 msgid "Connecting..."
 msgstr "Ansluter..."
 
@@ -480,19 +480,19 @@ msgstr "Tid kvar: Oändlig (Överföringen står still)"
 msgid "Time left: %i:%02i"
 msgstr "Tid kvar: %i:%02i"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:106
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:107
 msgid "Not connected"
 msgstr "Ej ansluten"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:118
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:119
 msgid "No transfers to display"
 msgstr "Inga överföringar"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:122
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:123
 msgid "No transfer selected"
 msgstr "Ingen överföring vald"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:131
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:132
 msgid "Initializing"
 msgstr "Förbereder"
 
