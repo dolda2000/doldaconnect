@@ -3523,6 +3523,8 @@ static void listtimercb(int cancelled, void *uudata)
 
 static void updatelists(int now)
 {
+    if((hmlistname == NULL) || (xmllistname == NULL) || (xmlbz2listname == NULL))
+	now = 1;
     if(!now)
     {
 	if(listwritetimer == NULL)
