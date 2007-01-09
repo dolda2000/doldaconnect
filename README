@@ -32,7 +32,7 @@ author.
 
 			       Clients
 
-So far, the following clients are distributet along with the source
+So far,  the following clients  are distributed along with  the source
 tree:
 
  * A Gtk2 based GUI, which loosely resembles a normal Direct Connect
