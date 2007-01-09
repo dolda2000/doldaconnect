@@ -98,7 +98,7 @@ static void newpeercb(struct dc_fnetpeer *peer)
     data = peer->fn->udata;
     if((conv = gaim_find_chat(data->gc, peer->fn->id)) != NULL)
     {
-	buf = sprintf2("%i:%s", peer->fn->id, icswcstombs(peer->nick, "UTF-8", NULL));
+	buf = sprintf2("%s", peer->fn->id, icswcstombs(peer->nick, "UTF-8", NULL));
 	gaim_conv_chat_add_user(GAIM_CONV_CHAT(conv), buf, NULL, GAIM_CBFLAGS_NONE, TRUE);
 	free(buf);
     }
