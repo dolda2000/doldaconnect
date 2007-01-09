@@ -1,0 +1,5 @@
+#!/bin/sh
+make install DESTDIR=$PWD/inst
+rm -f $HOME/.gaim/plugins/libdolcon-gaim.so
+cp inst/usr/local/lib/gaim/libdolcon-gaim.so $HOME/.gaim/plugins
+rm -rf inst
