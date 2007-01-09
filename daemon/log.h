@@ -21,8 +21,6 @@
 
 #include <syslog.h>
 
-#define LOGOOM(size) flog(LOG_CRIT, "%s (%s:%i): out of memory (alloc %i)", __FUNCTION__, __FILE__, __LINE__, (size))
-
 extern int logtostderr, logtosyslog;
 extern int syslogfac;
 
