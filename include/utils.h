@@ -22,7 +22,9 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <malloc.h>
+#ifdef DAEMON
 #include "log.h"
+#endif
 
 struct wcspair {
     struct wcspair *next;
@@ -30,11 +32,21 @@ struct wcspair {
     wchar_t *val;
 };
 
+
 /* "Safe" functions */
+#ifdef DAEMON
+#define LOGOOM(size) flog(LOG_CRIT, "%s (%s:%i): out of memory (alloc %i)", __FUNCTION__, __FILE__, __LINE__, (size))
 #define smalloc(size) ({void *__result__; ((__result__ = malloc(size)) == NULL)?({LOGOOM(size); abort(); (void *)0;}):__result__;})
 #define srealloc(ptr, size) ({void *__result__; ((__result__ = realloc((ptr), (size))) == NULL)?({LOGOOM(size); abort(); (void *)0;}):__result__;})
 #define swcsdup(wcs) ((wchar_t *)wcscpy(smalloc(sizeof(wchar_t) * (wcslen(wcs) + 1)), (wcs)))
 #define sstrdup(str) ((char *)strcpy(smalloc(strlen(str) + 1), (str)))
+#else
+#define LOGOOM(size)
+#define smalloc(size) ({void *__result__; ((__result__ = malloc(size)) == NULL)?({exit(-1); (void *)0;}):__result__;})
+#define srealloc(ptr, size) ({void *__result__; ((__result__ = realloc((ptr), (size))) == NULL)?({exit(-1); (void *)0;}):__result__;})
+#define swcsdup(wcs) ((wchar_t *)wcscpy(smalloc(sizeof(wchar_t) * (wcslen(wcs) + 1)), (wcs)))
+#define sstrdup(str) ((char *)strcpy(smalloc(strlen(str) + 1), (str)))
+#endif
 
 #define CBCHAIN(name, args...) \
 struct cbchain_ ## name { \

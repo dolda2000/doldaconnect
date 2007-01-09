@@ -36,9 +36,9 @@
 #include "log.h"
 #include "utils.h"
 #include "module.h"
-#include "tiger.h"
 #include "net.h"
 #include "sysevents.h"
+#include <tiger.h>
 
 struct scanstate
 {

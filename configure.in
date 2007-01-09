@@ -194,6 +194,7 @@ AC_SUBST([clients extlibs])
 AC_OUTPUT([
 Makefile
 autopackage/Makefile
+common/Makefile
 daemon/Makefile
 lib/Makefile
 lib/guile/Makefile

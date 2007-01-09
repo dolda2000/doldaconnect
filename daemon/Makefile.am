@@ -18,14 +18,13 @@ doldacond_SOURCES=	main.c \
 			client.h \
 			net.c \
 			net.h \
-			utils.c \
-			utils.h \
 			log.c \
-			log.h \
 			ui.c \
 			conf.c \
-			conf.h \
-			tiger.c \
-			tiger.h
+			conf.h
+
+AM_CPPFLAGS=$(top_srcdir)/include -DDAEMON
+
 EXTRA_DIST=emacs-local
-doldacond_LDADD=@KRB5_LDADD@ -lbz2 -lz
+doldacond_LDADD=$(top_srcdir)/common/libcommon.a \
+		@KRB5_LDADD@ -lbz2 -lz

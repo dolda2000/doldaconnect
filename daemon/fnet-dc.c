@@ -44,7 +44,7 @@
 #include "transfer.h"
 #include "sysevents.h"
 #include "net.h"
-#include "tiger.h"
+#include <tiger.h>
 
 /*
  * The Direct Connect protocol is extremely ugly. Thus, this code must

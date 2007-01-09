@@ -33,8 +33,8 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include "utils.h"
-#include "log.h"
+#include <utils.h>
+#include <log.h>
 
 static char *base64set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static int base64rev[] = {
@@ -158,7 +158,9 @@ wchar_t *icmbstowcs(char *mbs, char *charset)
 	charset = nl_langinfo(CODESET);
     if((cd = iconv_open("wchar_t", charset)) == (iconv_t)-1)
     {
+#ifdef DAEMON
 	flog(LOG_ERR, "icmbstowcs: could not open iconv structure for %s: %s", charset, strerror(errno));
+#endif
 	free(buf);
 	return(NULL);
     }
@@ -205,7 +207,9 @@ wchar_t *icsmbstowcs(char *mbs, char *charset, wchar_t *def)
     {
 	if((def != NULL) && (*def == L'~'))
 	{
+#ifdef DAEMON
 	    flog(LOG_WARNING, "icsmbstowcs: could not convert wcs string into charset %s: %s", charset, strerror(errno));
+#endif
 	    def++;
 	}
 	return(def);
@@ -225,14 +229,18 @@ char *icwcstombs(wchar_t *wcs, char *charset)
     bufsize = len2 = len1;
     if((buf = malloc(bufsize)) == NULL)
     {
+#ifdef DAEMON
 	LOGOOM(bufsize);
+#endif
 	return(NULL);
     }
     if(charset == NULL)
 	charset = nl_langinfo(CODESET);
     if((cd = iconv_open(charset, "wchar_t")) == (iconv_t)-1)
     {
+#ifdef DAEMON
 	flog(LOG_ERR, "icwcstombs: could not open iconv structure for %s: %s", charset, strerror(errno));
+#endif
 	free(buf);
 	return(NULL);
     }
@@ -279,7 +287,9 @@ char *icswcstombs(wchar_t *wcs, char *charset, char *def)
     {
 	if((def != NULL) && (*def == '~'))
 	{
+#ifdef DAEMON
 	    flog(LOG_WARNING, "icswcstombs: could not convert mbs string from charset %s: %s", charset, strerror(errno));
+#endif
 	    def++;
 	}
 	return(def);
@@ -317,7 +327,9 @@ wchar_t ucptowc(int ucp)
     }
     if((cd = iconv_open("wchar_t", "UCS-4BE")) == (iconv_t)-1)
     {
+#ifdef DAEMON
 	flog(LOG_ERR, "ucptowc: could not open iconv structure for UCS-4BE: %s", strerror(errno));
+#endif
 	free(buf);
 	return(L'\0');
     }
