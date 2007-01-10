@@ -2427,8 +2427,10 @@ static struct hash *findsehash(struct sexpr *sexpr)
 	    return(h1);
 	break;
     case SOP_OR:
-	h1 = findsehash(sexpr->l);
-	h2 = findsehash(sexpr->r);
+	if((h1 = findsehash(sexpr->l)) == NULL)
+	    return(NULL);
+	if((h2 = findsehash(sexpr->r)) == NULL)
+	    return(NULL);
 	if(hashcmp(h1, h2))
 	    return(h1);
 	break;
