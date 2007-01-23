@@ -58,8 +58,8 @@
   (lambda ()
     (dc-fn-update)
     (let* ((notify (lambda (event data) (for-each (lambda (o) (if (eq? event (car o)) ((cadr o) data))) fn-procs)))
-	   (ua (lambda (r a) (let ((ires (dc-intresp r))
-				   (hubform (assq (car ires) fnetnodes)))
+	   (ua (lambda (r a) (let* ((ires (dc-intresp r))
+				    (hubform (assq (car ires) fnetnodes)))
 			       (if hubform
 				   (begin (fn-updattr (car ires) a (cadr ires))
 					  (notify a (cdr (assq (car ires) fnetnodes)))))))))
