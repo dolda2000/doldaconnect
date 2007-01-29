@@ -134,6 +134,9 @@ do { \
     __new_cb__->data = dataa; \
     __new_cb__->prev = NULL; \
     __new_cb__->next = (obj)->name; \
+    if((obj)->name != NULL) { \
+        (obj)->name->prev = __new_cb__; \
+    } \
     (obj)->name = __new_cb__; \
 } while(0)
 
@@ -164,6 +167,9 @@ do { \
     __new_cb__->data = dataa; \
     __new_cb__->prev = NULL; \
     __new_cb__->next = name; \
+    if(name != NULL) { \
+        name->prev = __new_cb__; \
+    } \
     name = __new_cb__; \
 } while(0)
 
