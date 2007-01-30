@@ -286,7 +286,7 @@ static void dispatch(struct qcmd *qcmd, struct fnetnode *fn)
     flog(LOG_DEBUG, "unknown adc command: %ls", qcmd->args[0]);
 }
 
-static int hubread(struct socket *sk, struct fnetnode *fn)
+static void hubread(struct socket *sk, struct fnetnode *fn)
 {
     int ret;
     struct adchub *hub;
@@ -296,7 +296,7 @@ static int hubread(struct socket *sk, struct fnetnode *fn)
     
     hub = fn->data;
     if((newbuf = sockgetinbuf(sk, &datalen)) == NULL)
-	return(0);
+	return;
     if(hub->inbufdata > 1024)
 	hub->inbufdata = 0;
     bufcat(hub->inbuf, newbuf, datalen);
@@ -321,14 +321,14 @@ static int hubread(struct socket *sk, struct fnetnode *fn)
 	    if(errno == EILSEQ) {
 		flog(LOG_DEBUG, "adc fnetnode %i sent illegal utf-8 sequence", fn->id);
 		killfnetnode(fn);
-		return(0);
+		return;
 	    } else if(errno == EINVAL) {
 		break;
 	    } else if(errno == E2BIG) {
 		/* continue; */
 	    } else {
 		flog(LOG_WARNING, "bug? iconv returned unexpected error: %s", strerror(errno));
-		return(0);
+		return;
 	    }
 	}
     }
@@ -337,21 +337,21 @@ static int hubread(struct socket *sk, struct fnetnode *fn)
 	newqcmd(&hub->queue, parseadc(hub->cb));
 	memmove(hub->cb, p, (hub->cbdata -= (p - hub->cb)) * sizeof(*(hub->cb)));
     }
-    return(0);
 }
 
-static int huberr(struct socket *sk, int err, struct fnetnode *fn)
+static void huberr(struct socket *sk, int err, struct fnetnode *fn)
 {
     killfnetnode(fn);
-    return(0);
 }
 
 static void hubconnect(struct fnetnode *fn)
 {
     struct adchub *hub;
     
-    CBREG(fn->sk, socket_read, (int (*)(struct socket *, void *))hubread, (void (*)(void *))putfnetnode, fn);
-    CBREG(fn->sk, socket_err, (int (*)(struct socket *, int, void *))huberr, (void (*)(void *))putfnetnode, fn);
+    fn->sk->readcb = (void (*)(struct socket *, void *))hubread;
+    fn->sk->errcb = (void (*)(struct socket *, int, void *))huberr;
+    fn->sk->data = fn;
+    getfnetnode(fn);
     
     hub = smalloc(sizeof(*hub));
     memset(hub, 0, sizeof(*hub));

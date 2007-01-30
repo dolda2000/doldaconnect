@@ -127,7 +127,7 @@ struct fnet *findfnet(wchar_t *name);
 struct fnetnode *fnetinitconnect(wchar_t *name, wchar_t *owner, char *addr, struct wcspair *args);
 void linkfnetnode(struct fnetnode *fn);
 void unlinkfnetnode(struct fnetnode *fn);
-struct fnetnode *getfnetnode(struct fnetnode *fn);
+void getfnetnode(struct fnetnode *fn);
 void putfnetnode(struct fnetnode *fn);
 void killfnetnode(struct fnetnode *fn);
 struct fnetpeer *fnetaddpeer(struct fnetnode *fn, wchar_t *id, wchar_t *nick);

@@ -22,7 +22,6 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <malloc.h>
-#include <assert.h>
 #ifdef DAEMON
 #include "log.h"
 #endif
@@ -55,7 +54,6 @@ struct cbchain_ ## name { \
     int (*func)(args, void *data); \
     void (*destroy)(void *data); \
     void *data; \
-    int running, free; \
 } * name
 
 #define GCBCHAIN(name, args...) \
@@ -131,7 +129,6 @@ do { \
 do { \
     struct cbchain_ ## name *__new_cb__; \
     __new_cb__ = smalloc(sizeof(*__new_cb__)); \
-    __new_cb__->running = __new_cb__->free = 0; \
     __new_cb__->func = funca; \
     __new_cb__->destroy = destroya; \
     __new_cb__->data = dataa; \
@@ -143,12 +140,11 @@ do { \
     (obj)->name = __new_cb__; \
 } while(0)
 
-#define CBUNREG(obj, name, funca, dataa) \
-({ \
+#define CBUNREG(obj, name, dataa) \
+do { \
     struct cbchain_ ## name *__cur__; \
-    int __found__ = 0; \
     for(__cur__ = (obj)->name; __cur__ != NULL; __cur__ = __cur__->next) { \
-        if(((void *)(__cur__->func) == (void *)(funca)) && (__cur__->data == (void *)(dataa))) { \
+        if(__cur__->data == (dataa)) { \
             if(__cur__->destroy != NULL) \
                 __cur__->destroy(__cur__->data); \
             if(__cur__->prev != NULL) \
@@ -158,11 +154,10 @@ do { \
             if(__cur__ == (obj)->name) \
                 (obj)->name = __cur__->next; \
             free(__cur__); \
-            __found__ = 1; \
             break; \
         } \
     } \
-__found__;})
+} while(0)
 
 #define GCBREG(name, funca, dataa) \
 do { \
@@ -185,30 +180,18 @@ do { \
     struct cbchain_ ## name *__cur__; \
     while((__cur__ = (obj)->name) != NULL) { \
         (obj)->name = __cur__->next; \
-        if(__cur__->running) { \
-            __cur__->free = 1; \
-        } else { \
-            if(__cur__->destroy != NULL) \
-                __cur__->destroy(__cur__->data); \
-            free(__cur__); \
-       } \
+        if(__cur__->destroy != NULL) \
+            __cur__->destroy(__cur__->data); \
+        free(__cur__); \
     } \
 } while(0)
 
 #define CBCHAINDOCB(obj, name, args...) \
 do { \
     struct cbchain_ ## name *__cur__, *__next__; \
-    int __res__; \
     for(__cur__ = (obj)->name; __cur__ != NULL; __cur__ = __next__) { \
         __next__ = __cur__->next; \
-        __cur__->running = 1; \
-        __res__ = __cur__->func(args, __cur__->data); \
-        __cur__->running = 0; \
-        if(__cur__->free) { \
-            free(__cur__); \
-            break; \
-        } \
-        if(__res__) { \
+        if(__cur__->func(args, __cur__->data)) { \
             if(__cur__->next != NULL) \
                 __cur__->next->prev = __cur__->prev; \
             if(__cur__->prev != NULL) \

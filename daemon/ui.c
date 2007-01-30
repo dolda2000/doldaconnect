@@ -159,8 +159,6 @@ struct uidata
     size_t cwsize, cwdata;
 };
 
-static int uiread(struct socket *sk, struct uidata *data);
-static int uierror(struct socket *sk, int err, struct uidata *data);
 static int srcheta(struct search *srch, void *uudata);
 static int srchcommit(struct search *srch, void *uudata);
 static int srchres(struct search *srch, struct srchres *sr, void *uudata);
@@ -1056,19 +1054,18 @@ static void cmd_cansrch(struct socket *sk, struct uidata *data, int argc, wchar_
     sq(sk, 0, L"200", L"Search cancelled", NULL);
 }
 
-static int fcmdread(struct socket *sk, struct uidata *data)
+static void fcmdread(struct socket *sk, struct uidata *data)
 {
     char *buf;
     size_t bufsize;
     
     if((buf = sockgetinbuf(sk, &bufsize)) == NULL)
-	return(0);
+	return;
     bufcat(data->fcmdbuf, buf, bufsize);
     free(buf);
-    return(0);
 }
 
-static int fcmderr(struct socket *sk, int err, struct uidata *data)
+static void fcmderr(struct socket *sk, int err, struct uidata *data)
 {
     wchar_t *wbuf, *p, *p2;
     
@@ -1085,7 +1082,7 @@ static int fcmderr(struct socket *sk, int err, struct uidata *data)
 	}
 	data->fcmdbufsize = data->fcmdbufdata = 0;
 	sq(data->sk, 0, L"505", L"An error occurred on the pipe to the filtercmd", L"%%s", strerror(err), NULL);
-	return(0);
+	return;
     }
     putsock(data->fcmdsk);
     data->fcmdsk = NULL;
@@ -1103,7 +1100,7 @@ static int fcmderr(struct socket *sk, int err, struct uidata *data)
     if(wbuf == NULL)
     {
 	sq(data->sk, 0, L"504", L"Filtercmd sent data which could not be converted from the local charset", NULL);
-	return(0);
+	return;
     }
     p = wbuf;
     for(p2 = wcschr(p, L'\n'); p2 != NULL; p2 = wcschr(p, L'\n'))
@@ -1120,7 +1117,6 @@ static int fcmderr(struct socket *sk, int err, struct uidata *data)
 	sq(data->sk, 0, L"200", L"%%ls", p, NULL);
     }
     free(wbuf);
-    return(0);
 }
 
 static void cmd_filtercmd(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
@@ -1186,8 +1182,9 @@ static void cmd_filtercmd(struct socket *sk, struct uidata *data, int argc, wcha
 	data->fcmdbuf = NULL;
     }
     data->fcmdbufsize = data->fcmdbufdata = 0;
-    CBREG(data->fcmdsk, socket_read, (int (*)(struct socket *, void *))fcmdread, NULL, data);
-    CBREG(data->fcmdsk, socket_err, (int (*)(struct socket *, int, void *))fcmderr, NULL, data);
+    data->fcmdsk->data = data;
+    data->fcmdsk->readcb = (void (*)(struct socket *, void *))fcmdread;
+    data->fcmdsk->errcb = (void (*)(struct socket *, int, void *))fcmderr;
 }
 
 static void cmd_lstrarg(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
@@ -1514,8 +1511,8 @@ static void freeuidata(struct uidata *data)
 	data->prev->next = data->next;
     if(data == actives)
 	actives = data->next;
-    CBUNREG(data->sk, socket_read, uiread, data);
-    CBUNREG(data->sk, socket_err, uierror, data);
+    data->sk->readcb = NULL;
+    data->sk->errcb = NULL;
     putsock(data->sk);
     while((qcmd = unlinkqcmd(data)) != NULL)
 	freequeuecmd(qcmd);
@@ -1593,7 +1590,7 @@ static struct uidata *newuidata(struct socket *sk)
     return(data);
 }
 
-static int uiread(struct socket *sk, struct uidata *data)
+static void uiread(struct socket *sk, struct uidata *data)
 {
     int ret, done;
     char *newbuf;
@@ -1605,7 +1602,7 @@ static int uiread(struct socket *sk, struct uidata *data)
     if(data->indata > 1024)
 	data->indata = 0;
     if((newbuf = sockgetinbuf(sk, &datalen)) == NULL)
-	return(0);
+	return;
     sizebuf(&data->inbuf, &data->inbufsize, data->indata + datalen, 1, 1);
     memcpy(data->inbuf + data->indata, newbuf, datalen);
     free(newbuf);
@@ -1758,29 +1755,26 @@ static int uiread(struct socket *sk, struct uidata *data)
 	    break;
 	}
     }
-    return(0);
 }
 
-static int uierror(struct socket *sk, int err, struct uidata *data)
+static void uierror(struct socket *sk, int err, struct uidata *data)
 {
     if(err)
 	flog(LOG_WARNING, "error occurred on UI socket: %s", strerror(err));
     freeuidata(data);
-    return(0);
 }
 
-static int uiaccept(struct socket *sk, struct socket *newsk, void *data)
+static void uiaccept(struct socket *sk, struct socket *newsk, void *data)
 {
     struct uidata *uidata;
     
-    uidata = newuidata(newsk);
+    newsk->data = uidata = newuidata(newsk);
     socksettos(newsk, confgetint("ui", "uitos"));
     if(uidata == NULL)
-	return(0);
-    CBREG(newsk, socket_err, (int (*)(struct socket *, int, void *))uierror, NULL, uidata);
-    CBREG(newsk, socket_read, (int (*)(struct socket *, void *))uiread, NULL, uidata);
+	return;
+    newsk->errcb = (void (*)(struct socket *, int, void *))uierror;
+    newsk->readcb = (void (*)(struct socket *, void *))uiread;
     queuecmd(uidata, &commands[0], 0, NULL);
-    return(0);
 }
 
 static int srcheta(struct search *srch, void *uudata)

@@ -39,10 +39,6 @@
 #include "client.h"
 
 static void killfilter(struct transfer *transfer);
-static int transferread(struct socket *sk, struct transfer *transfer);
-static int transferwrite(struct socket *sk, struct transfer *transfer);
-static int transfererr(struct socket *sk, int errno, struct transfer *transfer);
-static int filterread(struct socket *sk, struct transfer *transfer);
 
 unsigned long long bytesupload = 0;
 unsigned long long bytesdownload = 0;
@@ -88,14 +84,16 @@ void freetransfer(struct transfer *transfer)
 	free(transfer->exitstatus);
     if(transfer->localend != NULL)
     {
-	CBUNREG(transfer->localend, socket_read, transferread, transfer);
-	CBUNREG(transfer->localend, socket_write, transferwrite, transfer);
-	CBUNREG(transfer->localend, socket_err, transfererr, transfer);
+	transfer->localend->readcb = NULL;
+	transfer->localend->writecb = NULL;
+	transfer->localend->errcb = NULL;
 	putsock(transfer->localend);
     }
     if(transfer->filterout != NULL)
     {
-	CBUNREG(transfer->filterout, socket_read, filterread, transfer);
+	transfer->filterout->readcb = NULL;
+	transfer->filterout->writecb = NULL;
+	transfer->filterout->errcb = NULL;
 	putsock(transfer->filterout);
     }
     if(transfer->fn != NULL)
@@ -233,27 +231,24 @@ static void transexpire(int cancelled, struct transfer *transfer)
 	transfer->timeout = 0;
 }
 
-static int transferread(struct socket *sk, struct transfer *transfer)
+static void transferread(struct socket *sk, struct transfer *transfer)
 {
     if(sockgetdatalen(sk) >= 65536)
 	sk->ignread = 1;
     if((transfer->iface != NULL) && (transfer->iface->gotdata != NULL))
 	transfer->iface->gotdata(transfer, transfer->ifacedata);
-    return(0);
 }
 
-static int transferwrite(struct socket *sk, struct transfer *transfer)
+static void transferwrite(struct socket *sk, struct transfer *transfer)
 {
     if((transfer->iface != NULL) && (transfer->iface->wantdata != NULL))
 	transfer->iface->wantdata(transfer, transfer->ifacedata);
-    return(0);
 }
 
-static int transfererr(struct socket *sk, int errno, struct transfer *transfer)
+static void transfererr(struct socket *sk, int errno, struct transfer *transfer)
 {
     if((transfer->iface != NULL) && (transfer->iface->endofdata != NULL))
 	transfer->iface->endofdata(transfer, transfer->ifacedata);
-    return(0);
 }
 
 void transferputdata(struct transfer *transfer, void *buf, size_t size)
@@ -270,9 +265,9 @@ void transferendofdata(struct transfer *transfer)
     if(transfer->curpos >= transfer->size)
     {
 	transfersetstate(transfer, TRNS_DONE);
-	CBUNREG(transfer->localend, socket_read, transferread, transfer);
-	CBUNREG(transfer->localend, socket_write, transferwrite, transfer);
-	CBUNREG(transfer->localend, socket_err, transfererr, transfer);
+	transfer->localend->readcb = NULL;
+	transfer->localend->writecb = NULL;
+	transfer->localend->errcb = NULL;
 	putsock(transfer->localend);
 	transfer->localend = NULL;
     } else {
@@ -334,9 +329,10 @@ void transfersetlocalend(struct transfer *transfer, struct socket *sk)
     if(transfer->localend != NULL)
 	putsock(transfer->localend);
     getsock(transfer->localend = sk);
-    CBREG(sk, socket_read, (int (*)(struct socket *, void *))transferread, NULL, transfer);
-    CBREG(sk, socket_write, (int (*)(struct socket *, void *))transferwrite, NULL, transfer);
-    CBREG(sk, socket_err, (int (*)(struct socket *, int, void *))transfererr, NULL, transfer);
+    sk->data = transfer;
+    sk->readcb = (void (*)(struct socket *, void *))transferread;
+    sk->writecb = (void (*)(struct socket *, void *))transferwrite;
+    sk->errcb = (void (*)(struct socket *, int, void *))transfererr;
 }
 
 static int tryreq(struct transfer *transfer)
@@ -512,15 +508,15 @@ static void killfilter(struct transfer *transfer)
     }
     if(transfer->localend)
     {
-	CBUNREG(transfer->localend, socket_read, transferread, transfer);
-	CBUNREG(transfer->localend, socket_write, transferwrite, transfer);
-	CBUNREG(transfer->localend, socket_err, transfererr, transfer);
+	transfer->localend->readcb = NULL;
+	transfer->localend->writecb = NULL;
+	transfer->localend->errcb = NULL;
 	putsock(transfer->localend);
 	transfer->localend = NULL;
     }
     if(transfer->filterout)
     {
-	CBUNREG(transfer->filterout, socket_read, filterread, transfer);
+	transfer->filterout->readcb = NULL;
 	putsock(transfer->filterout);
 	transfer->filterout = NULL;
     }
@@ -595,14 +591,14 @@ static void handletranscmd(struct transfer *transfer, wchar_t *cmd, wchar_t *arg
     }
 }
 
-static int filterread(struct socket *sk, struct transfer *transfer)
+static void filterread(struct socket *sk, struct transfer *transfer)
 {
     char *buf, *p, *p2;
     size_t bufsize;
     wchar_t *cmd, *arg;
     
     if((buf = sockgetinbuf(sk, &bufsize)) == NULL)
-	return(0);
+	return;
     bufcat(transfer->filterbuf, buf, bufsize);
     free(buf);
     while((p = memchr(transfer->filterbuf, '\n', transfer->filterbufdata)) != NULL)
@@ -628,7 +624,6 @@ static int filterread(struct socket *sk, struct transfer *transfer)
 	}
 	memmove(transfer->filterbuf, p, transfer->filterbufdata -= (p - transfer->filterbuf));
     }
-    return(0);
 }
 
 static void filterexit(pid_t pid, int status, void *data)
@@ -765,7 +760,8 @@ int forkfilter(struct transfer *transfer)
     transfer->filter = pid;
     transfersetlocalend(transfer, insock);
     getsock(transfer->filterout = outsock);
-    CBREG(outsock, socket_read, (int (*)(struct socket *, void *))filterread, NULL, transfer);
+    outsock->data = transfer;
+    outsock->readcb = (void (*)(struct socket *, void *))filterread;
     putsock(insock);
     putsock(outsock);
     free(filtername);
