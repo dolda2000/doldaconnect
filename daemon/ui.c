@@ -1186,8 +1186,8 @@ static void cmd_filtercmd(struct socket *sk, struct uidata *data, int argc, wcha
 	data->fcmdbuf = NULL;
     }
     data->fcmdbufsize = data->fcmdbufdata = 0;
-    CBREG(data->fcmdsk, socket_read, (int (*)(struct socket *, void *))fcmdread, NULL, NULL);
-    CBREG(data->fcmdsk, socket_err, (int (*)(struct socket *, int, void *))fcmderr, NULL, NULL);
+    CBREG(data->fcmdsk, socket_read, (int (*)(struct socket *, void *))fcmdread, NULL, data);
+    CBREG(data->fcmdsk, socket_err, (int (*)(struct socket *, int, void *))fcmderr, NULL, data);
 }
 
 static void cmd_lstrarg(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
@@ -1777,8 +1777,8 @@ static int uiaccept(struct socket *sk, struct socket *newsk, void *data)
     socksettos(newsk, confgetint("ui", "uitos"));
     if(uidata == NULL)
 	return(0);
-    CBREG(newsk, socket_err, (int (*)(struct socket *, int, void *))uierror, NULL, data);
-    CBREG(newsk, socket_read, (int (*)(struct socket *, void *))uiread, NULL, data);
+    CBREG(newsk, socket_err, (int (*)(struct socket *, int, void *))uierror, NULL, uidata);
+    CBREG(newsk, socket_read, (int (*)(struct socket *, void *))uiread, NULL, uidata);
     queuecmd(uidata, &commands[0], 0, NULL);
     return(0);
 }
