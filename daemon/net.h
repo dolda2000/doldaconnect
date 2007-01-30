@@ -21,6 +21,8 @@
 
 #include <sys/socket.h>
 
+#include <utils.h>
+
 #define SOCK_LST 0 /* Listening */
 #define SOCK_SYN 1 /* Connecting */
 #define SOCK_EST 2 /* Established */
@@ -80,20 +82,27 @@ struct socket
 	    size_t datasize;
 	} s;
     } inbuf;
+    /*
     void (*conncb)(struct socket *sk, int err, void *data);
     void (*errcb)(struct socket *sk, int err, void *data);
     void (*readcb)(struct socket *sk, void *data);
     void (*writecb)(struct socket *sk, void *data);
     void (*acceptcb)(struct socket *sk, struct socket *newsk, void *data);
     void *data;
+    */
+    CBCHAIN(socket_conn, struct socket *sk, int err);
+    CBCHAIN(socket_err, struct socket *sk, int err);
+    CBCHAIN(socket_read, struct socket *sk);
+    CBCHAIN(socket_write, struct socket *sk);
+    CBCHAIN(socket_accept, struct socket *sk, struct socket *newsk);
 };
 
 void putsock(struct socket *sk);
 void getsock(struct socket *sk);
-struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data);
-struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data);
-struct socket *netcstcplisten(int port, int local, void (*func)(struct socket *, struct socket *, void *), void *data);
-struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(struct socket *, int, void *), void *data);
+struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, int (*func)(struct socket *, struct socket *, void *), void *data);
+struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, int (*func)(struct socket *, struct socket *, void *), void *data);
+struct socket *netcstcplisten(int port, int local, int (*func)(struct socket *, struct socket *, void *), void *data);
+struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, int (*func)(struct socket *, int, void *), void *data);
 int pollsocks(int timeout);
 void sockqueue(struct socket *sk, void *data, size_t size);
 size_t sockqueuesize(struct socket *sk);

@@ -160,11 +160,13 @@ static char *xmllistname = NULL;
 static char *xmlbz2listname = NULL;
 static struct timer *listwritetimer = NULL;
 
-static void peerconnect(struct socket *sk, int err, struct fnetnode *fn);
+static int peerconnect(struct socket *sk, int err, struct fnetnode *fn);
+static int peerread(struct socket *sk, struct dcpeer *peer);
+static int peererror(struct socket *sk, int err, struct dcpeer *peer);
 static void freedcpeer(struct dcpeer *peer);
-static void transread(struct socket *sk, struct dcpeer *peer);
-static void transerr(struct socket *sk, int err, struct dcpeer *peer);
-static void transwrite(struct socket *sk, struct dcpeer *peer);
+static void transread(struct dcpeer *peer);
+static void transerr(struct dcpeer *peer);
+static int transwrite(struct socket *sk, struct dcpeer *peer);
 static void updatehmlist(void);
 static void updatexmllist(void);
 static void updatexmlbz2list(void);
@@ -1300,7 +1302,7 @@ static void cmd_connecttome(struct socket *sk, struct fnetnode *fn, char *cmd, c
     addr.sin_port = htons(atoi(p));
     if(!inet_aton(args, &addr.sin_addr))
 	return;
-    newsk = netcsconn((struct sockaddr *)&addr, sizeof(addr), (void (*)(struct socket *, int, void *))peerconnect, fn);
+    newsk = netcsconn((struct sockaddr *)&addr, sizeof(addr), (int (*)(struct socket *, int, void *))peerconnect, fn);
     getfnetnode(fn);
     hubhandleaction(sk, fn, cmd, args);
 }
@@ -1633,8 +1635,6 @@ static void startdl(struct dcpeer *peer)
 	canceltimer(peer->timeout);
     peer->state = PEER_TRNS;
     transferstartdl(peer->transfer, peer->sk);
-    peer->sk->readcb = (void (*)(struct socket *, void *))transread;
-    peer->sk->errcb = (void (*)(struct socket *, int, void *))transerr;
 }
 
 static void startul(struct dcpeer *peer)
@@ -1643,7 +1643,7 @@ static void startul(struct dcpeer *peer)
 	canceltimer(peer->timeout);
     peer->state = PEER_TRNS;
     transferstartul(peer->transfer, peer->sk);
-    peer->sk->writecb = (void (*)(struct socket *, void *))transwrite;
+    CBREG(peer->sk, socket_write, (int (*)(struct socket *, void *))transwrite, NULL, peer);
 }
 
 static void cmd_filelength(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
@@ -2215,12 +2215,7 @@ static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	    goto out;
 	}
 	startdl(peer);
-	if(peer->inbufdata > 0)
-	{
-	    sockpushdata(sk, peer->inbuf, peer->inbufdata);
-	    peer->inbufdata = 0;
-	    transread(sk, peer);
-	}
+	transread(peer);
     } else {
 	/* We certainly didn't request this...*/
 	freedcpeer(peer);
@@ -2248,12 +2243,7 @@ static void cmd_sending(struct socket *sk, struct dcpeer *peer, char *cmd, char 
 	return;
     }
     startdl(peer);
-    if(peer->inbufdata > 0)
-    {
-	sockpushdata(sk, peer->inbuf, peer->inbufdata);
-	peer->inbufdata = 0;
-	transread(sk, peer);
-    }
+    transread(peer);
 }
 
 /*
@@ -2602,7 +2592,7 @@ static struct command peercmds[] =
 
 static void dctransdetach(struct transfer *transfer, struct dcpeer *peer)
 {
-    CBUNREG(transfer, trans_filterout, peer);
+    CBUNREG(transfer, trans_filterout, trresumecb, peer);
     if(peer->freeing)
 	return;
     peer->transfer = NULL;
@@ -2677,7 +2667,7 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
 		    transfersetstate(transfer, TRNS_HS);
 		    socksettos(peer->sk, confgetint("fnet", "fnptos"));
 		    transfer->flags.b.minislot = 0;
-		    peer->sk->writecb = NULL;
+		    CBUNREG(peer->sk, socket_write, transwrite, peer);
 		}
 	    }
 	}
@@ -2696,22 +2686,22 @@ static void dcwantdata(struct transfer *transfer, struct dcpeer *peer)
 	peer->sk->ignread = 0;
 }
 
-static void transread(struct socket *sk, struct dcpeer *peer)
+static void transread(struct dcpeer *peer)
 {
-    void *buf;
-    size_t bufsize;
+    size_t num;
     struct transfer *transfer;
     
-    if((buf = sockgetinbuf(sk, &bufsize)) == NULL)
-	return;
     if(peer->transfer == NULL)
     {
-	free(buf);
 	freedcpeer(peer);
 	return;
     }
-    transferputdata(peer->transfer, buf, bufsize);
-    free(buf);
+    if(peer->inbufsize > peer->transfer->size - peer->transfer->curpos)
+	num = peer->transfer->size - peer->transfer->curpos;
+    else
+	num = peer->inbufsize;
+    transferputdata(peer->transfer, peer->inbuf, num);
+    memmove(peer->inbuf, peer->inbuf + num, peer->inbufsize -= num);
     if(peer->transfer->curpos >= peer->transfer->size)
     {
 	transfer = peer->transfer;
@@ -2720,35 +2710,33 @@ static void transread(struct socket *sk, struct dcpeer *peer)
 	return;
     }
     if(transferdatasize(peer->transfer) > 65535)
-	sk->ignread = 1;
+	peer->sk->ignread = 1;
 }
 
-static void transerr(struct socket *sk, int err, struct dcpeer *peer)
+static void transerr(struct dcpeer *peer)
 {
     struct transfer *transfer;
 
     if((transfer = peer->transfer) == NULL)
-    {
-	freedcpeer(peer);
 	return;
-    }
     transferdetach(transfer);
     transferendofdata(transfer);
 }
 
-static void transwrite(struct socket *sk, struct dcpeer *peer)
+static int transwrite(struct socket *sk, struct dcpeer *peer)
 {
     if((peer->state != PEER_TRNS) && (peer->state != PEER_SYNC))
-	return;
+	return(1);
     if(peer->transfer == NULL)
     {
 	freedcpeer(peer);
-	return;
+	return(1);
     }
     dctransgotdata(peer->transfer, peer);
+    return(0);
 }
 
-static void udpread(struct socket *sk, void *data)
+static int udpread(struct socket *sk, void *data)
 {
     char *buf, *p, *p2, *hashbuf;
     size_t buflen, hashlen;
@@ -2762,7 +2750,7 @@ static void udpread(struct socket *sk, void *data)
     struct hash *hash;
     
     if((buf = sockgetinbuf(sk, &buflen)) == NULL)
-	return;
+	return(0);
     buf = srealloc(buf, buflen + 1);
     buf[buflen] = 0;
     if(!strncmp(buf, "$SR ", 4))
@@ -2772,7 +2760,7 @@ static void udpread(struct socket *sk, void *data)
 	if((p2 = strchr(p, ' ')) == NULL)
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	*p2 = 0;
 	p = p2 + 1;
@@ -2780,14 +2768,14 @@ static void udpread(struct socket *sk, void *data)
 	if((p2 = strchr(p, 5)) == NULL)
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	*p2 = 0;
 	p = p2 + 1;
 	if((p2 = strchr(p, ' ')) == NULL)
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	*p2 = 0;
 	size = atoi(p);
@@ -2795,7 +2783,7 @@ static void udpread(struct socket *sk, void *data)
 	if((p2 = strchr(p, '/')) == NULL)
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	*p2 = 0;
 	slots = atoi(p);
@@ -2803,34 +2791,34 @@ static void udpread(struct socket *sk, void *data)
 	if((p2 = strchr(p, 5)) == NULL)
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	p = p2 + 1;
 	hubname = p;
 	if((p2 = strstr(p, " (")) == NULL)
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	*p2 = 0;
 	p = p2 + 2;
 	if((p2 = strchr(p, ':')) == NULL)
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	*(p2++) = 0;
 	hubaddr.sin_family = AF_INET;
 	if(!inet_aton(p, &hubaddr.sin_addr))
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	p = p2;
 	if((p2 = strchr(p, ')')) == NULL)
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	*p2 = 0;
 	hubaddr.sin_port = htons(atoi(p));
@@ -2838,7 +2826,7 @@ static void udpread(struct socket *sk, void *data)
 	if((wfile = icmbstowcs(filename, DCCHARSET)) == NULL)
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	myfn = NULL;
 	hash = NULL;
@@ -2885,7 +2873,7 @@ static void udpread(struct socket *sk, void *data)
 	if((wnick = icmbstowcs(nick, (hub == NULL)?DCCHARSET:(hub->charset))) == NULL)
 	{
 	    free(buf);
-	    return;
+	    return(0);
 	}
 	sr = newsrchres(&dcnet, wfile, wnick);
 	if(sr->peernick != NULL)
@@ -2903,6 +2891,7 @@ static void udpread(struct socket *sk, void *data)
 	freesrchres(sr);
     }
     free(buf);
+    return(0);
 }
 
 static void hubread(struct socket *sk, struct fnetnode *fn)
@@ -3044,11 +3033,9 @@ static void freedcpeer(struct dcpeer *peer)
     }
     if(peer->timeout != NULL)
 	canceltimer(peer->timeout);
-    if(peer->sk->data == peer)
-	peer->sk->data = NULL;
-    peer->sk->readcb = NULL;
-    peer->sk->writecb = NULL;
-    peer->sk->errcb = NULL;
+    /* XXX: Unregister transwrite from peer->sk->socket_write? */
+    CBUNREG(peer->sk, socket_read, peerread, peer);
+    CBUNREG(peer->sk, socket_err, peererror, peer);
     putsock(peer->sk);
     endcompress(peer);
     if(peer->supports != NULL)
@@ -3077,11 +3064,9 @@ static void freedcpeer(struct dcpeer *peer)
 
 static void hubconnect(struct fnetnode *fn)
 {
-    fn->sk->readcb = (void (*)(struct socket *, void *))hubread;
-    fn->sk->errcb = (void (*)(struct socket *, int, void *))huberr;
-    getfnetnode(fn);
+    CBREG(fn->sk, socket_read, (int (*)(struct socket *, void *))hubread, (void (*)(void *))putfnetnode, getfnetnode(fn));
+    CBREG(fn->sk, socket_err, (int (*)(struct socket *, int, void *))huberr, (void (*)(void *))putfnetnode, getfnetnode(fn));
     fn->data = newdchub(fn);
-    fn->sk->data = fn;
     return;
 }
 
@@ -3091,10 +3076,10 @@ static void hubdestroy(struct fnetnode *fn)
     struct qcommand *qcmd;
     
     hub = (struct dchub *)fn->data;
-    if((fn->sk != NULL) && (fn->sk->data == fn))
+    if(fn->sk != NULL)
     {
-	fn->sk->data = NULL;
-	putfnetnode(fn);
+	CBUNREG(fn->sk, socket_read, hubread, fn);
+	CBUNREG(fn->sk, socket_err, huberr, fn);
     }
     if(hub == NULL)
 	return;
@@ -3140,48 +3125,61 @@ static struct fnet dcnet =
     .filebasename = dcbasename
 };
 
-static void peerread(struct socket *sk, struct dcpeer *peer)
+static void cmdread(struct dcpeer *peer)
 {
-    char *newbuf, *p;
-    size_t datalen;
+    char *p;
     struct command *cmd;
 
+    p = peer->inbuf;
+    while((peer->inbufdata > 0) && (p = memchr(peer->inbuf, '|', peer->inbufdata)) != NULL)
+    {
+	*(p++) = 0;
+	newqcmd(&peer->queue, peer->inbuf);
+	for(cmd = peercmds; cmd->handler != NULL; cmd++)
+	{
+	    if(!memcmp(peer->inbuf, cmd->name, strlen(cmd->name)) && ((peer->inbuf[strlen(cmd->name)] == ' ') || (peer->inbuf[strlen(cmd->name)] == '|')))
+		break;
+	}
+	memmove(peer->inbuf, p, peer->inbufdata -= p - peer->inbuf);
+	if(cmd->stop)
+	{
+	    peer->state = PEER_STOP;
+	    break;
+	}
+    }
+}
+
+static int peerread(struct socket *sk, struct dcpeer *peer)
+{
+    char *newbuf;
+    size_t datalen;
+
     if((newbuf = sockgetinbuf(sk, &datalen)) == NULL)
-	return;
+	return(0);
     sizebuf2(peer->inbuf, peer->inbufdata + datalen, 1);
     memcpy(peer->inbuf + peer->inbufdata, newbuf, datalen);
     free(newbuf);
     peer->inbufdata += datalen;
     if(peer->state == PEER_CMD)
     {
-	p = peer->inbuf;
-	while((peer->inbufdata > 0) && (p = memchr(peer->inbuf, '|', peer->inbufdata)) != NULL)
-	{
-	    *(p++) = 0;
-	    newqcmd(&peer->queue, peer->inbuf);
-	    for(cmd = peercmds; cmd->handler != NULL; cmd++)
-	    {
-		if(!memcmp(peer->inbuf, cmd->name, strlen(cmd->name)) && ((peer->inbuf[strlen(cmd->name)] == ' ') || (peer->inbuf[strlen(cmd->name)] == '|')))
-		    break;
-	    }
-	    memmove(peer->inbuf, p, peer->inbufdata -= p - peer->inbuf);
-	    if(cmd->stop)
-	    {
-		peer->state = PEER_STOP;
-		break;
-	    }
-	}
+	cmdread(peer);
+    } else if(peer->state == PEER_TRNS) {
+	transread(peer);
     } else if(peer->state == PEER_TTHL) {
 	handletthl(peer);
     }
+    return(0);
 }
 
-static void peererror(struct socket *sk, int err, struct dcpeer *peer)
+static int peererror(struct socket *sk, int err, struct dcpeer *peer)
 {
+    if(peer->state == PEER_TRNS)
+	transerr(peer);
     freedcpeer(peer);
+    return(0);
 }
 
-static void peerconnect(struct socket *sk, int err, struct fnetnode *fn)
+static int peerconnect(struct socket *sk, int err, struct fnetnode *fn)
 {
     struct dcpeer *peer;
     struct dchub *hub;
@@ -3190,34 +3188,34 @@ static void peerconnect(struct socket *sk, int err, struct fnetnode *fn)
     {
 	putfnetnode(fn);
 	putsock(sk);
-	return;
+	return(1);
     }
     hub = fn->data;
     peer = newdcpeer(sk);
     peer->fn = fn;
     peer->accepted = 0;
     peer->dcppemu = hub->dcppemu;
-    sk->readcb = (void (*)(struct socket *, void *))peerread;
-    sk->errcb = (void (*)(struct socket *, int, void *))peererror;
-    sk->data = peer;
+    CBREG(sk, socket_read, (int (*)(struct socket *, void *))peerread, NULL, peer);
+    CBREG(sk, socket_err, (int (*)(struct socket *, int, void *))peererror, NULL, peer);
     socksettos(sk, confgetint("fnet", "fnptos"));
     putsock(sk);
     peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
     sendmynick(peer);
     sendpeerlock(peer);
+    return(1);
 }
 
-static void peeraccept(struct socket *sk, struct socket *newsk, void *data)
+static int peeraccept(struct socket *sk, struct socket *newsk, void *data)
 {
     struct dcpeer *peer;
     
     peer = newdcpeer(newsk);
     peer->accepted = 1;
-    newsk->readcb = (void (*)(struct socket *, void *))peerread;
-    newsk->errcb = (void (*)(struct socket *, int, void *))peererror;
-    newsk->data = peer;
+    CBREG(sk, socket_read, (int (*)(struct socket *, void *))peerread, NULL, peer);
+    CBREG(sk, socket_err, (int (*)(struct socket *, int, void *))peererror, NULL, peer);
     socksettos(newsk, confgetint("fnet", "fnptos"));
     peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
+    return(0);
 }
 
 static void updatehmlist(void)
@@ -3635,7 +3633,7 @@ static int updateudpport(struct configvar *var, void *uudata)
 	flog(LOG_WARNING, "could not create new DC UDP socket, reverting to old: %s", strerror(errno));
 	return(0);
     }
-    newsock->readcb = udpread;
+    CBREG(newsock, socket_read, udpread, NULL, NULL);
     if(udpsock != NULL)
 	putsock(udpsock);
     udpsock = newsock;
@@ -3677,7 +3675,7 @@ static int init(int hup)
 	    flog(LOG_CRIT, "could not create DC UDP socket: %s", strerror(errno));
 	    return(1);
 	}
-	udpsock->readcb = udpread;
+	CBREG(udpsock, socket_read, udpread, NULL, NULL);
 	addr.sin_port = htons(confgetint("dc", "tcpport"));
 	if((tcpsock = netcslisten(SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), peeraccept, NULL)) == NULL)
 	    flog(LOG_INFO, "could not listen to a remote address, going into passive mode");

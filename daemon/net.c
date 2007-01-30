@@ -174,11 +174,11 @@ static struct socket *newsock(int type)
 	new->inbuf.d.f = new->inbuf.d.l = NULL;
 	break;
     }
-    new->conncb = NULL;
-    new->errcb = NULL;
-    new->readcb = NULL;
-    new->writecb = NULL;
-    new->acceptcb = NULL;
+    CBCHAININIT(new, socket_conn);
+    CBCHAININIT(new, socket_err);
+    CBCHAININIT(new, socket_read);
+    CBCHAININIT(new, socket_write);
+    CBCHAININIT(new, socket_accept);
     new->next = sockets;
     new->prev = NULL;
     if(sockets != NULL)
@@ -240,6 +240,11 @@ void putsock(struct socket *sk)
     
     if(--(sk->refcount) == 0)
     {
+	CBCHAINFREE(sk, socket_conn);
+	CBCHAINFREE(sk, socket_err);
+	CBCHAINFREE(sk, socket_read);
+	CBCHAINFREE(sk, socket_write);
+	CBCHAINFREE(sk, socket_accept);
 	switch(sk->type)
 	{
 	case SOCK_STREAM:
@@ -352,21 +357,18 @@ static void sockrecv(struct socket *sk)
 	{
 	    if((errno == EINTR) || (errno == EAGAIN))
 		return;
-	    if(sk->errcb != NULL)
-		sk->errcb(sk, errno, sk->data);
+	    CBCHAINDOCB(sk, socket_err, sk, errno);
 	    closesock(sk);
 	    return;
 	}
 	if(ret == 0)
 	{
-	    if(sk->errcb != NULL)
-		sk->errcb(sk, 0, sk->data);
+	    CBCHAINDOCB(sk, socket_err, sk, 0);
 	    closesock(sk);
 	    return;
 	}
 	sk->inbuf.s.datasize += ret;
-	if(sk->readcb != NULL)
-	    sk->readcb(sk, sk->data);
+	CBCHAINDOCB(sk, socket_read, sk);
 	break;
     case SOCK_DGRAM:
 	if(ioctl(sk->fd, SIOCINQ, &inq))
@@ -387,8 +389,7 @@ static void sockrecv(struct socket *sk)
 	    free(dbuf);
 	    if((errno == EINTR) || (errno == EAGAIN))
 		return;
-	    if(sk->errcb != NULL)
-		sk->errcb(sk, errno, sk->data);
+	    CBCHAINDOCB(sk, socket_err, sk, errno);
 	    closesock(sk);
 	    return;
 	}
@@ -403,8 +404,7 @@ static void sockrecv(struct socket *sk)
 	    free(dbuf);
 	    if(!((sk->family == AF_INET) || (sk->family == AF_INET6)))
 	    {
-		if(sk->errcb != NULL)
-		    sk->errcb(sk, 0, sk->data);
+		CBCHAINDOCB(sk, socket_err, sk, 0);
 		closesock(sk);
 	    }
 	    return;
@@ -417,8 +417,7 @@ static void sockrecv(struct socket *sk)
 	else
 	    sk->inbuf.d.f = dbuf;
 	sk->inbuf.d.l = dbuf;
-	if(sk->readcb != NULL)
-	    sk->readcb(sk, sk->data);
+	CBCHAINDOCB(sk, socket_read, sk);
 	break;
     }
 }
@@ -444,8 +443,7 @@ static void sockflush(struct socket *sk)
 	if(ret > 0)
 	{
 	    memmove(sk->outbuf.s.buf, ((char *)sk->outbuf.s.buf) + ret, sk->outbuf.s.datasize -= ret);
-	    if(sk->writecb != NULL)
-		sk->writecb(sk, sk->data);
+	    CBCHAINDOCB(sk, socket_write, sk);
 	}
 	break;
     case SOCK_DGRAM:
@@ -456,8 +454,7 @@ static void sockflush(struct socket *sk)
 	free(dbuf->data);
 	free(dbuf->addr);
 	free(dbuf);
-	if(sk->writecb != NULL)
-	    sk->writecb(sk, sk->data);
+	CBCHAINDOCB(sk, socket_write, sk);
 	break;
     }
 }
@@ -547,7 +544,7 @@ size_t sockqueuesize(struct socket *sk)
  * netcslisten() instead.
 */
 
-struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data)
+struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, int (*func)(struct socket *, struct socket *, void *), void *data)
 {
     struct socket *sk;
     int intbuf;
@@ -576,12 +573,12 @@ struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namel
 	putsock(sk);
 	return(NULL);
     }
-    sk->acceptcb = func;
-    sk->data = data;
+    if(func != NULL)
+	CBREG(sk, socket_accept, func, NULL, data);
     return(sk);
 }
 
-struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data)
+struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, int (*func)(struct socket *, struct socket *, void *), void *data)
 {
     if(confgetint("net", "mode") == 1)
     {
@@ -594,13 +591,13 @@ struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, v
     return(NULL);
 }
 
-struct socket *netcstcplisten(int port, int local, void (*func)(struct socket *, struct socket *, void *), void *data)
+struct socket *netcstcplisten(int port, int local, int (*func)(struct socket *, struct socket *, void *), void *data)
 {
     struct sockaddr_in addr;
 #ifdef HAVE_IPV6
     struct sockaddr_in6 addr6;
 #endif
-    struct socket *(*csfunc)(int, struct sockaddr *, socklen_t, void (*)(struct socket *, struct socket *, void *), void *);
+    struct socket *(*csfunc)(int, struct sockaddr *, socklen_t, int (*)(struct socket *, struct socket *, void *), void *);
     struct socket *ret;
     
     if(local)
@@ -671,7 +668,7 @@ void netdgramconn(struct socket *sk, struct sockaddr *addr, socklen_t addrlen)
     sk->ignread = 1;
 }
 
-struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(struct socket *, int, void *), void *data)
+struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, int (*func)(struct socket *, int, void *), void *data)
 {
     struct socket *sk;
     int mode;
@@ -691,8 +688,8 @@ struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(
 	if(errno == EINPROGRESS)
 	{
 	    sk->state = SOCK_SYN;
-	    sk->conncb = func;
-	    sk->data = data;
+	    if(func != NULL)
+		CBREG(sk, socket_conn, func, NULL, data);
 	    return(sk);
 	}
 	putsock(sk);
@@ -759,10 +756,7 @@ int pollsocks(int timeout)
 	    {
 		sslen = sizeof(ss);
 		if((newfd = accept(sk->fd, (struct sockaddr *)&ss, &sslen)) < 0)
-		{
-		    if(sk->errcb != NULL)
-			sk->errcb(sk, errno, sk->data);
-		}
+		    CBCHAINDOCB(sk, socket_err, sk, errno);
 		newsk = newsock(sk->type);
 		newsk->fd = newfd;
 		newsk->family = sk->family;
@@ -770,15 +764,13 @@ int pollsocks(int timeout)
 		memcpy(newsk->remote = smalloc(sslen), &ss, sslen);
 		newsk->remotelen = sslen;
 		putsock(newsk);
-		if(sk->acceptcb != NULL)
-		    sk->acceptcb(sk, newsk, sk->data);
+		CBCHAINDOCB(sk, socket_accept, sk, newsk);
 	    }
 	    if(pfds[i].revents & POLLERR)
 	    {
 		retlen = sizeof(ret);
 		getsockopt(sk->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
-		if(sk->errcb != NULL)
-		    sk->errcb(sk, ret, sk->data);
+		CBCHAINDOCB(sk, socket_err, sk, ret);
 		continue;
 	    }
 	    break;
@@ -787,16 +779,14 @@ int pollsocks(int timeout)
 	    {
 		retlen = sizeof(ret);
 		getsockopt(sk->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
-		if(sk->conncb != NULL)
-		    sk->conncb(sk, ret, sk->data);
+		CBCHAINDOCB(sk, socket_conn, sk, ret);
 		closesock(sk);
 		continue;
 	    }
 	    if(pfds[i].revents & (POLLIN | POLLOUT))
 	    {
 		sk->state = SOCK_EST;
-		if(sk->conncb != NULL)
-		    sk->conncb(sk, 0, sk->data);
+		CBCHAINDOCB(sk, socket_conn, sk, 0);
 	    }
 	    break;
 	case SOCK_EST:
@@ -804,8 +794,7 @@ int pollsocks(int timeout)
 	    {
 		retlen = sizeof(ret);
 		getsockopt(sk->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
-		if(sk->errcb != NULL)
-		    sk->errcb(sk, ret, sk->data);
+		CBCHAINDOCB(sk, socket_err, sk, ret);
 		closesock(sk);
 		continue;
 	    }
@@ -827,8 +816,7 @@ int pollsocks(int timeout)
 	}
 	if(pfds[i].revents & POLLHUP)
 	{
-	    if(sk->errcb != NULL)
-		sk->errcb(sk, 0, sk->data);
+	    CBCHAINDOCB(sk, socket_err, sk, 0);
 	    closesock(sk);
 	    unlinksock(sk);
 	    continue;

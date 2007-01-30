@@ -408,7 +408,7 @@ static void writehashcache(int now)
     fclose(stream);
 }
 
-static void hashread(struct socket *sk, void *uudata)
+static int hashread(struct socket *sk, void *uudata)
 {
     static char *hashbuf;
     static size_t hashbufsize = 0, hashbufdata = 0;
@@ -422,7 +422,7 @@ static void hashread(struct socket *sk, void *uudata)
     struct hashcache *hc;
     
     if((buf = sockgetinbuf(sk, &bufsize)) == NULL)
-	return;
+	return(0);
     bufcat(hashbuf, buf, bufsize);
     free(buf);
     while((lp = memchr(hashbuf, '\n', hashbufdata)) != NULL)
@@ -464,6 +464,7 @@ static void hashread(struct socket *sk, void *uudata)
 	}
 	memmove(hashbuf, lp, hashbufdata -= (lp - hashbuf));
     }
+    return(0);
 }
 
 static void hashexit(pid_t pid, int status, struct socket *outsock)
@@ -542,7 +543,7 @@ static int hashfile(char *path)
     close(fd);
     close(pfd[1]);
     outsock = wrapsock(pfd[0]);
-    outsock->readcb = hashread;
+    CBREG(outsock, socket_read, hashread, NULL, NULL);
     childcallback(hashjob, (void (*)(pid_t, int, void *))hashexit, outsock);
     return(0);
 }

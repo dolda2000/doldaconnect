@@ -67,22 +67,18 @@ void killfnetnode(struct fnetnode *fn)
     if(fn->sk != NULL)
     {
 	fn->sk->close = 1;
-	if(fn->sk->data == fn)
-	{
-	    fn->sk->data = NULL;
-	    putfnetnode(fn);
-	}
 	putsock(fn->sk);
 	fn->sk = NULL;
     }
 }
 
-void getfnetnode(struct fnetnode *fn)
+struct fnetnode *getfnetnode(struct fnetnode *fn)
 {
     fn->refcount++;
 #ifdef DEBUG
     fprintf(stderr, "getfnetnode on id %i at %p, refcount=%i\n", fn->id, fn, fn->refcount);
 #endif
+    return(fn);
 }
 
 void putfnetnode(struct fnetnode *fn)
@@ -163,19 +159,20 @@ void unlinkfnetnode(struct fnetnode *fn)
     putfnetnode(fn);
 }
 
-static void conncb(struct socket *sk, int err, struct fnetnode *data)
+static int conncb(struct socket *sk, int err, struct fnetnode *data)
 {
     if(err != 0)
     {
 	killfnetnode(data);
 	putfnetnode(data);
-	return;
+	return(1);
     }
     data->sk = sk;
     fnetsetstate(data, FNN_HS);
     socksettos(sk, confgetint("fnet", "fntos"));
     data->fnet->connect(data);
     putfnetnode(data);
+    return(1);
 }
 
 static void resolvecb(struct sockaddr *addr, int addrlen, struct fnetnode *data)
@@ -185,7 +182,7 @@ static void resolvecb(struct sockaddr *addr, int addrlen, struct fnetnode *data)
 	killfnetnode(data);
 	putfnetnode(data);
     } else {
-	netcsconn(addr, addrlen, (void (*)(struct socket *, int, void *))conncb, data);
+	netcsconn(addr, addrlen, (int (*)(struct socket *, int, void *))conncb, data);
     }
 }
 
