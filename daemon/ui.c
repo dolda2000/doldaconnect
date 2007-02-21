@@ -691,7 +691,7 @@ static void cmd_lspeers(struct socket *sk, struct uidata *data, int argc, wchar_
     } else {
 	for(peer = fn->peers; peer != NULL; peer = peer->next)
 	{
-	    sq(sk, 2 | ((peer->next != NULL)?1:0), L"200", L"%%s", peer->id, L"%%ls", peer->nick, NULL);
+	    sq(sk, 2 | ((peer->next != NULL)?1:0), L"200", L"%%ls", peer->id, L"%%ls", peer->nick, NULL);
 	    for(i = 0; i < peer->dinum; i++)
 	    {
 		if(peer->peerdi[i].datum->datatype == FNPD_INT)
