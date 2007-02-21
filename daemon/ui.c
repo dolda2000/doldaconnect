@@ -1238,7 +1238,7 @@ static void cmd_transstatus(struct socket *sk, struct uidata *data, int argc, wc
     havepriv(PERM_TRANS);
     buf1 = swprintf2(L"%lli", bytesdownload);
     buf2 = swprintf2(L"%lli", bytesupload);
-    sq(sk, 0, L"200", L"%%ls", buf1, L"%%ls", buf2, NULL);
+    sq(sk, 0, L"200", L"down", L"%%ls", buf1, L"up", L"%%ls", buf2, NULL);
     free(buf1);
     free(buf2);
 }
