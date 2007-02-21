@@ -64,10 +64,10 @@
 				   (begin (fn-updattr (car ires) a (cadr ires))
 					  (notify a (cdr (assq (car ires) fnetnodes)))))))))
       (dc-loop-reg ".notify" 601 (lambda (r er) (let* ((ires (dc-intresp r))
-						       (hubform (assq (car ires) fnetnode)))
+						       (hubform (assq (car ires) fnetnodes)))
 						  (if hubform
 						      (begin (fn-updattr (car ires) 'state (list-ref '(syn hs est dead) (cadr ires)))
-							     (notify 'state (cdr (assq (car ires) fnetnodes))))))))
+							     (notify 'state (cdr hubform)))))))
       (dc-loop-reg ".notify" 602 (lambda (r er) (ua r 'name)))
       (dc-loop-reg ".notify" 605 (lambda (r er) (ua r 'users)))
       (dc-loop-reg ".notify" 604 (lambda (r er)
