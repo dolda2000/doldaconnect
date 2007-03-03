@@ -115,7 +115,7 @@ if [ -e "$newname" ]; then
 fi
 mv "$resfile" "$newname"
 if [ -x $HOME/dc/complete ]; then
-    export "${!dcarg_@}" tth
+    export "${!dcarg_@}" tth filesize
     exec $HOME/dc/complete "$newname"
 fi
 exit 0
