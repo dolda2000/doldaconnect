@@ -594,7 +594,8 @@ static void terminate(void)
 
 static struct configvar myvars[] =
 {
-    /** The name of the service principal to use. */
+    /** The name of the service principal to use for Kerberos V
+     * authentication. */
     {CONF_VAR_STRING, "service", {.str = L"doldacond"}},
     /** The path to an alternative keytab file. If unspecified, the
      * system default keytab will be used. */
