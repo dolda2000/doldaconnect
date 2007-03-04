@@ -502,9 +502,25 @@ void fnethandlechat(struct fnetnode *fn, int public, wchar_t *name, wchar_t *pee
 
 static struct configvar myvars[] =
 {
+    /** The number of seconds to wait between searches. Most hubs
+     * require at least ten seconds, and quite often network lag will
+     * often make searches arrive to the hub more often than sent. It
+     * may be semi-dangerous to specify too low a value, since hubs
+     * will often kick users that search too often (even when the
+     * reason is network lag -- there is no way for the hub to know
+     * this), but it is quite annoying to set too high a value. 15 to
+     * 40 seconds are the recommended range (although the default is
+     * 15 seconds, it is recommended to set to 30 seconds). */
     {CONF_VAR_INT, "srchwait", {.num = 15}},
+    /** The TOS value to use for hub connections (see the TOS VALUES
+     * section). */
     {CONF_VAR_INT, "fntos", {.num = 0}},
+    /** The TOS value to use for peer connections (see the TOS VALUES
+     * section). */
     {CONF_VAR_INT, "fnptos", {.num = 0}},
+    /** Specifies a maximum number of simultaneously connected
+     * hubs. Attempts to connect to new hubs beyond this limit will
+     * return an error. Set to zero to remove the limit. */
     {CONF_VAR_INT, "maxnodes", {.num = 0}},
     {CONF_VAR_END}
 };

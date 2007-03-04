@@ -594,9 +594,18 @@ static void terminate(void)
 
 static struct configvar myvars[] =
 {
+    /** The name of the service principal to use. */
     {CONF_VAR_STRING, "service", {.str = L"doldacond"}},
+    /** The path to an alternative keytab file. If unspecified, the
+     * system default keytab will be used. */
     {CONF_VAR_STRING, "keytab", {.str = L""}},
+    /** Whether to renew renewable credentials automatically before
+     * they expire. */
     {CONF_VAR_BOOL, "renewcreds", {.num = 1}},
+    /** If true, the default credentials cache will be used, which is
+     * useful for e.g. Linux kernel key handling. If false, a file
+     * credentials cache will be created using mkstemp(3), using the
+     * pattern /tmp/krb5cc_dc_$UID_XXXXXX. */
     {CONF_VAR_BOOL, "usedefcc", {.num = 0}},
     {CONF_VAR_END}
 };

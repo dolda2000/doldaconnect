@@ -3709,11 +3709,31 @@ static void terminate(void)
 
 static struct configvar myvars[] =
 {
+    /** Specifies the share description reported to other DC users. */
     {CONF_VAR_STRING, "desc", {.str = L""}},
+    /** Specifies the speed reported to other DC users. Normal values
+     * are 28.8Kbps, 33.6Kbps, 56Kbps, Satellite, ISDN, DSL, Cable,
+     * LAN(T1) or LAN(T3)*/
     {CONF_VAR_STRING, "speedstring", {.str = L"LAN(T1)"}},
+    /** The e-mail address to report to other DC users. */
     {CONF_VAR_STRING, "email", {.str = L"spam@spam.org"}},
+    /** Specifies a specific UDP port to use for DC search results. If
+     * left unspecified, a port is allocated dynamically. Useful for
+     * NAT routers (see also the net.visibleipv4 address for those
+     * cases). */
     {CONF_VAR_INT, "udpport", {.num = 0}},
+    /** Specifies a specific TCP port to use for DC peer
+     * connections. If left unspecified, a port is allocated
+     * dynamically. Useful for NAT routers (see also the
+     * net.visibleipv4 address for those cases). */
     {CONF_VAR_INT, "tcpport", {.num = 0}},
+    /** If set to true, doldacond will do its best to emulate DC++
+     * (currently v0.674). This should be left off if at all possible,
+     * since turning it on will violate the rules of most hubs and
+     * thus give hub owners an actual reason to kick you if it is
+     * detected. It might be needed for some of the more bone-headed
+     * hub owners, though. Note that DC++ emulation can also be turned
+     * on or off for individual hubs, overriding this setting. */
     {CONF_VAR_BOOL, "dcppemu", {.num = 0}},
     {CONF_VAR_END}
 };

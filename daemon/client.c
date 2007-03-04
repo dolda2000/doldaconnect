@@ -60,9 +60,20 @@ static void writehashcache(int now);
 
 static struct configvar myvars[] =
 {
+    /** The default nick name to use. The nickname can also be
+     * specified for individual hubs, overriding this setting. */
     {CONF_VAR_STRING, "defnick", {.str = L"DoldaConnect user"}},
+    /** When scanning shares, this bitmask is consulted for every
+     * regular file. Unless the file's mode has the bits specified by
+     * this mask set, it will not be shared. */
     {CONF_VAR_INT, "scanfilemask", {.num = 0004}},
+    /** When scanning shares, this bitmask is consulted for every
+     * directory encountered. Unless the directory's mode has the bits
+     * specified by this mask set, it will be ignored and any files
+     * under it will not be shared. */
     {CONF_VAR_INT, "scandirmask", {.num = 0005}},
+    /** The filename to use for the hash cache (see the FILES section
+     * for more information). */
     {CONF_VAR_STRING, "hashcache", {.str = L"dc-hashcache"}},
     {CONF_VAR_END}
 };

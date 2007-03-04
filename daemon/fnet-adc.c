@@ -469,7 +469,15 @@ static void terminate(void)
 }
 
 static struct configvar myvars[] = {
+    /** Specifies a specific UDP port to use for ADC search
+     * results. If left unspecified, a port is allocated
+     * dynamically. Useful for NAT routers (see also the
+     * net.visibleipv4 address for those cases). */
     {CONF_VAR_INT, "udpport", {.num = 0}},
+    /** Specifies a specific TCP port to use for ADC peer
+     * connections. If left unspecified, a port is allocated
+     * dynamically. Useful for NAT routers (see also the
+     * net.visibleipv4 address for those cases). */
     {CONF_VAR_INT, "tcpport", {.num = 0}},
     {CONF_VAR_END}
 };

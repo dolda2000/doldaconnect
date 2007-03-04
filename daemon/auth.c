@@ -164,7 +164,11 @@ static int init(int hup)
 
 static struct configvar myvars[] =
 {
+    /** The name of the PAM service file to use. */
     {CONF_VAR_STRING, "pamserv", {.str = L"doldacond"}},
+    /** Specifies whether insecure authentication is to be allowed. If
+     * you are not completely sure what you are doing, never turn this
+     * on without also turning on net.onlylocal. */
     {CONF_VAR_BOOL, "authless", {.num = 1}},
     {CONF_VAR_END}
 };

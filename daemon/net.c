@@ -48,17 +48,40 @@
 
 static struct configvar myvars[] =
 {
-    /* 0 = Direct mode, 1 = Passive mode, 2 = SOCKS proxy */
+    /** The network mode to use. Currently supported values are 0 for
+     * active mode and 1 for passive mode. In the future, SOCKS5 proxy
+     * support may be added. */
     {CONF_VAR_INT, "mode", {.num = 0}},
+    /** Set the SO_REUSEADDR socket option on listening sockets, so
+     * that dead TCP connections waiting for timeout are ignored. */
     {CONF_VAR_BOOL, "reuseaddr", {.num = 0}},
-    /* Only for direct mode */
+    /** Overrides the IPv4 address reported to other clients in active
+     * mode. Useful for servers behind NAT routers. If both this and
+     * net.publicif are unspecified the address of the hub connection
+     * is used. */
     {CONF_VAR_IPV4, "visibleipv4", {.ipv4 = {0}}},
+    /** Specifies an interface name from which to fetch the IPv4
+     * address reported to other clients in active mode. If both this
+     * and net.visibleipv4 are unspecified the address of the hub
+     * connection is used. */
     {CONF_VAR_STRING, "publicif", {.str = L""}},
     /* Diffserv should be supported on IPv4, too, but I don't know the
      * API to do that. */
+    /** The Diffserv value to use on IPv6 connections when the
+     * minimize cost TOS value is used (see the TOS VALUES
+     * section). */
     {CONF_VAR_INT, "diffserv-mincost", {.num = 0}},
+    /** The Diffserv value to use on IPv6 connections when the
+     * maximize reliability TOS value is used (see the TOS VALUES
+     * section). */
     {CONF_VAR_INT, "diffserv-maxrel", {.num = 0}},
+    /** The Diffserv value to use on IPv6 connections when the
+     * maximize throughput TOS value is used (see the TOS VALUES
+     * section). */
     {CONF_VAR_INT, "diffserv-maxtp", {.num = 0}},
+    /** The Diffserv value to use on IPv6 connections when the
+     * minimize delay TOS value is used (see the TOS VALUES
+     * section). */
     {CONF_VAR_INT, "diffserv-mindelay", {.num = 0}},
     {CONF_VAR_END}
 };

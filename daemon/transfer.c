@@ -798,10 +798,22 @@ static int run(void)
 
 static struct configvar myvars[] =
 {
+    /** The maximum number of simultaneously permitted uploads. A
+     * common hub rule is that you will need at least as many slots as
+     * the number of hubs to which you are connected. */
     {CONF_VAR_INT, "slots", {.num = 3}},
+    /** The TOS value to use for upload connections (see the TOS
+     * VALUES section). */
     {CONF_VAR_INT, "ultos", {.num = SOCK_TOS_MAXTP}},
+    /** The TOS value to use for download connections (see the TOS
+     * VALUES section). */
     {CONF_VAR_INT, "dltos", {.num = SOCK_TOS_MAXTP}},
+    /** The name of the filter script (see the FILES section for
+     * lookup information). */
     {CONF_VAR_STRING, "filter", {.str = L"dc-filter"}},
+    /** If true, only one upload is allowed per remote peer. This
+     * option is still experimental, so it is recommended to leave it
+     * off. */
     {CONF_VAR_BOOL, "ulquota", {.num = 0}},
     {CONF_VAR_END}
 };

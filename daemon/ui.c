@@ -2260,9 +2260,18 @@ static void terminate(void)
 
 static struct configvar myvars[] =
 {
+    /** If true, UI connections will only be accepted from localhost
+     * addresses (127.0.0.1, ::1 or ::ffff:127.0.0.1). Unless you are
+     * completely sure that you know what you are doing, never turn
+     * this off when auth.authless is on. */
     {CONF_VAR_BOOL, "onlylocal", {.num = 1}},
+    /** The port number on which to accept UI client connections. */
     {CONF_VAR_INT, "port", {.num = 1500}},
+    /** The TOS value to use for UI connections (see the TOS VALUES
+     * section). */
     {CONF_VAR_INT, "uitos", {.num = SOCK_TOS_MINDELAY}},
+    /** The name of the filtercmd script (see the FILES section for
+     * lookup information). */
     {CONF_VAR_STRING, "filtercmd", {.str = L"dc-filtercmd"}},
     {CONF_VAR_END}
 };
