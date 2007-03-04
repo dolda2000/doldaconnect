@@ -1,0 +1,129 @@
+.\"
+.\" Copyright (C) 2007 Fredrik Tolf (fredrik@dolda2000.com)
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License as
+.\" published by the Free Software Foundation; either version 2 of
+.\" the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111,
+.\" USA.
+.\"
+.TH DOLDACOND.CONF 5 "@DATE@" "" "Dolda Connect manual"
+.SH NAME
+doldacond.conf \- Dolda Connect daemon configuration file
+.SH DESCRIPTION
+The \fBdoldacond\fP(8) daemon will examine the doldacond.conf upon
+startup and reception of SIGHUP. The file is written in a
+line-oriented ASCII format, using the following rules.
+.P
+A line is either empty, a comment, or a configuration directive. Empty
+lines are permitted to contain horizontal whitespace, but nothing
+else. A comment line begins with a hash sign (`#'). A configuration
+directive is a line with at least one token, each token being a series
+of non-whitespace characters or quoted whitespace characters. Quoting
+can be done either by surrounding the characters to be quoted with
+double quotation marks, or by preceding a single character to be
+quoted with a backslash. The first token is considered the directive
+to be evaluated, and the rest being arguments to the directive. Each
+of the possible configuration directives are described in their own
+sections.
+.SH CONFIGURATION VARIABLES
+The vast majority of the daemon's configuration is controlled via
+named configuration variables. The \fBset\fP directive is used to set
+the value of the configuration variables, which obeys the following
+syntax:
+.P
+\fBset\fP \fIvariable\fP \fIvalue\fP
+.P
+The value of a variable is either a boolean, an integer, a string or
+an IPv4 address. Which one depends on the variable. A boolean may be
+specified using either \fBtrue\fP/\fBfalse\fP, \fBon\fP/\fBoff\fP,
+\fByes\fP/\fBno\fP or \fB1\fP/\fB0\fP. Integers may be given in either
+decimal, octal or hexadecimal format, using standard C syntax \- that
+is, hexadecimal numbers prefixed with \fB0x\fP, octal numbers prefixed
+with \fB0\fP, or directly entered decimal numbers. Strings may contain
+arbitrary Unicode characters, and are decoded according to the
+system's default character coding. IPv4 addresses are specified in
+dotted quad decimal notation. A list of all the known configuration
+variables follows.
+@VARIABLES@
+.SH TOS VALUES
+Some configuration variables specify IP Type of Service values. Valid
+values for those variables are as follows:
+.TP
+0
+System default TOS.
+.TP
+1
+Minimize cost
+.TP
+2
+Maximize reliability
+.TP
+3
+Maximize throughput
+.TP
+4
+Minimize delay
+.P
+How routers interpret TOS values is defined by the administrator of
+those routers. For IPv6 connections, which use Diffserv instead of the
+older IPv4 TOS values, the Diffserv values to use are specified by the
+\fBnet.diffserv-mincost\fP, \fBnet.diffserv-maxrel\fP,
+\fBnet.diffserv-maxtp\fP and \fBnet.diffserv-mindelay\fP configuration
+variables, as described above.
+.SH FILES
+All file names specified in the configuration file, and the
+configuration file itself, are looked up by the daemon in a rather
+flexible manner. The only difference between the main configuration
+file and all other files is that the configuration must always be
+named \fBdoldacond.conf\fP, while the name of all other files may be
+specified in the configuration file. In all else, lookup is done
+according to the following rules:
+.TP
+1
+If the specified name contains any slashes (not applicable for
+doldacond.conf), it will be considered absolute, and no locations
+other than the explicitly specified will be examined.
+.TP
+2
+The home directory of the user running the daemon (as specified by
+either the \fBHOME\fP environment variable or as returned by the
+\fBgetpwuid\fP(3) function) is checked for a dot-file with the
+specified name.
+.TP
+3
+If the \fBPATH\fP environment variable exists, the directories it
+specifies are iterated, the last path element of each is replaced by
+`etc', and the resulting directories are checked for the existence of
+the specified file. For example, if \fBPATH\fP is
+/bin:/opt/doldaconnect/bin:/usr/bin, the directories /etc,
+/opt/doldaconnect/etc and /usr/etc will be checked for the file.
+.TP
+4
+If the \fBPATH\fP environment variable does not exist (but \fInot\fP
+if \fBPATH\fP does exist and the file simply could not be found
+according to the previous rule), the directories /usr/local/etc, /etc
+and /usr/etc are checked for the file.
+.P
+For files that are created on the fly, such as the hash cache, the
+file will be overwritten in place if found. If not found, it will be
+created in the home directory of the user running the daemon. If the
+home directory cannot be determined, the file will be created in /etc.
+.SH AUTHOR
+Fredrik Tolf <fredrik@dolda2000.com>
+.SH SEE ALSO
+\fBdoldacond\fP(8)

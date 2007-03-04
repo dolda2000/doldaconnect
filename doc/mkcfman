@@ -1,0 +1,85 @@
+#!/usr/bin/perl
+
+for $filename (@ARGV) {
+    open(SRC, $filename) || die "$filename: $!";
+    $state = 0;
+    delete @tvars{keys %tvars};
+    while(<SRC>) {
+	chomp;
+	if(/struct configvar/ && /\[\]/) {
+	    $state = 1;
+	}
+	if(($state == 1) && /^\s*\/\*\*/) {
+	    $curdoc = "";
+	    $state = 2;
+	    s/^\s*\/\*//;
+	}
+	if(($state == 1) && /\{CONF_VAR_(\w+), \"([^\"]*)\"/) {
+	    $var = $2; $type = $1; $def = "";
+	    if($type eq "INT") {
+		($def) = /\.num = (\d+)/;
+	    } elsif($type eq "BOOL") {
+		($def) = /\.num = (\d+)/;
+		if($def) {
+		    $def = "true";
+		} else {
+		    $def = "false";
+		}
+	    } elsif($type eq "STRING") {
+		($def) = /\.str = L\"([^\"]*)\"/;
+		$def = "\"$def\"";
+	    }
+	    $tvars{$var} = {"doc" => $curdoc, "type" => $type, "def" => $def};
+	    $curdoc = "";
+	}
+	if(($state == 1) && /\s*\};$/) {
+	    $state = 0;
+	}
+	if($state == 2) {
+	    if(/\*\/$/) {
+		$state = 1;
+		s/\*\/$//;
+	    }
+	    s/^\s*\*\s*//;
+	    s/\s*$//;
+	    if(length($curdoc) > 0) {
+		$curdoc .= " ";
+	    }
+	    $curdoc .= $_;
+	}
+    }
+    close SRC;
+    $module = $filename;
+    $module =~ s/^.*\///;
+    $module =~ s/\..*$//;
+    for $var (keys %tvars) {
+	$vars{"$module.$var"} = $tvars{$var};
+    }
+}
+
+$types{"BOOL"} = "boolean";
+$types{"INT"} = "integer";
+$types{"STRING"} = "string";
+$types{"IPV4"} = "IPv4 address";
+while(<STDIN>) {
+    if(/\@DATE\@/) {
+	@lt = localtime time;
+	$date = sprintf("%04i-%02i-%02i", $lt[5] + 1900, $lt[4] + 1, $lt[3]);
+	s/\@DATE\@/$date/;
+    }
+    if(/\@VARIABLES\@/) {
+	$_ = "";
+	for $var (sort keys %vars) {
+	    $_ .= ".TP\n.BI $var \" ";
+	    $_ .= $types{$vars{$var}->{"type"}};
+	    $_ .= "\"\n";
+	    $_ .= $vars{$var}->{"doc"};
+	    if(!($vars{$var}->{"type"} eq "IPV4")) {
+		$_ .= "\n\nDefault value: ";
+		$_ .= $vars{$var}->{"def"};
+	    }
+	    $_ .= "\n";
+	}
+    }
+    print;
+}
