@@ -2574,7 +2574,7 @@ int main(int argc, char **argv)
     gtk_init(&argc, &argv);
     dc_init();
     signal(SIGCHLD, SIG_IGN);
-    pubhubaddr = sstrdup("http://www.hublist.org/PublicHubList.config.bz2");
+    pubhubaddr = sstrdup("http://www.hublist.org/PublicHubList.xml.bz2");
     dcserver = sstrdup("localhost");
     if((pwent = getpwuid(getuid())) == NULL)
     {
