@@ -208,6 +208,7 @@ include/doldaconnect/Makefile
 doc/Makefile
 po/Makefile.in
 config/Makefile
+contrib/Makefile
 autopackage/dolcon.apspec
 autopackage/dcuilib.apspec
 autopackage/dcguile.apspec
