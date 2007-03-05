@@ -1,0 +1,5 @@
+man_MANS = doldacond.conf.5
+BUILT_SOURCES = doldacond.conf.5
+
+doldacond.conf.5: doldacond.conf.5.in ../daemon/*.c
+	./mkcvman ../daemon/*.c <doldacond.conf.5.in >doldacond.conf.5
