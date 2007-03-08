@@ -7,6 +7,10 @@ AC_PROG_INSTALL
 
 AM_GNU_GETTEXT_VERSION(0.12.1)
 AM_GNU_GETTEXT([external])
+
+# Temporary hack to make libtool not check for g++ or g77
+m4_defun([_LT_AC_LANG_CXX_CONFIG], true)
+m4_defun([_LT_AC_LANG_F77_CONFIG], true)
 AM_PROG_LIBTOOL
 
 AC_CHECK_LIB(pam, pam_start, , AC_MSG_ERROR([*** must have PAM]))
