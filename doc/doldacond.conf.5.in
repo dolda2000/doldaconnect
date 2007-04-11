@@ -60,6 +60,73 @@ system's default character coding. IPv4 addresses are specified in
 dotted quad decimal notation. A list of all the known configuration
 variables follows.
 @VARIABLES@
+.SH SHARES
+A very central function of a file-sharing daemon is to share files. To
+determine what files are to be shared, the \fBshare\fP directive is
+used, according to the following syntax:
+.P
+\fBshare\fP \fIsharename\fP \fIpath\fP
+.P
+The \fIsharename\fP is the name of the share as seen by other peers on
+the network. The \fIpath\fP is the path in the real filesystem to a
+directory containing the files to be shared. All files under the
+specified directory will be shared, except for files that begin with a
+dot, or files that do not match the criteria given by the
+\fBclient.scanfilemask\fP and \fBclient.scandirmask\fP variables, as
+described above.
+.P
+The \fBshare\fP directive may be used multiple times to define several
+shares.
+.SH USER AUTHORIZATION
+In multi-user mode (when running as root), the \fBdoldacond\fP(8)
+daemon can serve multiple users, but commonly not every user on the
+system should be authorized to be served. To specify which users to
+serve, and to assign permissions to the users to be served, the
+\fBuser\fP directive is used, according to the following syntax:
+.P
+\fBuser\fP {\fIusername\fP|\fBdefault\fP} [-]\fIpermission\fP...
+.P
+As indicated by the syntax, the special username \fBdefault\fP can be
+used to specify permissions for users not matched by any other user
+directive (if you have a user called \fBdefault\fP, tough luck).
+.P
+The assignable permissions are as follows:
+.P
+.TP
+.B admin
+Involves commands controlling the function of the daemon, such as
+shutting it down remotely.
+.TP
+.B fnetctl
+Allows connecting and disconnecting fnetnodes (a.k.a. hubs).
+.TP
+.B trans
+Allows queuing of transfers.
+.TP
+.B transcu
+Allows cancelling of uploads.
+.TP
+.B chat
+Allows sending and receiving of chat messages.
+.TP
+.B srch
+Allows submitting of search requests.
+.TP
+.B disallow
+A negative permission, used to prevent a user from being
+authorized. Mostly useful for the \fBdefault\fP user.
+.TP
+.B all
+Sets all the above permssions.
+.P
+A permissions may be prefixed with a minus sign, which means that that
+permission should be removed (commonly used after \fBall\fP, since
+permissions are scanned from left to right).
+.P
+Note that the \fBall\fP pseudo-permission really turns on \fIall\fP
+other permissions, including \fBdisallow\fP. Thus, to allow a user
+jdoe full control over the daemon, one would normally use "\fBuser
+jdoe all -disallow\fP".
 .SH TOS VALUES
 Some configuration variables specify IP Type of Service values. Valid
 values for those variables are as follows:
