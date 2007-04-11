@@ -17,7 +17,10 @@ file-sharing work, and a number of client programs that connect to the
 server in order to command  it and display its status. The interaction
 between  the client  and server  is carried  out using  a well-defined
 protocol, making it  fairly easy to write new  clients for specialized
-tasks.
+tasks.   It is  worthy of  note  that the  default configuration  file
+disables  running  clients  over   the  network,  for  convenience  of
+setup. See  the INSTALL  file for details  and instructions on  how to
+enabled networked clients.
 
 To make it  easier to write new clients, a C  library has been written
 to make  common functions easier, such  as connecting, authenticating,
