@@ -193,14 +193,13 @@ static void freeqcmd(struct qcmd *qcmd)
 
 #define ADC_CMDFN(name) static void name(struct fnetnode *fn, wchar_t *command, wchar_t *sender, int argc, wchar_t **argv)
 #ifdef __GNUC__
-#define ADC_CMDCOM \
-	struct socket *sk __attribute__ ((unused)) = fn->sk; \
-	struct adchub *hub __attribute__ ((unused)) = fn->data;
+#define UNUSED __attribute__ ((unused))
 #else
-#define ADC_CMDCOM \
-	struct socket *sk = fn->sk; \
-	struct adchub *hub = fn->data;
+#define UNUSED
 #endif
+#define ADC_CMDCOM \
+	struct socket *sk UNUSED = fn->sk; \
+	struct adchub *hub UNUSED = fn->data;
 
 ADC_CMDFN(cmd_sup)
 {
