@@ -33,6 +33,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/signal.h>
+#include <sys/stat.h>       /* For rebindunix() */
 #ifdef HAVE_LINUX_SOCKIOS_H
 #include <linux/sockios.h>
 #endif
@@ -490,10 +491,10 @@ void closesock(struct socket *sk)
     
     if((sk->family == AF_UNIX) && !sockgetlocalname(sk, (struct sockaddr **)&un, NULL) && (un->sun_family == PF_UNIX))
     {
-	if(strchr(un->sun_path, '/'))
+	if((sk->state == SOCK_LST) && strchr(un->sun_path, '/'))
 	{
 	    if(unlink(un->sun_path))
-		flog(LOG_WARNING, "could not unlink UNIX socket %s: %s", un->sun_path, strerror(errno));
+		flog(LOG_WARNING, "could not unlink Unix socket %s: %s", un->sun_path, strerror(errno));
 	}
     }
     sk->state = SOCK_STL;
@@ -572,6 +573,29 @@ size_t sockqueuesize(struct socket *sk)
 }
 
 /*
+ * Seriously, I don't know if it's naughty or not to remove
+ * pre-existing Unix sockets.
+ */
+static int rebindunix(struct socket *sk, struct sockaddr *name, socklen_t namelen)
+{
+    struct sockaddr_un *un;
+    struct stat sb;
+    
+    if((sk->family != AF_UNIX) || (name->sa_family != PF_UNIX))
+	return(-1);
+    un = (struct sockaddr_un *)name;
+    if(stat(un->sun_path, &sb))
+	return(-1);
+    if(!S_ISSOCK(sb.st_mode))
+	return(-1);
+    if(unlink(un->sun_path))
+	return(-1);
+    if(bind(sk->fd, name, namelen) < 0)
+	return(-1);
+    return(0);
+}
+
+/*
  * The difference between netcslisten() and netcslistenlocal() is that
  * netcslistenlocal() always listens on the local host, instead of
  * following proxy/passive mode directions. It is suitable for eg. the
@@ -598,7 +622,7 @@ struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namel
 	intbuf = 1;
 	setsockopt(sk->fd, SOL_SOCKET, SO_REUSEADDR, &intbuf, sizeof(intbuf));
     }
-    if(bind(sk->fd, name, namelen) < 0)
+    if((bind(sk->fd, name, namelen) < 0) && ((errno != EADDRINUSE) || (rebindunix(sk, name, namelen) < 0)))
     {
 	putsock(sk);
 	return(NULL);
@@ -890,6 +914,8 @@ int socksettos(struct socket *sk, int tos)
 {
     int buf;
     
+    if(sk->family == AF_UNIX)
+	return(0); /* Unix sockets are always perfect. :) */
     if(sk->family == AF_INET)
     {
 	switch(tos)
