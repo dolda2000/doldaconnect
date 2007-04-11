@@ -49,6 +49,8 @@
 #include <doldaconnect/uilib.h>
 #include <utils.h>
 
+#define DOLCON_SRV_NAME "_dolcon._tcp"
+
 #define RESP_END -1
 #define RESP_DSC 0
 #define RESP_STR 1
@@ -858,15 +860,10 @@ static int getsrvrr(char *name, char **host, int *port)
 	    return(-1);
     }
     /* res_querydomain doesn't work for some reason */
-    name2 = smalloc(strlen("_dolcon._tcp.") + strlen(name) + 2);
-    strcpy(name2, "_dolcon._tcp.");
-    strcat(name2, name);
-    len = strlen(name2);
-    if(name2[len - 1] != '.')
-    {
-	name2[len] = '.';
-	name2[len + 1] = 0;
-    }
+    if(name[strlen(name) - 1] == '.')
+	name2 = sprintf2("%s.%s", DOLCON_SRV_NAME, name);
+    else
+	name2 = sprintf2("%s.%s.", DOLCON_SRV_NAME, name);
     ret = res_query(name2, C_IN, T_SRV, buf, sizeof(buf));
     if(ret < 0)
     {
