@@ -14,7 +14,9 @@ m4_defun([_LT_AC_LANG_F77_CONFIG], true)
 AM_PROG_LIBTOOL
 
 AC_CHECK_LIB(pam, pam_start, , AC_MSG_ERROR([*** must have PAM]))
-AC_CHECK_LIB(dl, dlopen, , AC_MSG_ERROR([*** PAM requires a working dynamic loader (libdl)]))
+# Doesn't work on at least FreeBSD, and the existance of PAM should
+# already indicate that dlopen works.
+# AC_CHECK_LIB(dl, dlopen, , AC_MSG_ERROR([*** PAM requires a working dynamic loader (libdl)]))
 AC_CHECK_LIB(z, deflate, , AC_MSG_ERROR([*** must have zlib]))
 AC_CHECK_LIB(bz2, BZ2_bzWriteOpen, , AC_MSG_ERROR([*** must have bzlib]))
 AC_CHECK_LIB(gdbm, gdbm_open, , AC_MSG_ERROR([*** must have gdbm]))
