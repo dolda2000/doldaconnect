@@ -21,10 +21,10 @@
  * inability to structure GUI programs properly. Looking at it too
  * closely may cause ocular hemorrhaging. */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <malloc.h>
 #include <stdarg.h>
 #include <gtk/gtk.h>
 #include <sys/socket.h>

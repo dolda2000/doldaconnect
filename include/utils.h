@@ -21,7 +21,6 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
-#include <malloc.h>
 #ifdef DAEMON
 #include "log.h"
 #endif

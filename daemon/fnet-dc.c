@@ -19,7 +19,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <wchar.h>
-#include <malloc.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>

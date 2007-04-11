@@ -27,7 +27,6 @@
 #include <wctype.h>
 #include <pwd.h>
 #include <string.h>
-#include <malloc.h>
 #include <stdio.h>
 
 #ifdef HAVE_CONFIG_H
