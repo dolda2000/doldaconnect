@@ -255,52 +255,6 @@ static void freehashcache(struct hashcache *hc)
     free(hc);
 }
 
-static char *findhashcachefile(int filldef)
-{
-    static char ret[128];
-    char *hcname;
-    
-    if(getenv("HOME") != NULL)
-    {
-	snprintf(ret, sizeof(ret), "%s/.dc-hashcache", getenv("HOME"));
-	if(!access(ret, R_OK))
-	    return(ret);
-    }
-    if((hcname = icswcstombs(confgetstr("cli", "hashcache"), NULL, NULL)) == NULL)
-    {
-	flog(LOG_WARNING, "could not convert hash cache name into local charset: %s", strerror(errno));
-	return(NULL);
-    }
-    if(strchr(hcname, '/') != NULL)
-    {
-	if(!access(hcname, R_OK))
-	{
-	    strcpy(ret, hcname);
-	    return(ret);
-	}
-    } else {
-	snprintf(ret, sizeof(ret), "/etc/%s", hcname);
-	if(!access(ret, R_OK))
-	    return(ret);
-	snprintf(ret, sizeof(ret), "/usr/etc/%s", hcname);
-	if(!access(ret, R_OK))
-	    return(ret);
-	snprintf(ret, sizeof(ret), "/usr/local/etc/%s", hcname);
-	if(!access(ret, R_OK))
-	    return(ret);
-    }
-    if(filldef)
-    {
-	if(getenv("HOME") != NULL)
-	    snprintf(ret, sizeof(ret), "%s/.dc-hashcache", getenv("HOME"));
-	else
-	    snprintf(ret, sizeof(ret), "/etc/%s", hcname);
-	return(ret);
-    } else {
-	return(NULL);
-    }
-}
-
 static struct hashcache *findhashcache(dev_t dev, ino_t inode)
 {
     struct hashcache *hc;
@@ -323,7 +277,7 @@ static void readhashcache(void)
     struct hashcache *hc;
     size_t len;
     
-    if((hcname = findhashcachefile(0)) == NULL)
+    if((hcname = findfile(icswcstombs(confgetstr("cli", "hashcache"), NULL, NULL), NULL, 0)) == NULL)
 	return;
     if((stream = fopen(hcname, "r")) == NULL)
     {
@@ -399,7 +353,7 @@ static void writehashcache(int now)
     }
     if(hashwritetimer != NULL)
 	canceltimer(hashwritetimer);
-    hcname = findhashcachefile(1);
+    hcname = findfile(icswcstombs(confgetstr("cli", "hashcache"), NULL, NULL), NULL, 1);
     if((stream = fopen(hcname, "w")) == NULL)
     {
 	flog(LOG_WARNING, "could not write hash cache %s: %s", hcname, strerror(errno));
