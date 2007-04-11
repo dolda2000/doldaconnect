@@ -732,31 +732,38 @@ char *getetcpath(char *binpath)
     return(etcpath);
 }
 
-char *findfile(char *gname, char *uname, char *homedir, int filldef)
+char *findfile(char *name, char *homedir, int filldef)
 {
     char *path, *binpath, *etcpath, *p;
     struct passwd *pw;
-    int mode;
+    int mode, homeonly;
     
+    if(name == NULL)
+	return(NULL);
+
     mode = R_OK | (filldef ? W_OK : 0);
-    if(uname != NULL) {
+    homeonly = homedir != NULL;
+
+    if(!strchr(name, '/'))
+    {
 	if(homedir == NULL)
 	    homedir = getenv("HOME");
 	if((homedir == NULL) && ((pw = getpwuid(getuid())) != NULL))
 	    homedir = pw->pw_dir;
-	if((homedir != NULL) && ((path = sprintf2("%s/.%s", homedir, uname)) != NULL))
+	if((homedir != NULL) && ((path = sprintf2("%s/.%s", homedir, name)) != NULL))
 	{
 	    if(!access(path, mode))
 		return(path);
 	    free(path);
 	}
     }
-    if(gname != NULL)
+    
+    if(!homeonly)
     {
-	if(strchr(gname, '/') != NULL)
+	if(strchr(name, '/') != NULL)
 	{
-	    if(!access(gname, mode))
-		return(sstrdup(gname));
+	    if(!access(name, mode))
+		return(sstrdup(name));
 	} else {
 	    if((binpath = getenv("PATH")) == NULL)
 		etcpath = sstrdup("/usr/local/etc:/etc:/usr/etc");
@@ -764,7 +771,7 @@ char *findfile(char *gname, char *uname, char *homedir, int filldef)
 		etcpath = getetcpath(binpath);
 	    for(p = strtok(etcpath, ":"); p != NULL; p = strtok(NULL, ":"))
 	    {
-		if((path = sprintf2("%s/%s", p, gname)) != NULL)
+		if((path = sprintf2("%s/%s", p, name)) != NULL)
 		{
 		    if(!access(path, mode))
 		    {
@@ -777,10 +784,11 @@ char *findfile(char *gname, char *uname, char *homedir, int filldef)
 	    free(etcpath);
 	}
     }
+    
     if(filldef) {
-	if(uname && homedir)
-	    return(sprintf2("%s/.%s", homedir, uname));
-	return(sprintf2("/etc/%s", gname));
+	if(homedir)
+	    return(sprintf2("%s/.%s", homedir, name));
+	return(sprintf2("/etc/%s", name));
     } else {
 	return(NULL);
     }
