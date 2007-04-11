@@ -7,6 +7,7 @@ lib_LTLIBRARIES = libdcui.la
 
 libdcui_la_SOURCES = uilib.c uimisc.c utils.c
 libdcui_la_LIBADD = @KRB5_LDADD@
+libdcui_la_LDFLAGS = -version-info 1:0:1
 
 BUILT_SOURCES = initcmds.h
 
