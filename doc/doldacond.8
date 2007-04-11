@@ -96,15 +96,17 @@ Dolda Connect, including \fBdoldacond\fP and its assorted clients, are
 capable of a number of different authentication methods. The default
 configuration will cause the daemon to only listen for client
 connections on a Unix socket, over which authentication will be made
-using Unix credentials passing. When running clients over a network,
-authentication can be done using either PAM, Kerberos 5 (requires the
-MIT libraries) or client trust (no authentication). Unix credentials
-passing and Kerberos authentication should be perfectly secure. PAM
-authentication should be secure in itself, but the client protocol is
-not encrypted, and therefore causes passwords to be sent over the
-network in the clear. Authentication-less operation is, obviously, not
-secure at all and is disabled by default. It may be useful on a
-trusted network, however.
+using Unix credentials passing.
+.P
+When running clients over a network, authentication can be done using
+either PAM, Kerberos 5 (requires the MIT libraries) or client trust
+(no authentication). Unix credentials passing and Kerberos
+authentication should be perfectly secure. PAM authentication should
+be secure in itself, but the client protocol is not encrypted, and
+therefore causes passwords to be sent over the network in the
+clear. Authentication-less operation is, obviously, not secure at all
+and is disabled by default. It may be useful on a trusted network,
+however.
 .SH BUGS
 \fBdoldacond\fP has proved to be surprisingly stable. I have had it
 running for far longer than a month without any sign of instability or
