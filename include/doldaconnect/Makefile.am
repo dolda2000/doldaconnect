@@ -5,4 +5,4 @@ BUILT_SOURCES = utils.h
 utils.h: ../utils.h
 	cp -f ../utils.h .
 
-pkginclude_HEADERS=uilib.h uimisc.h
+pkginclude_HEADERS=uilib.h uimisc.h utils.h
