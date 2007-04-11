@@ -2132,7 +2132,7 @@ static void preinit(int hup)
     
     if(!hup)
     {
-	newuser(L"default", 0);
+	newuser(L"default", PERM_DISALLOW);
     } else {
 	for(user = users; user != NULL; user = user->next)
 	{
@@ -2226,6 +2226,8 @@ static int init(int hup)
 {
     struct uiuser *user, *next;
     struct sockaddr_un *un;
+    struct passwd *pwd;
+    wchar_t *wcsname;
     
     if(hup)
     {
@@ -2253,6 +2255,29 @@ static int init(int hup)
 	CBREG(confgetvar("ui", "unixsock"), conf_update, unixsockupdate, NULL, NULL);
 	GCBREG(newfncb, newfnetnode, NULL);
 	GCBREG(newtransfercb, newtransfernotify, NULL);
+    }
+    if(getuid() != 0)
+    {
+	for(user = users; user != NULL; user = user->next)
+	{
+	    if(wcscmp(user->name, L"default"))
+		break;
+	}
+	if(!user)
+	{
+	    if((pwd = getpwuid(getuid())) == NULL)
+	    {
+		flog(LOG_CRIT, "could not get login info: %s", strerror(errno));
+		return(1);
+	    }
+	    if((wcsname = icmbstowcs(pwd->pw_name, NULL)) == NULL)
+	    {
+		flog(LOG_CRIT, "could not convert user name into wcs: %s", strerror(errno));
+		return(1);
+	    }
+	    newuser(wcsname, ~PERM_DISALLOW);
+	    free(wcsname);
+	}
     }
     return(0);
 }
