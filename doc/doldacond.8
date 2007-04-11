@@ -1,0 +1,143 @@
+.\"
+.\" Copyright (C) 2007 Fredrik Tolf (fredrik@dolda2000.com)
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License as
+.\" published by the Free Software Foundation; either version 2 of
+.\" the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111,
+.\" USA.
+.\"
+.TH DOLDACOND 8 "2007-04-11" "" "Dolda Connect manual"
+.SH NAME
+doldacond \- Dolda Connect daemon
+.SH SYNOPSIS
+.B doldacond
+[ \fB-hns\fP ] [ \fB-C\fP \fIconfigfile\fP ]
+[ \fB-p\fP \fIpidfile\fP ] [ \fB-f\fP -fIfacility\fP ]
+.SH DESCRIPTION
+The \fBdoldacond\fP program is the primary part of the collection of
+software that makes up Dolda Connect. It runs in the background and
+carries out all the actual work of filesharing. Other programs connect
+to \fBdoldacond\fP over a socket in order to command it and/or display
+its status to a user.
+.P
+The configuration of \fBdoldacond\fP is controlled via the
+\fBdoldacond.conf\fP(5) file, which is described in detail in its own
+manual page.
+.SH OPTIONS
+.TP
+.B -h
+Displays a brief usage message on stdout and exits.
+.TP
+.B -s
+Normally, \fBdoldacond\fP will print log messages to stderr before it
+has daemonized, and switch to syslog output after daemonization. With
+the -s option, however, it will log to syslog directly, and never to
+stderr. It is probably only useful when starting \fBdoldacond\fP from
+an init script.
+.TP
+.B -n
+Causes \fBdoldacond\fP to not daemonize. As a side-effect of avoiding
+daemonization, log messages will be printed to stderr rather than to
+syslog even after the point where the daemon would normally have
+daemonized (unless the -s option is also specified).
+.TP
+.BI -C " configfile"
+Use \fIconfigfile\fP instead of the normal search list for
+configuration files. See \fBdoldacond.conf\fP(5) for the normal
+behavior.
+.TP
+.BI -p " pidfile"
+Write the daemon's PID to \fIpidfile\fP after daemonization. Works
+even if the -n option has been specified.
+.TP
+.BI -f " facility"
+Use \fIfacility\fP when logging to syslog. The facility can be any of
+\fBauth\fP, \fBauthpriv\fP, \fBcron\fP, \fBdaemon\fP, \fBftp\fP,
+\fBkern\fP, \fBlpr\fP, \fBmail\fP, \fBnews\fP, \fBsyslog\fP,
+\fBuser\fP, \fBuucp\fP or \fBlocal0\fP...\fB7\fP, although only a
+subset probably make sense for \fBdoldacond\fP. The default is
+\fBdaemon\fP. Also see the BUGS section.
+.SH FILES
+The configuration file will normally be called
+/usr/local/etc/doldacond.conf, /etc/doldacond.conf or
+~/.doldacond.conf, but a multitude of others are possible. See the
+\fBdoldacond.conf\fP(5) manual page for details.
+.SH SIGNALS
+.TP
+.B SIGHUP
+Causes the daemon to reread its configuration file and update its
+operation accordingly, and to rescan all shared directories. SIGHUP
+can safely be sent at any time \- no connected clients or hubs will be
+affected.
+.TP
+.B SIGINT, SIGTERM
+Shut down the daemon cleanly, unlinking temporary files and sockets.
+.TP
+.B SIGUSR1, SIGUSR2
+Used for debugging. USR1 will cause the daemon to fork and dump a core
+file, and USR2 will dump some memory usage information to /tmp.
+.SH SECURITY
+Dolda Connect, including \fBdoldacond\fP and its assorted clients, are
+capable of a number of different authentication methods. The default
+configuration will cause the daemon to only listen for client
+connections on a Unix socket, over which authentication will be made
+using Unix credentials passing. When running clients over a network,
+authentication can be done using either PAM, Kerberos 5 (requires the
+MIT libraries) or client trust (no authentication). Unix credentials
+passing and Kerberos authentication should be perfectly secure. PAM
+authentication should be secure in itself, but the client protocol is
+not encrypted, and therefore causes passwords to be sent over the
+network in the clear. Authentication-less operation is, obviously, not
+secure at all and is disabled by default. It may be useful on a
+trusted network, however.
+.SH BUGS
+\fBdoldacond\fP has proved to be surprisingly stable. I have had it
+running for far longer than a month without any sign of instability or
+memory leaks, which is probably a lot longer than a program of this
+kind really needs to be able to stay running.
+.P
+That said, it is not without bugs. Here follows a list of the more
+prominent ones.
+.P
+Most importantly, \fBdoldacond\fP will fail miserably at sharing files
+from filesystems that do not have persistent i-numbers, since hashes
+are indexed by the i-number of the file. This is done so because
+indexing by i-numbers rather than file names allows the daemon to not
+rehash files that have merely been renamed. However, among the
+filesystems that do not have persistent i-numbers is the Linux
+implementation of FAT, which means that it is impossible to share
+files that are shared with Microsoft Windows. All the known standard
+Unix filesystems, including at least ufs, ext2/3, reiserfs, xfs or any
+of them shared over nfs are known to be safe.
+.P
+From time to time, the hash controller can get stuck, and stop
+processing more files. The obvious work-around is to restart
+\fBdoldacond\fP, at which point it will continue where it left off. If
+you feel adventurous and/or really need to not restart it, you can
+attach \fBgdb\fP(1) (or your debugger of choice) to the running
+\fBdoldacond\fP process and set the hashjob variable to -1, which will
+force \fBdoldacond\fP to resume hashing. Don't do that while a hash
+job is actually running, though.
+.P
+Not really a bug in \fBdoldacond\fP itself, many PAM modules will
+reinitialize the syslog library and cause log messages from the daemon
+itself to arrive to a different facility than originally intended.
+.SH AUTHOR
+Fredrik Tolf <fredrik@dolda2000.com>
+.SH SEE ALSO
+\fBdoldacond.conf\fP(5)
