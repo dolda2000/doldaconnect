@@ -79,6 +79,29 @@ struct fnetcbdata
 struct dc_fnetnode *dc_fnetnodes = NULL;
 struct dc_transfer *dc_transfers = NULL;
 
+static void message(char *format, ...)
+{
+    static int on = -1;
+    char *v;
+    va_list args;
+    
+    if(on == -1)
+    {
+	on = 0;
+	if((v = getenv("LIBDCUI_MSG")) != NULL)
+	{
+	    if(strtol(v, NULL, 0) & 1)
+		on = 1;
+	}
+    }
+    if(on == 1)
+    {
+	va_start(args, format);
+	vfprintf(stderr, format, args);
+	va_end(args);
+    }
+}
+
 static void freelogindata(struct logindata *data)
 {
     if((data->mech != NULL) && (data->mech->release != NULL))
@@ -253,7 +276,7 @@ static void process_krb5(struct dc_response *resp, struct logindata *data)
 		    krb->reqbuf.data = NULL;
 		    if((ret = krb5_fwd_tgt_creds(krb->context, krb->authcon, NULL, krb->servcreds->client, krb->servcreds->server, 0, 1, &krb->reqbuf)) != 0)
 		    {
-			fprintf(stderr, "krb5_fwd_tgt_creds reported an error: %s\n", error_message(ret));
+			message("krb5_fwd_tgt_creds reported an error: %s\n", error_message(ret));
 			dc_queuecmd(logincallback, data, L"pass", L"31", NULL);
 			krb->fwd = 0;
 			krb->state = 2;
@@ -305,28 +328,28 @@ static int init_krb5(struct logindata *data)
     data->mechdata = krb;
     if((ret = krb5_init_context(&krb->context)) != 0)
     {
-	fprintf(stderr, "krb5_init_context reported an error: %s\n", error_message(ret));
+	message("krb5_init_context reported an error: %s\n", error_message(ret));
 	return(1);
     }
     if((ret = krb5_auth_con_init(krb->context, &krb->authcon)) != 0)
     {
-	fprintf(stderr, "krb5_auth_con_init reported an error: %s\n", error_message(ret));
+	message("krb5_auth_con_init reported an error: %s\n", error_message(ret));
 	return(1);
     }
     krb5_auth_con_setflags(krb->context, krb->authcon, KRB5_AUTH_CONTEXT_DO_SEQUENCE);
     if((ret = krb5_sname_to_principal(krb->context, dc_gethostname(), "doldacond", KRB5_NT_SRV_HST, &krb->sprinc)) != 0)
     {
-	fprintf(stderr, "krb5_sname_to_principal reported an error: %s\n", error_message(ret));
+	message("krb5_sname_to_principal reported an error: %s\n", error_message(ret));
 	return(1);
     }
     if((ret = krb5_cc_default(krb->context, &krb->ccache)) != 0)
     {
-	fprintf(stderr, "krb5_cc_default reported an error: %s\n", error_message(ret));
+	message("krb5_cc_default reported an error: %s\n", error_message(ret));
 	return(1);
     }
     if((ret = krb5_cc_get_principal(krb->context, krb->ccache, &krb->myprinc)) != 0)
     {
-	fprintf(stderr, "krb5_cc_default reported an error: %s\n", error_message(ret));
+	message("krb5_cc_default reported an error: %s\n", error_message(ret));
 	return(1);
     }
     memset(&creds, 0, sizeof(creds));
@@ -334,7 +357,7 @@ static int init_krb5(struct logindata *data)
     creds.server = krb->sprinc;
     if((ret = krb5_get_credentials(krb->context, 0, krb->ccache, &creds, &krb->servcreds)) != 0)
     {
-	fprintf(stderr, "krb5_get_credentials reported an error: %s\n", error_message(ret));
+	message("krb5_get_credentials reported an error: %s\n", error_message(ret));
 	return(1);
     }
     /* WTF is this checksum stuff?! The Krb docs don't say a word about it! */
@@ -342,7 +365,7 @@ static int init_krb5(struct logindata *data)
     cksum.length = strlen(cksum.data);
     if((ret = krb5_mk_req_extended(krb->context, &krb->authcon, AP_OPTS_MUTUAL_REQUIRED, &cksum, krb->servcreds, &krb->reqbuf)) != 0)
     {
-	fprintf(stderr, "krb5_mk_req_extended reported an error: %s\n", error_message(ret));
+	message("krb5_mk_req_extended reported an error: %s\n", error_message(ret));
 	return(1);
     }
     free(cksum.data);
@@ -456,7 +479,7 @@ static int logincallback(struct dc_response *resp)
 			    if(authmechs[i].release != NULL)
 				authmechs[i].release(data);
 			    data->mechdata = odata;
-			    fprintf(stderr, "authentication mechanism %ls failed, trying further...\n", authmechs[i].name);
+			    message("authentication mechanism %ls failed, trying further...\n", authmechs[i].name);
 			} else {
 			    if((data->mech != NULL) && data->mech->release != NULL)
 			    {
