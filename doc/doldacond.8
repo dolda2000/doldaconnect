@@ -123,9 +123,9 @@ indexing by i-numbers rather than file names allows the daemon to not
 rehash files that have merely been renamed. However, among the
 filesystems that do not have persistent i-numbers is the Linux
 implementation of FAT, which means that it is impossible to share
-files that are shared with Microsoft Windows. All the known standard
-Unix filesystems, including at least ufs, ext2/3, reiserfs, xfs or any
-of them shared over nfs are known to be safe.
+files that are shared with Microsoft Windows. All the standard Unix
+filesystems, including at least ufs, ext2/3, reiserfs, xfs or any of
+them shared over nfs are known to be safe.
 .P
 From time to time, the hash controller can get stuck, and stop
 processing more files. The obvious work-around is to restart
