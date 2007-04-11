@@ -67,8 +67,10 @@ static int unixauth(struct authhandle *auth, struct socket *sk, char *passdata)
 	errno = EBADE;
 	return(AUTH_ERR);
     }
-    if(pwd->pw_uid == sk->ucred.uid)
+    if(pwd->pw_uid == sk->ucred.uid) {
+	flog(LOG_INFO, "process %i successfully authenticated as %s with Unix credentials (uid=%i, gid=%i)", sk->ucred.pid, data->username, sk->ucred.uid, sk->ucred.gid);
 	return(AUTH_SUCCESS);
+    }
     auth->text = swcsdup(L"Unix credentials do not match supplied user name");
     return(AUTH_DENIED);
 }
