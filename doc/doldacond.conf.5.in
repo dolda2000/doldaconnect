@@ -25,21 +25,21 @@
 .SH NAME
 doldacond.conf \- Dolda Connect daemon configuration file
 .SH DESCRIPTION
-The \fBdoldacond\fP(8) daemon will examine the doldacond.conf upon
-startup and reception of SIGHUP. The file is written in a
+The \fBdoldacond\fP(8) daemon will examine the doldacond.conf file
+upon startup and reception of SIGHUP. The file is written in a
 line-oriented ASCII format, using the following rules.
 .P
 A line is either empty, a comment, or a configuration directive. Empty
 lines are permitted to contain horizontal whitespace, but nothing
-else. A comment line begins with a hash sign (`#'). A configuration
-directive is a line with at least one token, each token being a series
-of non-whitespace characters or quoted whitespace characters. Quoting
-can be done either by surrounding the characters to be quoted with
-double quotation marks, or by preceding a single character to be
-quoted with a backslash. The first token is considered the directive
-to be evaluated, and the rest being arguments to the directive. Each
-of the possible configuration directives are described in their own
-sections.
+else. A comment line begins with a hash sign (`#'), optionally
+preceded by whitespace. A configuration directive is a line with at
+least one token, each token being a series of non-whitespace
+characters or quoted whitespace characters. Quoting can be done either
+by surrounding the characters to be quoted with double quotation
+marks, or by preceding a single character to be quoted with a
+backslash. The first token is considered the directive to be
+evaluated, and the rest being arguments to the directive. Each of the
+possible configuration directives are described in their own sections.
 .SH CONFIGURATION VARIABLES
 The vast majority of the daemon's configuration is controlled via
 named configuration variables. The \fBset\fP directive is used to set
@@ -123,6 +123,9 @@ For files that are created on the fly, such as the hash cache, the
 file will be overwritten in place if found. If not found, it will be
 created in the home directory of the user running the daemon. If the
 home directory cannot be determined, the file will be created in /etc.
+.SH BUGS
+IPv4 should also be able to use Diffserv instead of TOS. I have simply
+not been able to find the API to set IPv4 Diffserv values.
 .SH AUTHOR
 Fredrik Tolf <fredrik@dolda2000.com>
 .SH SEE ALSO
