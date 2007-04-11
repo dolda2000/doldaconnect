@@ -273,14 +273,11 @@ static int init(struct conduit *conduit)
 static int connect(struct conduit *conduit)
 {
     struct data *data;
-    char *host;
     
     data = conduit->cdata;
     if(inuse != NULL)
 	return(-1);
-    if((host = getenv("DCSERVER")) == NULL)
-	host = "localhost";
-    if((data->fd = dc_connect(host, -1)) < 0)
+    if((data->fd = dc_connect(NULL)) < 0)
 	return(-1);
     data->gdkread = gdk_input_add(data->fd, GDK_INPUT_READ, (void (*)(gpointer, int, GdkInputCondition))dcfdcb, conduit);
     updatewrite(conduit);

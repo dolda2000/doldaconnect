@@ -365,7 +365,7 @@ static void gi_login(GaimAccount *act)
 	return;
     }
     gaim_connection_update_progress(gc, "Connecting", 1, 3);
-    if((data->fd = dc_connect((char *)gaim_account_get_string(act, "server", "localhost"), -1)) < 0)
+    if((data->fd = dc_connect((char *)gaim_account_get_string(act, "server", "localhost"))) < 0)
     {
 	gaim_connection_error(gc, "Could not connect to server");
 	return;
@@ -500,7 +500,7 @@ static void init(GaimPlugin *pl)
     GaimAccountOption *opt;
     
     dc_init();
-    opt = gaim_account_option_string_new("Server", "server", "localhost");
+    opt = gaim_account_option_string_new("Server", "server", "");
     protinfo.protocol_options = g_list_append(protinfo.protocol_options, opt);
     opt = gaim_account_option_int_new("Port", "port", -1);
     protinfo.protocol_options = g_list_append(protinfo.protocol_options, opt);

@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     struct dc_intresp *ires;
     
     dc_init();
-    fd = dc_connect("localhost", -1);
+    fd = dc_connect(NULL);
     done = 0;
     while(!done)
     {

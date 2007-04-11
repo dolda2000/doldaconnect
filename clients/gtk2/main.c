@@ -1361,7 +1361,7 @@ void cb_main_lsres_activate(GtkWidget *widget, gpointer data)
 
 void dcconnect(char *host)
 {
-    dcfd = dc_connect(host, -1);
+    dcfd = dc_connect(host);
     if(dcfd < 0)
     {
 	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not connect:\n\n%s"), strerror(errno));
@@ -2575,7 +2575,7 @@ int main(int argc, char **argv)
     dc_init();
     signal(SIGCHLD, SIG_IGN);
     pubhubaddr = sstrdup("http://www.hublist.org/PublicHubList.xml.bz2");
-    dcserver = sstrdup("localhost");
+    dcserver = sstrdup("");
     if((pwent = getpwuid(getuid())) == NULL)
     {
 	fprintf(stderr, "could not get your passwd data");
