@@ -398,12 +398,16 @@ static void sockrecv(struct socket *sk)
 	if(inq > 65536)
 	    inq = 65536;
 	sizebuf(&sk->inbuf.s.buf, &sk->inbuf.s.bufsize, sk->inbuf.s.datasize + inq, 1, 1);
-	/*
-	ret = read(sk->fd, sk->inbuf.s.buf + sk->inbuf.s.datasize, inq);
-	*/
-	bufvec.iov_base = sk->inbuf.s.buf + sk->inbuf.s.datasize;
-	bufvec.iov_len = inq;
-	ret = recvmsg(sk->fd, &msg, 0);
+	if(sk->isrealsocket)
+	{
+	    bufvec.iov_base = sk->inbuf.s.buf + sk->inbuf.s.datasize;
+	    bufvec.iov_len = inq;
+	    ret = recvmsg(sk->fd, &msg, 0);
+	} else {
+	    ret = read(sk->fd, sk->inbuf.s.buf + sk->inbuf.s.datasize, inq);
+	    msg.msg_controllen = 0;
+	    msg.msg_flags = 0;
+	}
 	if(ret < 0)
 	{
 	    if((errno == EINTR) || (errno == EAGAIN))
