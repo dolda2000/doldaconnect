@@ -24,6 +24,7 @@
 #include <netinet/in.h>
 #include <netinet/ip6.h>
 #include <arpa/inet.h>
+#include <sys/un.h>
 #include <errno.h>
 #include <string.h>
 #include <stdarg.h>
@@ -167,7 +168,8 @@ static void notifappend(struct notif *notif, ...);
 
 struct uiuser *users = NULL;
 struct uidata *actives = NULL;
-struct socket *uisocket = NULL;
+struct socket *tcpsocket = NULL;
+struct socket *unixsocket = NULL;
 static time_t starttime;
 
 static wchar_t *quoteword(wchar_t *word)
@@ -338,6 +340,9 @@ static void cmd_connect(struct socket *sk, struct uidata *data, int argc, wchar_
 		valid = 1;
 	    if(!memcmp(&((struct sockaddr_in6 *)sk->remote)->sin6_addr, &mv4lo, sizeof(in6addr_loopback)))
 		valid = 1;
+	    break;
+	case AF_UNIX:
+	    valid = 1;
 	    break;
 	default:
 	    valid = 0;
@@ -1137,7 +1142,10 @@ static void cmd_filtercmd(struct socket *sk, struct uidata *data, int argc, wcha
 	sq(sk, 0, L"505", L"System error - Could not fork session", "Internal error", NULL);
 	return;
     }
-    if((filtercmd = findfile(icswcstombs(confgetstr("ui", "filtercmd"), NULL, NULL), "dcdl-filtercmd", pwent->pw_dir, 0)) == NULL)
+    filtercmd = findfile(icswcstombs(confgetstr("ui", "filtercmd"), NULL, NULL), NULL, 0);
+    if(filtercmd == NULL)
+	filtercmd = findfile("dc-filtercmd", pwent->pw_dir, 0);
+    if(filtercmd == NULL)
     {
 	flog(LOG_WARNING, "could not find filtercmd executable for user %s", pwent->pw_name);
 	sq(sk, 0, L"505", L"System error - Could not fork session", L"Could not find filtercmd executable", NULL);
@@ -2135,24 +2143,90 @@ static void preinit(int hup)
     }
 }
 
-static int portupdate(struct configvar *var, void *uudata)
+static struct sockaddr_un *makeunixname(void)
+{
+    static struct sockaddr_un buf;
+    char *val;
+    struct passwd *pwd;
+    uid_t uid;
+    
+    memset(&buf, 0, sizeof(buf));
+    buf.sun_family = PF_UNIX;
+    if((val = icswcstombs(confgetstr("ui", "unixsock"), NULL, NULL)) == NULL) {
+	flog(LOG_WARNING, "could not map Unix socket name into local charset: %s", strerror(errno));
+	return(NULL);
+    }
+    if(!strcmp(val, "none"))
+	return(NULL);
+    if(!strcmp(val, "default"))
+    {
+	if((uid = getuid()) == 0)
+	{
+	    strcpy(buf.sun_path, "/var/run/doldacond.sock");
+	    return(&buf);
+	} else {
+	    if((pwd = getpwuid(uid)) == NULL)
+	    {
+		flog(LOG_ERR, "could not get passwd entry for current user: %s", strerror(errno));
+		return(NULL);
+	    }
+	    strcpy(buf.sun_path, "/tmp/doldacond-");
+	    strcat(buf.sun_path, pwd->pw_name);
+	    return(&buf);
+	}
+    }
+    if(strchr(val, '/'))
+    {
+	strcpy(buf.sun_path, val);
+	return(&buf);
+    }
+    flog(LOG_WARNING, "invalid Unix socket name: %s", val);
+    return(NULL);
+}
+
+static int tcpportupdate(struct configvar *var, void *uudata)
 {
     struct socket *newsock;
     
-    if((uisocket = netcstcplisten(var->val.num, 1, uiaccept, NULL)) == NULL)
+    newsock = NULL;
+    if((var->val.num != -1) && ((newsock = netcstcplisten(var->val.num, 1, uiaccept, NULL)) == NULL))
     {
-	flog(LOG_WARNING, "could not create new UI socket, reverting to old: %s", strerror(errno));
+	flog(LOG_WARNING, "could not create new TCP UI socket, reverting to old: %s", strerror(errno));
 	return(0);
     }
-    if(uisocket != NULL)
-	putsock(uisocket);
-    uisocket = newsock;
+    if(tcpsocket != NULL)
+    {
+	putsock(tcpsocket);
+	tcpsocket = NULL;
+    }
+    tcpsocket = newsock;
+    return(0);
+}
+
+static int unixsockupdate(struct configvar *var, void *uudata)
+{
+    struct socket *newsock;
+    struct sockaddr_un *un;
+    
+    newsock = NULL;
+    if(((un = makeunixname()) != NULL) && ((newsock = netcslistenlocal(SOCK_STREAM, (struct sockaddr *)un, sizeof(*un), uiaccept, NULL)) == NULL))
+    {
+	flog(LOG_WARNING, "could not create new Unix UI socket, reverting to old: %s", strerror(errno));
+	return(0);
+    }
+    if(unixsocket != NULL)
+    {
+	putsock(unixsocket);
+	unixsocket = NULL;
+    }
+    unixsocket = newsock;
     return(0);
 }
 
 static int init(int hup)
 {
     struct uiuser *user, *next;
+    struct sockaddr_un *un;
     
     if(hup)
     {
@@ -2166,14 +2240,18 @@ static int init(int hup)
     if(!hup)
     {
 	starttime = time(NULL);
-	if(uisocket != NULL)
-	    putsock(uisocket);
-	if((uisocket = netcstcplisten(confgetint("ui", "port"), 1, uiaccept, NULL)) == NULL)
+	if((confgetint("ui", "port") != -1) && ((tcpsocket = netcstcplisten(confgetint("ui", "port"), 1, uiaccept, NULL)) == NULL))
 	{
-	    flog(LOG_CRIT, "could not create UI socket: %s", strerror(errno));
+	    flog(LOG_CRIT, "could not create TCP UI socket: %s", strerror(errno));
 	    return(1);
 	}
-	CBREG(confgetvar("ui", "port"), conf_update, portupdate, NULL, NULL);
+	CBREG(confgetvar("ui", "port"), conf_update, tcpportupdate, NULL, NULL);
+	if(((un = makeunixname()) != NULL) && ((unixsocket = netcslistenlocal(SOCK_STREAM, (struct sockaddr *)un, sizeof(*un), uiaccept, NULL)) == NULL))
+	{
+	    flog(LOG_CRIT, "could not create Unix UI socket: %s", strerror(errno));
+	    return(1);
+	}
+	CBREG(confgetvar("ui", "unixsock"), conf_update, unixsockupdate, NULL, NULL);
 	GCBREG(newfncb, newfnetnode, NULL);
 	GCBREG(newtransfercb, newtransfernotify, NULL);
     }
@@ -2256,6 +2334,10 @@ static void terminate(void)
 {
     while(users != NULL)
 	freeuser(users);
+    if(tcpsocket != NULL)
+	putsock(tcpsocket);
+    if(unixsocket != NULL)
+	putsock(unixsocket);
 }
 
 static struct configvar myvars[] =
@@ -2265,8 +2347,20 @@ static struct configvar myvars[] =
      * completely sure that you know what you are doing, never turn
      * this off when auth.authless is on. */
     {CONF_VAR_BOOL, "onlylocal", {.num = 1}},
-    /** The port number on which to accept UI client connections. */
+    /** The TCP port number on which to accept UI client connections,
+     * or -1 to not listen on TCP. */
     {CONF_VAR_INT, "port", {.num = 1500}},
+    /**
+     * Controls the the name to use for the Unix socket on which to
+     * accept UI client connections. If the name contains a slash, it
+     * is treated as a file name to bind on. If the name is "default",
+     * the file name will be "/var/run/doldacond.sock" if doldacond
+     * runs with UID == 0, or "/tmp/doldacond-NAME" otherwise, where
+     * NAME is the user name of the UID which doldacond runs as. If
+     * the name is "none", no Unix socket will be used. Otherwise, an
+     * error is signaled.
+     */
+    {CONF_VAR_STRING, "unixsock", {.str = L"default"}},
     /** The TOS value to use for UI connections (see the TOS VALUES
      * section). */
     {CONF_VAR_INT, "uitos", {.num = SOCK_TOS_MINDELAY}},
