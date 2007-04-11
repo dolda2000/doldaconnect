@@ -528,58 +528,6 @@ static void killfilter(struct transfer *transfer)
     transfer->filterbufsize = transfer->filterbufdata = 0;
 }
 
-static char *findfilter(struct passwd *pwd)
-{
-    char *path, *filtername;
-
-    if((path = sprintf2("%s/.dcdl-filter", pwd->pw_dir)) != NULL)
-    {
-	if(!access(path, X_OK))
-	    return(path);
-	free(path);
-    }
-    if((filtername = icwcstombs(confgetstr("transfer", "filter"), NULL)) == NULL)
-    {
-	flog(LOG_WARNING, "could not convert filter name into local charset: %s", strerror(errno));
-    } else {
-	if(strchr(filtername, '/') == NULL)
-	{
-	    if((path = sprintf2("/etc/%s", filtername)) != NULL)
-	    {
-		if(!access(path, X_OK))
-		{
-		    free(filtername);
-		    return(path);
-		}
-		free(path);
-	    }
-	    if((path = sprintf2("/usr/etc/%s", filtername)) != NULL)
-	    {
-		if(!access(path, X_OK))
-		{
-		    free(filtername);
-		    return(path);
-		}
-		free(path);
-	    }
-	    if((path = sprintf2("/usr/local/etc/%s", filtername)) != NULL)
-	    {
-		if(!access(path, X_OK))
-		{
-		    free(filtername);
-		    return(path);
-		}
-		free(path);
-	    }
-	} else {
-	    if(!access(filtername, X_OK))
-		return(filtername);
-	}
-	free(filtername);
-    }
-    return(NULL);
-}
-
 static void handletranscmd(struct transfer *transfer, wchar_t *cmd, wchar_t *arg)
 {
     if(!wcscmp(cmd, L"status")) {
@@ -679,7 +627,10 @@ int forkfilter(struct transfer *transfer)
 	errno = EACCES;
 	return(-1);
     }
-    if((filtername = findfilter(pwent)) == NULL)
+    filtername = findfile(icswcstombs(confgetstr("transfer", "filter"), NULL, NULL), NULL, 0);
+    if(filtername == NULL)
+	filtername = findfile("dc-filter", pwent->pw_dir, 0);
+    if(filtername == NULL)
     {
 	flog(LOG_WARNING, "could not find filter for user %s", pwent->pw_name);
 	errno = ENOENT;
