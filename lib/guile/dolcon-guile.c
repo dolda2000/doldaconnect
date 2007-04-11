@@ -24,21 +24,20 @@ struct scmcb
 static int fd = -1;
 static scm_bits_t resptype;
 
-static SCM scm_dc_connect(SCM host, SCM port)
+static SCM scm_dc_connect(SCM host)
 {
-    int cport;
+    char *chost;
     
-    SCM_ASSERT(SCM_STRINGP(host), host, SCM_ARG1, "dc-connect");
-    if(port == SCM_UNDEFINED)
-    {
-	cport = -1;
-    } else {
-	SCM_ASSERT(SCM_INUMP(port), port, SCM_ARG2, "dc-connect");
-	cport = SCM_INUM(port);
-    }
     if(fd >= 0)
 	dc_disconnect();
-    if((fd = dc_connect(SCM_STRING_CHARS(host), cport)) < 0)
+    if(host == SCM_UNDEFINED)
+    {
+	chost = NULL;
+    } else {
+	SCM_ASSERT(SCM_STRINGP(host), host, SCM_ARG1, "dc-connect");
+	chost = SCM_STRING_CHARS(host);
+    }
+    if((fd = dc_connect(chost)) < 0)
 	scm_syserror("dc-connect");
     return(SCM_MAKINUM(fd));
 }
@@ -322,7 +321,7 @@ static int resp_print(SCM respsmob, SCM port, scm_print_state *pstate)
 
 void init_guiledc(void)
 {
-    scm_c_define_gsubr("dc-connect", 1, 1, 0, scm_dc_connect);
+    scm_c_define_gsubr("dc-connect", 0, 1, 0, scm_dc_connect);
     scm_c_define_gsubr("dc-disconnect", 0, 0, 0, scm_dc_disconnect);
     scm_c_define_gsubr("dc-connected", 0, 0, 0, scm_dc_connected);
     scm_c_define_gsubr("dc-select", 0, 1, 0, scm_dc_select);

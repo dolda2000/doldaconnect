@@ -134,14 +134,13 @@ static struct respobj *makeresp(struct dc_response *resp)
 static PyObject *mod_connect(PyObject *self, PyObject *args)
 {
     char *host;
-    int port;
     
-    port = -1;
-    if(!PyArg_ParseTuple(args, "s|i", &host, &port))
+    host = NULL;
+    if(!PyArg_ParseTuple(args, "|s", &host))
 	return(NULL);
     if(fd >= 0)
 	dc_disconnect();
-    if((fd = dc_connect(host, port)) < 0) {
+    if((fd = dc_connect(host)) < 0) {
 	PyErr_SetFromErrno(PyExc_OSError);
 	return(NULL);
     }

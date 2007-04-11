@@ -48,7 +48,7 @@ int dc_getstate(void);
 int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...);
 int dc_handleread(void);
 int dc_handlewrite(void);
-int dc_connect(char *host, int port);
+int dc_connect(char *host);
 struct dc_intresp *dc_interpret(struct dc_response *resp);
 void dc_freeires(struct dc_intresp *ires);
 const char *dc_gethostname(void);

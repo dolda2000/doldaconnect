@@ -38,9 +38,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/un.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <sys/poll.h>
+#include <pwd.h>
 #ifdef HAVE_RESOLVER
 #include <arpa/nameser.h>
 #include <resolv.h>
@@ -96,7 +98,6 @@ static iconv_t ichandle;
 static int resetreader = 1;
 static char *dchostname = NULL;
 static struct addrinfo *hostlist = NULL, *curhost = NULL;
-static int servport;
 
 static struct dc_response *makeresp(void)
 {
@@ -502,10 +503,7 @@ int dc_handleread(void)
 	if(ret)
 	{
 	    int newfd;
-	    struct sockaddr_storage addr;
-	    struct sockaddr_in *ipv4;
-	    struct sockaddr_in6 *ipv6;
-	    
+
 	    for(curhost = curhost->ai_next; curhost != NULL; curhost = curhost->ai_next)
 	    {
 		if((newfd = socket(curhost->ai_family, curhost->ai_socktype, curhost->ai_protocol)) < 0)
@@ -518,20 +516,7 @@ int dc_handleread(void)
 		dup2(newfd, fd);
 		close(newfd);
 		fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-		memcpy(&addr, curhost->ai_addr, curhost->ai_addrlen);
-		if(addr.ss_family == AF_INET)
-		{
-		    ipv4 = (struct sockaddr_in *)&addr;
-		    ipv4->sin_port = htons(servport);
-		}
-#ifdef HAVE_IPV6
-		if(addr.ss_family == AF_INET6)
-		{
-		    ipv6 = (struct sockaddr_in6 *)&addr;
-		    ipv6->sin6_port = htons(servport);
-		}
-#endif
-		if(connect(fd, (struct sockaddr *)&addr, curhost->ai_addrlen))
+		if(connect(fd, (struct sockaddr *)curhost->ai_addr, curhost->ai_addrlen))
 		{
 		    if(errno == EINPROGRESS)
 			return(0);
@@ -546,6 +531,8 @@ int dc_handleread(void)
 		return(-1);
 	    }
 	}
+	if(curhost->ai_canonname != NULL)
+	    dchostname = sstrdup(curhost->ai_canonname);
 	state = 1;
 	resetreader = 1;
 	break;
@@ -952,75 +939,165 @@ static int getsrvrr(char *name, char **host, int *port)
 }
 #endif
 
-int dc_connect(char *host, int port)
+static struct addrinfo *gaicat(struct addrinfo *l1, struct addrinfo *l2)
 {
-    struct addrinfo hint;
-    struct sockaddr_storage addr;
-    struct sockaddr_in *ipv4;
-#ifdef HAVE_IPV6
-    struct sockaddr_in6 *ipv6;
-#endif
+    struct addrinfo *p;
+    
+    if(l1 == NULL)
+	return(l2);
+    for(p = l1; p->ai_next != NULL; p = p->ai_next);
+    p->ai_next = l2;
+    return(l1);
+}
+
+/* This isn't actually correct, in any sense of the word. It only
+ * works on systems whose getaddrinfo implementation saves the
+ * sockaddr in the same malloc block as the struct addrinfo. Those
+ * systems include at least FreeBSD and glibc-based systems, though,
+ * so it should not be any immediate threat, and it allows me to not
+ * implement a getaddrinfo wrapper. It can always be changed, should
+ * the need arise. */
+static struct addrinfo *unixgai(int type, char *path)
+{
+    void *buf;
+    struct addrinfo *ai;
+    struct sockaddr_un *un;
+    
+    buf = smalloc(sizeof(*ai) + sizeof(*un));
+    memset(buf, 0, sizeof(*ai) + sizeof(*un));
+    ai = (struct addrinfo *)buf;
+    un = (struct sockaddr_un *)(buf + sizeof(*ai));
+    ai->ai_flags = 0;
+    ai->ai_family = AF_UNIX;
+    ai->ai_socktype = type;
+    ai->ai_protocol = 0;
+    ai->ai_addrlen = sizeof(*un);
+    ai->ai_addr = (struct sockaddr *)un;
+    ai->ai_canonname = NULL;
+    ai->ai_next = NULL;
+    un->sun_family = PF_UNIX;
+    strncpy(un->sun_path, path, sizeof(un->sun_path) - 1);
+    return(ai);
+}
+
+static struct addrinfo *resolvtcp(char *name, int port)
+{
+    struct addrinfo hint, *ret;
+    char tmp[32];
+    
+    memset(&hint, 0, sizeof(hint));
+    hint.ai_socktype = SOCK_STREAM;
+    hint.ai_flags = AI_NUMERICSERV | AI_CANONNAME;
+    snprintf(tmp, sizeof(tmp), "%i", port);
+    if(!getaddrinfo(name, tmp, &hint, &ret))
+	return(ret);
+    return(NULL);
+}
+
+static struct addrinfo *resolvsrv(char *name)
+{
+    struct addrinfo *ret;
+    char *realname;
+    int port;
+    
+    if(getsrvrr(name, &realname, &port))
+	return(NULL);
+    ret = resolvtcp(realname, port);
+    free(realname);
+    return(ret);
+}
+
+static struct addrinfo *resolvhost(char *host)
+{
+    char *p, *hp;
+    struct addrinfo *ret;
+    int port;
+    
+    if(strchr(host, '/'))
+	return(unixgai(SOCK_STREAM, host));
+    if((strchr(host, ':') == NULL) && ((ret = resolvsrv(host)) != NULL))
+	return(ret);
+    ret = NULL;
+    if((*host == '[') && ((p = strchr(host, ']')) != NULL))
+    {
+	hp = memcpy(smalloc(p - host), host + 1, (p - host) - 1);
+	hp[(p - host) - 1] = 0;
+	if(strchr(hp, ':') != NULL) {
+	    port = 0;
+	    if(*(++p) == ':')
+		port = atoi(p + 1);
+	    if(port == 0)
+		port = 1500;
+	    ret = resolvtcp(hp, port);
+	}
+	free(hp);
+    }
+    if(ret != NULL)
+	return(ret);
+    hp = sstrdup(host);
+    port = 0;
+    if((p = strrchr(hp, ':')) != NULL) {
+	*(p++) = 0;
+	port = atoi(p);
+    }
+    if(port == 0)
+	port = 1500;
+    ret = resolvtcp(hp, port);
+    free(hp);
+    if(ret != NULL)
+	return(ret);
+    return(NULL);
+}
+
+static struct addrinfo *defaulthost(void)
+{
+    struct addrinfo *ret;
+    struct passwd *pwd;
+    char *tmp;
+    char dn[1024];
+    
+    if(((tmp = getenv("DCSERVER")) != NULL) && *tmp)
+	return(resolvhost(tmp));
+    ret = NULL;
+    if((getuid() != 0) && ((pwd = getpwuid(getuid())) != NULL))
+    {
+	tmp = sprintf2("/tmp/doldacond-%s", pwd->pw_name);
+	ret = gaicat(ret, unixgai(SOCK_STREAM, tmp));
+	free(tmp);
+    }
+    ret = gaicat(ret, unixgai(SOCK_STREAM, "/var/run/doldacond.sock"));
+    ret = gaicat(ret, resolvtcp("localhost", 1500));
+    if(!getdomainname(dn, sizeof(dn)) && *dn && strcmp(dn, "(none)"))
+	ret = gaicat(ret, resolvsrv(dn));
+    return(ret);
+}
+
+int dc_connect(char *host)
+{
     struct qcmd *qcmd;
-    char *newhost;
-    int getsrv, freehost;
     int errnobak;
     
     if(fd >= 0)
 	dc_disconnect();
     state = -1;
-    freehost = 0;
-    if(port < 0)
-    {
-	port = 1500;
-	getsrv = 1;
-    } else {
-	getsrv = 0;
-    }
-    memset(&hint, 0, sizeof(hint));
-    hint.ai_socktype = SOCK_STREAM;
-    if(getsrv)
-    {
-	if(!getsrvrr(host, &newhost, &port))
-	{
-	    host = newhost;
-	    freehost = 1;
-	}
-    }
-    servport = port;
     if(hostlist != NULL)
 	freeaddrinfo(hostlist);
-    if(getaddrinfo(host, NULL, &hint, &hostlist))
-    {
-	errno = ENONET;
-	if(freehost)
-	    free(host);
+    if(!host || !*host)
+	hostlist = defaulthost();
+    else
+	hostlist = resolvhost(host);
+    if(hostlist == NULL)
 	return(-1);
-    }
     for(curhost = hostlist; curhost != NULL; curhost = curhost->ai_next)
     {
 	if((fd = socket(curhost->ai_family, curhost->ai_socktype, curhost->ai_protocol)) < 0)
 	{
 	    errnobak = errno;
-	    if(freehost)
-		free(host);
 	    errno = errnobak;
 	    return(-1);
 	}
 	fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-	memcpy(&addr, curhost->ai_addr, curhost->ai_addrlen);
-	if(addr.ss_family == AF_INET)
-	{
-	    ipv4 = (struct sockaddr_in *)&addr;
-	    ipv4->sin_port = htons(port);
-	}
-#ifdef HAVE_IPV6
-	if(addr.ss_family == AF_INET6)
-	{
-	    ipv6 = (struct sockaddr_in6 *)&addr;
-	    ipv6->sin6_port = htons(port);
-	}
-#endif
-	if(connect(fd, (struct sockaddr *)&addr, curhost->ai_addrlen))
+	if(connect(fd, (struct sockaddr *)curhost->ai_addr, curhost->ai_addrlen))
 	{
 	    if(errno == EINPROGRESS)
 	    {
@@ -1030,17 +1107,14 @@ int dc_connect(char *host, int port)
 	    close(fd);
 	    fd = -1;
 	} else {
+	    if(curhost->ai_canonname != NULL)
+		dchostname = sstrdup(curhost->ai_canonname);
 	    state = 1;
 	    break;
 	}
     }
     qcmd = makeqcmd(NULL);
     resetreader = 1;
-    if(dchostname != NULL)
-	free(dchostname);
-    dchostname = sstrdup(host);
-    if(freehost)
-	free(host);
     return(fd);
 }
 
