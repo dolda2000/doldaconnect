@@ -360,7 +360,6 @@ static void recvcmsg(struct socket *sk, struct msghdr *msg)
 	    {
 		cred = (struct ucred *)CMSG_DATA(cmsg);
 		memcpy(&sk->ucred, cred, sizeof(*cred));
-		flog(LOG_INFO, "received Unix creds: pid %i, uid %i, gid %i", cred->pid, cred->uid, cred->gid);
 	    }
 	}
     }
