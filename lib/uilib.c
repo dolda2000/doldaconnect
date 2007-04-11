@@ -47,7 +47,7 @@
 #endif
 
 #include <doldaconnect/uilib.h>
-#include <doldaconnect/utils.h>
+#include <utils.h>
 
 #define RESP_END -1
 #define RESP_DSC 0

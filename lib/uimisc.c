@@ -34,7 +34,7 @@
 #endif
 #include <doldaconnect/uilib.h>
 #include <doldaconnect/uimisc.h>
-#include <doldaconnect/utils.h>
+#include <utils.h>
 
 #ifdef HAVE_KRB5
 #include <krb5.h>
@@ -204,77 +204,6 @@ struct krb5data
     krb5_creds *servcreds;
     int valid, fwd, fwded;
 };
-
-static char *hexencode(char *data, size_t datalen)
-{
-    char *buf, this;
-    size_t bufsize, bufdata;
-    int dig;
-    
-    buf = NULL;
-    bufsize = bufdata = 0;
-    for(; datalen > 0; datalen--, data++)
-    {
-	dig = (*data & 0xF0) >> 4;
-	if(dig > 9)
-	    this = 'A' + dig - 10;
-	else
-	    this = dig + '0';
-	addtobuf(buf, this);
-	dig = *data & 0x0F;
-	if(dig > 9)
-	    this = 'A' + dig - 10;
-	else
-	    this = dig + '0';
-	addtobuf(buf, this);
-    }
-    addtobuf(buf, 0);
-    return(buf);
-}
-
-static char *hexdecode(char *data, size_t *len)
-{
-    char *buf, this;
-    size_t bufsize, bufdata;
-    
-    buf = NULL;
-    bufsize = bufdata = 0;
-    for(; *data; data++)
-    {
-	if((*data >= 'A') && (*data <= 'F'))
-	{
-	    this = (this & 0x0F) | ((*data - 'A' + 10) << 4);
-	} else if((*data >= '0') && (*data <= '9')) {
-	    this = (this & 0x0F) | ((*data - '0') << 4);
-	} else {
-	    if(buf != NULL)
-		free(buf);
-	    return(NULL);
-	}
-	data++;
-	if(!*data)
-	{
-	    if(buf != NULL)
-		free(buf);
-	    return(NULL);
-	}
-	if((*data >= 'A') && (*data <= 'F'))
-	{
-	    this = (this & 0xF0) | (*data - 'A' + 10);
-	} else if((*data >= '0') && (*data <= '9')) {
-	    this = (this & 0xF0) | (*data - '0');
-	} else {
-	    if(buf != NULL)
-		free(buf);
-	    return(NULL);
-	}
-	addtobuf(buf, this);
-    }
-    addtobuf(buf, 0);
-    if(len != NULL)
-	*len = bufdata - 1;
-    return(buf);
-}
 
 static void process_krb5(struct dc_response *resp, struct logindata *data)
 {
