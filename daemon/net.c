@@ -288,8 +288,7 @@ void putsock(struct socket *sk)
 	    }
 	    break;
 	}
-	if(sk->fd >= 0)
-	    close(sk->fd);
+	closesock(sk);
 	if(sk->remote != NULL)
 	    free(sk->remote);
 	free(sk);
@@ -487,6 +486,16 @@ static void sockflush(struct socket *sk)
 
 void closesock(struct socket *sk)
 {
+    struct sockaddr_un *un;
+    
+    if((sk->family == AF_UNIX) && !sockgetlocalname(sk, (struct sockaddr **)&un, NULL) && (un->sun_family == PF_UNIX))
+    {
+	if(strchr(un->sun_path, '/'))
+	{
+	    if(unlink(un->sun_path))
+		flog(LOG_WARNING, "could not unlink UNIX socket %s: %s", un->sun_path, strerror(errno));
+	}
+    }
     sk->state = SOCK_STL;
     close(sk->fd);
     sk->fd = -1;
@@ -1061,7 +1070,8 @@ int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *le
 	return(-1);
     }
     *namebuf = memcpy(smalloc(len), &name, len);
-    *lenbuf = len;
+    if(lenbuf != NULL)
+	*lenbuf = len;
     return(0);
 }
 
