@@ -14,6 +14,7 @@ doldacond_SOURCES=	main.c \
 			auth.h \
 			auth-pam.c \
 			auth-krb5.c \
+			auth-unix.c \
 			client.c \
 			client.h \
 			net.c \

@@ -21,6 +21,8 @@
 
 #include <wchar.h>
 
+#include "net.h"
+
 #define AUTH_SUCCESS 0  /* Authentication successful and done */
 #define AUTH_DENIED 1   /* Ultimately failed - reason in handle->text */
 #define AUTH_PASS 2     /* Pass data - look in handle->prompt */
@@ -41,10 +43,11 @@ struct authmech
     wchar_t *name;
     int (*inithandle)(struct authhandle *handle, char *username);
     void (*release)(struct authhandle *handle);
-    int (*authenticate)(struct authhandle *handle, char *data);
+    int (*authenticate)(struct authhandle *handle, struct socket *sk, char *data);
     int (*renewcred)(struct authhandle *handle);
     int (*opensess)(struct authhandle *handle);
     int (*closesess)(struct authhandle *handle);
+    int (*available)(struct socket *sk);
 };
 
 struct authhandle
@@ -56,7 +59,7 @@ struct authhandle
     void *mechdata;
 };
 
-int authenticate(struct authhandle *handle, char *data);
+int authenticate(struct authhandle *handle, struct socket *sk, char *data);
 struct authhandle *initauth(wchar_t *mechname, char *username);
 void authgethandle(struct authhandle *auth);
 void authputhandle(struct authhandle *auth);
@@ -64,6 +67,7 @@ int authrenewcred(struct authhandle *handle);
 int authopensess(struct authhandle *handle);
 int authclosesess(struct authhandle *handle);
 void regmech(struct authmech *mech);
+int authavailable(struct authmech *mech, struct socket *sk);
 
 extern struct authmech *mechs;
 

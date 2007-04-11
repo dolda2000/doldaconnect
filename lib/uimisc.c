@@ -414,6 +414,12 @@ static struct authmech authmechs[] =
     },
 #endif
     {
+	.name = L"unix",
+	.process = process_authless,
+	.init = NULL,
+	.release = NULL
+    },
+    {
 	.name = L"authless",
 	.process = process_authless,
 	.init = NULL,

@@ -266,7 +266,7 @@ static void setrenew(struct krb5data *data)
     data->renewtimer = timercallback(good, (void (*)(int, void *))renewcreds, data);
 }
 
-static int krbauth(struct authhandle *auth, char *passdata)
+static int krbauth(struct authhandle *auth, struct socket *sk, char *passdata)
 {
     int ret;
     struct krb5data *data;

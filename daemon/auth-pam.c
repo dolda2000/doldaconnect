@@ -197,7 +197,7 @@ static void pamauththread(struct authhandle *auth)
     data->validctxt = 0;
 }
 
-static int pamauth(struct authhandle *auth, char *passdata)
+static int pamauth(struct authhandle *auth, struct socket *sk, char *passdata)
 {
     struct pamdata *data;
     

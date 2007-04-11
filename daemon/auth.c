@@ -38,7 +38,7 @@ static void authless_release(struct authhandle *auth)
 {
 }
 
-static int authless_authenticate(struct authhandle *auth, char *data)
+static int authless_authenticate(struct authhandle *auth, struct socket *sk, char *data)
 {
     return(AUTH_SUCCESS);
 }
@@ -112,11 +112,18 @@ struct authhandle *initauth(wchar_t *mechname, char *username)
     return(auth);
 }
 
-int authenticate(struct authhandle *handle, char *data)
+int authenticate(struct authhandle *handle, struct socket *sk, char *data)
 {
     if(handle->mech == NULL)
 	return(AUTH_ERR);
-    return(handle->mech->authenticate(handle, data));
+    return(handle->mech->authenticate(handle, sk, data));
+}
+
+int authavailable(struct authmech *mech, struct socket *sk)
+{
+    if(mech->available == NULL)
+	return(1);
+    return(mech->available(sk));
 }
 
 int authrenewcred(struct authhandle *handle)

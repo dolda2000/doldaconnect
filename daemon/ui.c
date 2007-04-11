@@ -389,7 +389,7 @@ static void cmd_lsauth(struct socket *sk, struct uidata *data, int argc, wchar_t
     prev = NULL;
     for(mech = mechs; mech != NULL; mech = mech->next)
     {
-	if(mech->enabled)
+	if(mech->enabled && authavailable(mech, sk))
 	{
 	    if(prev != NULL)
 		sq(sk, 1, L"200", prev->name, NULL);
@@ -438,7 +438,7 @@ static void cmd_login(struct socket *sk, struct uidata *data, int argc, wchar_t 
 	return;
     }
     free(buf);
-    switch(authenticate(data->auth, NULL))
+    switch(authenticate(data->auth, sk, NULL))
     {
     case AUTH_SUCCESS:
 	data->userinfo = finduser(data->username);
@@ -512,7 +512,7 @@ static void cmd_pass(struct socket *sk, struct uidata *data, int argc, wchar_t *
 	sq(sk, 0, L"507", L"Data not expected", NULL);
 	return;
     }
-    switch(authenticate(data->auth, buf))
+    switch(authenticate(data->auth, sk, buf))
     {
     case AUTH_SUCCESS:
 	data->userinfo = finduser(data->username);
