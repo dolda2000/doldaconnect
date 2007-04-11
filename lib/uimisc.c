@@ -321,6 +321,11 @@ static int init_krb5(struct logindata *data)
     krb5_data cksum;
     krb5_creds creds;
     
+    if(dc_gethostname() == NULL)
+    {
+	message("cannot use krb5 without a host name");
+	return(1);
+    }
     krb = smalloc(sizeof(*krb));
     memset(krb, 0, sizeof(*krb));
     krb->fwd = 1;
