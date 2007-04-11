@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 	    done = 1;
 	while((resp = dc_getresp()) != NULL)
 	{
-	    if(!strcmp(resp->cmdname, ".connect"))
+	    if(!wcscmp(resp->cmdname, L".connect"))
 	    {
 		printf("Connected\n");
 		dc_loginasync(NULL, 1, NULL, authcallback, NULL);
