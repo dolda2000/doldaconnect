@@ -786,6 +786,10 @@ int dc_handlewrite(void)
 }
 
 #ifdef HAVE_RESOLVER
+/*
+ * It kind of sucks that libresolv doesn't have any DNS parsing
+ * routines. We'll have to do it manually.
+ */
 static char *readname(unsigned char *msg, unsigned char *eom, unsigned char **p)
 {
     char *name, *tname;
@@ -871,12 +875,20 @@ static int getsrvrr(char *name, char **host, int *port)
 	return(-1);
     }
     eom = buf + ret;
+    /*
+     * Assume transaction ID is correct.
+     *
+     * Flags check: FA0F masks in request/response flag, opcode,
+     * truncated flag and status code, and ignores authoritativeness,
+     * recursion flags and DNSSEC and reserved bits.
+     */
     flags = (buf[2] << 8) + buf[3];
     if((flags & 0xfa0f) != 0x8000)
     {
 	free(name2);
 	return(-1);
     }
+    /* Skip the query entries */
     num = (buf[4] << 8) + buf[5];
     p = buf + 12;
     for(i = 0; i < num; i++)
@@ -886,8 +898,9 @@ static int getsrvrr(char *name, char **host, int *port)
 	    free(name2);
 	    return(-1);
 	}
-	p += 4;
+	p += 4; /* Type and class */
     }
+    /* Parse answers */
     num = (buf[6] << 8) + buf[7];
     for(i = 0; i < num; i++)
     {
@@ -900,7 +913,7 @@ static int getsrvrr(char *name, char **host, int *port)
 	type += *(p++);
 	class = *(p++) << 8;
 	class += *(p++);
-	p += 4;
+	p += 4; /* TTL */
 	len = *(p++) << 8;
 	len += *(p++);
 	if((class == C_IN) && (type == T_SRV) && !strcmp(rrname, name2))
