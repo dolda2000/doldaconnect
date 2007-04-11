@@ -1234,9 +1234,6 @@ int addreq(struct sockaddr *x, struct sockaddr *y)
 
 char *formataddress(struct sockaddr *arg, socklen_t arglen)
 {
-    struct sockaddr_un *UNIX; /* Some wise guy has #defined unix with
-			       * lowercase letters to 1, so I do this
-			       * instead. */
     struct sockaddr_in *ipv4;
 #ifdef HAVE_IPV6
     struct sockaddr_in6 *ipv6;
@@ -1250,8 +1247,7 @@ char *formataddress(struct sockaddr *arg, socklen_t arglen)
     switch(arg->sa_family)
     {
     case AF_UNIX:
-	UNIX = (struct sockaddr_un *)arg;
-	ret = sprintf2("%s", UNIX->sun_path);
+	ret = sstrdup("Unix socket");
 	break;
     case AF_INET:
 	ipv4 = (struct sockaddr_in *)arg;
