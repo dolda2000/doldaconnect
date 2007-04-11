@@ -40,8 +40,9 @@ int main(int argc, char **argv)
 	{
 	    if(!wcscmp(resp->cmdname, L".connect"))
 	    {
-		printf("Connected\n");
-		dc_loginasync(NULL, 1, NULL, authcallback, NULL);
+		printf("Connected: %i\n", resp->code);
+		if(resp->code == 200)
+		    dc_loginasync(NULL, 1, NULL, authcallback, NULL);
 	    }
 	    dc_freeresp(resp);
 	}
