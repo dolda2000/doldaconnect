@@ -20,6 +20,7 @@
 #define _NET_H
 
 #include <sys/socket.h>
+#include <sys/un.h>
 
 #define SOCK_LST 0 /* Listening */
 #define SOCK_SYN 1 /* Connecting */
@@ -54,6 +55,7 @@ struct socket
     int close;
     struct sockaddr *remote;
     socklen_t remotelen;
+    struct ucred ucred;
     union
     {
 	struct

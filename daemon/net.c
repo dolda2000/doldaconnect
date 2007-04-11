@@ -183,6 +183,7 @@ static struct socket *newsock(int type)
     new->close = 0;
     new->remote = NULL;
     new->remotelen = 0;
+    memset(&new->ucred, 0, sizeof(new->ucred));
     switch(type)
     {
     case SOCK_STREAM:
@@ -346,11 +347,38 @@ void *sockgetinbuf(struct socket *sk, size_t *size)
     return(NULL);
 }
 
+static void recvcmsg(struct socket *sk, struct msghdr *msg)
+{
+    struct cmsghdr *cmsg;
+    struct ucred *cred;
+    
+    for(cmsg = CMSG_FIRSTHDR(msg); cmsg != NULL; cmsg = CMSG_NXTHDR(msg, cmsg))
+    {
+	if((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SCM_CREDENTIALS))
+	{
+	    if(sk->ucred.pid == 0)
+	    {
+		cred = (struct ucred *)CMSG_DATA(cmsg);
+		memcpy(&sk->ucred, cred, sizeof(*cred));
+		flog(LOG_INFO, "received Unix creds: pid %i, uid %i, gid %i", cred->pid, cred->uid, cred->gid);
+	    }
+	}
+    }
+}
+
 static void sockrecv(struct socket *sk)
 {
     int ret, inq;
     struct dgrambuf *dbuf;
+    struct msghdr msg;
+    char cbuf[65536];
+    struct iovec bufvec;
     
+    memset(&msg, 0, sizeof(msg));
+    msg.msg_iov = &bufvec;
+    msg.msg_iovlen = 1;
+    msg.msg_control = cbuf;
+    msg.msg_controllen = sizeof(cbuf);
     switch(sk->type)
     {
     case SOCK_STREAM:
@@ -370,7 +398,12 @@ static void sockrecv(struct socket *sk)
 	if(inq > 65536)
 	    inq = 65536;
 	sizebuf(&sk->inbuf.s.buf, &sk->inbuf.s.bufsize, sk->inbuf.s.datasize + inq, 1, 1);
+	/*
 	ret = read(sk->fd, sk->inbuf.s.buf + sk->inbuf.s.datasize, inq);
+	*/
+	bufvec.iov_base = sk->inbuf.s.buf + sk->inbuf.s.datasize;
+	bufvec.iov_len = inq;
+	ret = recvmsg(sk->fd, &msg, 0);
 	if(ret < 0)
 	{
 	    if((errno == EINTR) || (errno == EAGAIN))
@@ -380,6 +413,10 @@ static void sockrecv(struct socket *sk)
 	    closesock(sk);
 	    return;
 	}
+	if(msg.msg_flags & MSG_CTRUNC)
+	    flog(LOG_DEBUG, "ancillary data was truncated");
+	else
+	    recvcmsg(sk, &msg);
 	if(ret == 0)
 	{
 	    if(sk->errcb != NULL)
@@ -392,6 +429,7 @@ static void sockrecv(struct socket *sk)
 	    sk->readcb(sk, sk->data);
 	break;
     case SOCK_DGRAM:
+#if defined(HAVE_LINUX_SOCKIOS_H) && defined(SIOCINQ)
 	if(ioctl(sk->fd, SIOCINQ, &inq))
 	{
 	    /* I don't really know what could go wrong here, so let's
@@ -399,10 +437,21 @@ static void sockrecv(struct socket *sk)
 	    flog(LOG_WARNING, "SIOCINQ return %s on socket %i", strerror(errno), sk->fd);
 	    return;
 	}
+#else
+	inq = 65536;
+#endif
 	dbuf = smalloc(sizeof(*dbuf));
 	dbuf->data = smalloc(inq);
 	dbuf->addr = smalloc(dbuf->addrlen = sizeof(struct sockaddr_storage));
+	/*
 	ret = recvfrom(sk->fd, dbuf->data, inq, 0, dbuf->addr, &dbuf->addrlen);
+	*/
+	msg.msg_name = dbuf->addr;
+	msg.msg_namelen = dbuf->addrlen;
+	bufvec.iov_base = dbuf->data;
+	bufvec.iov_len = inq;
+	ret = recvmsg(sk->fd, &msg, 0);
+	dbuf->addrlen = msg.msg_namelen;
 	if(ret < 0)
 	{
 	    free(dbuf->addr);
@@ -415,6 +464,10 @@ static void sockrecv(struct socket *sk)
 	    closesock(sk);
 	    return;
 	}
+	if(msg.msg_flags & MSG_CTRUNC)
+	    flog(LOG_DEBUG, "ancillary data was truncated");
+	else
+	    recvcmsg(sk, &msg);
 	/* On UDP/IPv[46], ret == 0 doesn't mean EOF (since UDP can't
 	 * have EOF), but rather an empty packet. I don't know if any
 	 * other potential DGRAM protocols might have an EOF
@@ -758,6 +811,15 @@ struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(
     return(NULL);
 }
 
+static void acceptunix(struct socket *sk)
+{
+    int buf;
+    
+    buf = 1;
+    if(setsockopt(sk->fd, SOL_SOCKET, SO_PASSCRED, &buf, sizeof(buf)) < 0)
+	flog(LOG_WARNING, "could not enable SO_PASSCRED on Unix socket %i: %s", sk->fd, strerror(errno));
+}
+
 int pollsocks(int timeout)
 {
     int i, num, ret;
@@ -825,9 +887,11 @@ int pollsocks(int timeout)
 		newsk->state = SOCK_EST;
 		memcpy(newsk->remote = smalloc(sslen), &ss, sslen);
 		newsk->remotelen = sslen;
-		putsock(newsk);
+		if(ss.ss_family == PF_UNIX)
+		    acceptunix(newsk);
 		if(sk->acceptcb != NULL)
 		    sk->acceptcb(sk, newsk, sk->data);
+		putsock(newsk);
 	    }
 	    if(pfds[i].revents & POLLERR)
 	    {

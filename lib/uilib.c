@@ -96,8 +96,12 @@ static int state = -1;
 static int fd = -1;
 static iconv_t ichandle;
 static int resetreader = 1;
-static char *dchostname = NULL;
 static struct addrinfo *hostlist = NULL, *curhost = NULL;
+struct {
+    char *hostname;
+    int family;
+    int sentcreds;
+} servinfo;
 
 static struct dc_response *makeresp(void)
 {
@@ -276,9 +280,9 @@ void dc_disconnect(void)
     while((resp = dc_getresp()) != NULL)
 	dc_freeresp(resp);
     dc_uimisc_disconnected();
-    if(dchostname != NULL)
-	free(dchostname);
-    dchostname = NULL;
+    if(servinfo.hostname != NULL)
+	free(servinfo.hostname);
+    memset(&servinfo, 0, sizeof(servinfo));
 }
 
 void dc_freeresp(struct dc_response *resp)
@@ -532,7 +536,8 @@ int dc_handleread(void)
 	    }
 	}
 	if(curhost->ai_canonname != NULL)
-	    dchostname = sstrdup(curhost->ai_canonname);
+	    servinfo.hostname = sstrdup(curhost->ai_canonname);
+	servinfo.family = curhost->ai_family;
 	state = 1;
 	resetreader = 1;
 	break;
@@ -744,17 +749,48 @@ int dc_handleread(void)
     return(0);
 }
 
+static void mkcreds(struct msghdr *msg)
+{
+    struct ucred *ucred;
+    static char buf[CMSG_SPACE(sizeof(*ucred))];
+    struct cmsghdr *cmsg;
+    
+    msg->msg_control = buf;
+    msg->msg_controllen = sizeof(buf);
+    cmsg = CMSG_FIRSTHDR(msg);
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = SCM_CREDENTIALS;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(*ucred));
+    ucred = (struct ucred *)CMSG_DATA(cmsg);
+    ucred->pid = getpid();
+    ucred->uid = getuid();
+    ucred->gid = getgid();
+    msg->msg_controllen = cmsg->cmsg_len;
+}
+
 int dc_handlewrite(void)
 {
     int ret;
     int errnobak;
+    struct msghdr msg;
+    struct iovec bufvec;
     
     switch(state)
     {
     case 1:
 	if(queue->buflen > 0)
 	{
-	    ret = send(fd, queue->buf, queue->buflen, MSG_NOSIGNAL | MSG_DONTWAIT);
+	    memset(&msg, 0, sizeof(msg));
+	    msg.msg_iov = &bufvec;
+	    msg.msg_iovlen = 1;
+	    bufvec.iov_base = queue->buf;
+	    bufvec.iov_len = queue->buflen;
+	    if((servinfo.family == PF_UNIX) && !servinfo.sentcreds)
+	    {
+		mkcreds(&msg);
+		servinfo.sentcreds = 1;
+	    }
+	    ret = sendmsg(fd, &msg, MSG_NOSIGNAL | MSG_DONTWAIT);
 	    if(ret < 0)
 	    {
 		if((errno == EAGAIN) || (errno == EINTR))
@@ -1108,7 +1144,8 @@ int dc_connect(char *host)
 	    fd = -1;
 	} else {
 	    if(curhost->ai_canonname != NULL)
-		dchostname = sstrdup(curhost->ai_canonname);
+		servinfo.hostname = sstrdup(curhost->ai_canonname);
+	    servinfo.family = curhost->ai_family;
 	    state = 1;
 	    break;
 	}
@@ -1190,5 +1227,5 @@ void dc_freeires(struct dc_intresp *ires)
 
 const char *dc_gethostname(void)
 {
-    return(dchostname);
+    return(servinfo.hostname);
 }
