@@ -76,36 +76,14 @@ named   /usr/local/etc/doldacond.conf,   but   it   depends   on   the
 installation  prefixes that  are  chosen.  If  Dolda  Connect will  be
 running in multi-user mode, it should  remain there, but if it will be
 running in single-user mode, it is recommended that you make a copy of
-it named ~/.doldacond (if ~/.doldacond does not exist, the server will
-still read the system-wide file, but it will be easier to edit a local
-copy, as you need not be root to do so).
+it named  ~/.doldacond.conf (if ~/.doldacond.conf does  not exist, the
+server will still read the system-wide  file, but it will be easier to
+edit a local copy, as you need not be root to do so).
 
 Edit the configuration file. If you  do no other changes, make sure to
-at least  change the "cli.defnick", "share" and  "user" settings. Most
-directives are explained  in comments in the shipped  file and need no
-further explanation here. However, there are a few points to note.
-
-First, you need to choose how  you will authenticate to the server. If
-you are an  administrator of a Kerberos-enabled network  using the MIT
-Kerberos  libraries, you  can use  Kerberos V  authentication  and get
-secure single  sign-on, which  gives the best  of all worlds,  but for
-normal users, there are two choices:
-
- * PAM based password authentication -- The clients will ask for your
-   password every time they connect to the server. This option can be
-   somewhat cumbersome, but should be perfectly secure.
- * Password-less authentication -- The server will simply trust the
-   clients not to lie. This option is completely insecure, but may be
-   a better option where all users are trusted and/or Kerberos is not
-   available.
-
-PAM  authentication   is  always  enabled.   To  enable  password-less
-authentication, set  the "auth.authless" setting  in the configuration
-file to  "1". It is  also greatly recommended that  the "ui.onlylocal"
-setting be set to "1" when using password-less authentication, so that
-connections are only accepted from localhost. If you use password-less
-authentication without turning on "ui.onlylocal", you should make sure
-that you *really* know what you are doing before proceeding.
+at  least change the  "cli.defnick" and  "share". Most  directives are
+explained  in  comments  in  the  shipped file  and  need  no  further
+explanation here. However, there are a few points to note.
 
 If  the computer  running  the  daemon is  connected  directly to  the
 Internet, no  network configuration will be necessary.  However, if it
@@ -130,11 +108,59 @@ other. There are currently two options available:
    IPv4 address of the NAT router, by way of the "net.visibleipv4"
    setting.
 
+There is  a large  number of configuration  directives not  covered in
+this  file, nor  in the  default  configuration file.  Please see  the
+doldacond.conf(5) manual page for information on the rest.
+
+		   Running clients over the network
+
+For  convenience of  setup,  the default  configuration file  disables
+running  clients over  the  network. Using  the default  configuration
+file, the daemon will only enable clients to connect over a local Unix
+socket.    They  will   use  Unix   socket  credentials   passing  for
+authentication, for maximum security. It is also likely that many will
+want to keep  it that way. However,  for those who want to  be able to
+run clients  over the  network, just follow  the instructions  in this
+section to enable UIs over TCP.
+
+First, you need to choose how  you will authenticate to the server. If
+you are an  administrator of a Kerberos-enabled network  using the MIT
+Kerberos  libraries, you  can use  Kerberos V  authentication  and get
+secure single  sign-on, which  gives the best  of all worlds,  but for
+normal users, there are two choices:
+
+ * PAM based password authentication -- The clients will ask for your
+   password every time they connect to the server. This option can be
+   somewhat cumbersome, but should be perfectly secure. Note, however,
+   that the password is transmitted to the server unencrypted.
+ * Password-less authentication -- The server will simply trust the
+   clients not to lie. This option is completely insecure, but may be
+   a better option where all users are trusted and/or Kerberos is not
+   available.
+
+PAM  authentication  is   always  enabled.   To  enable  password-less
+authentication, set  the "auth.authless" setting  in the configuration
+file to "1". If your network is not completely trusted (especially the
+host running  doldacond is globally accessible via  the Internet), you
+really should  make sure to set  up some firewalling  rules.
+
+Note  that doldacond  does  *not* support  tcp-wrappers,  but it  does
+support  very   simple  internal  firewalling  in  the   form  of  the
+"ui.onlylocal"  options. When "ui.onlylocal" is set to true, the
+daemon will only accept UI connections over a loopback interface. That
+includes 127.0.0.1, ::ffff:127.0.0.1, ::1 and Unix sockets.
+
 			 Starting the daemon
 
 To  start the  daemon, just  run  "doldacond" --  as root  if you  are
 running  in multi-user  mode, and  as your  ordinary user  if  you are
-running in single-user  mode.
+running in single-user mode. See the doldacond(8) manual page for more
+detailed   information  about   command-line   switches  and   related
+information.
+
+If you  are using the daemon  in multi-user mode on  Gentoo, you might
+find  contrib/gentoo-init.d-doldacond,  an  init  script  for  Gentoo,
+useful.
 
 The first time you start the daemon, it will need to calculate the TTH
 hashes on all  the files you share (as required  by the Direct Connect
@@ -149,5 +175,5 @@ allow you in if not all TTH hashes are calculated.
 
 
 
-This documented was last updated 2006-10-27, reflecting release 0.3 of
+This documented was last updated 2007-04-11, reflecting release 0.3 of
 Dolda Connect.
