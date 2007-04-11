@@ -460,7 +460,7 @@ int main(int argc, char **argv)
     preinit(0);
     if(configfile == NULL)
     {
-	if((configfile = findfile("doldacond.conf", "doldacond", NULL, 0)) == NULL)
+	if((configfile = findfile("doldacond.conf", NULL, 0)) == NULL)
 	{
 	    flog(LOG_CRIT, "could not find a configuration file");
 	    exit(1);
