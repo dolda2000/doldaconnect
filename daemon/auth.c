@@ -176,7 +176,7 @@ static struct configvar myvars[] =
     /** Specifies whether insecure authentication is to be allowed. If
      * you are not completely sure what you are doing, never turn this
      * on without also turning on net.onlylocal. */
-    {CONF_VAR_BOOL, "authless", {.num = 1}},
+    {CONF_VAR_BOOL, "authless", {.num = 0}},
     {CONF_VAR_END}
 };
 
