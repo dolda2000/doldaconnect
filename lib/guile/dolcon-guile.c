@@ -30,7 +30,7 @@ static SCM scm_dc_connect(SCM host)
     
     if(fd >= 0)
 	dc_disconnect();
-    if(host == SCM_UNDEFINED)
+    if((host == SCM_UNDEFINED) || (host == SCM_BOOL_F))
     {
 	chost = NULL;
     } else {
