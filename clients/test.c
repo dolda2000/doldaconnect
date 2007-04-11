@@ -38,10 +38,10 @@ int main(int argc, char **argv)
 	    done = 1;
 	while((resp = dc_getresp()) != NULL)
 	{
-	    if(resp->cmdname == NULL)
+	    if(!strcmp(resp->cmdname, ".connect"))
 	    {
 		printf("Connected\n");
-		dc_loginasync(NULL, 0, NULL, authcallback, NULL);
+		dc_loginasync(NULL, 1, NULL, authcallback, NULL);
 	    }
 	    dc_freeresp(resp);
 	}
