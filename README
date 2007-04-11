@@ -40,7 +40,7 @@ tree:
  * A GNOME panel applet for showing the status of current downloads in
    progress.
  * A Gaim chat plugin for chatting in hubs and writing private
-   messages.
+   messages (only for Gaim 2.0.0 and above).
  * A command-line automatic downloader written in Scheme.
  * A chat logger written in Scheme.
  * A hub manager written in Scheme.
@@ -48,10 +48,8 @@ tree:
 The GNOME applet and Gaim plugin are somewhat experimental. The applet
 seems to be working well, but the installation have some quirks (since
 GNOME does  not normally look in  /usr/local, care must  be taken with
-the installation prefix). The  Gaim plugin has some performance issues
-and seems to  be leaking some memory. The  performance problems lie in
-Gaim itself, however, and the Gaim developers have indicated that they
-will be fixed in Gaim 2.0.0.
+the installation  prefix). The  Gaim plugin seems  to be  leaking some
+memory.
 
 			     Installation
 
@@ -71,5 +69,5 @@ through  the e-mail address  <fredrik@dolda2000.com>. His  homepage is
 
 
 
-This documented was last updated 2006-11-22, reflecting release 0.3 of
+This documented was last updated 2007-04-11, reflecting release 0.3 of
 Dolda Connect.
