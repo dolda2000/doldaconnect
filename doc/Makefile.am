@@ -1,4 +1,4 @@
-man_MANS = doldacond.conf.5
+man_MANS = doldacond.conf.5 doldacond.8
 BUILT_SOURCES = doldacond.conf.5
 
 doldacond.conf.5: doldacond.conf.5.in ../daemon/*.c
