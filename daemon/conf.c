@@ -370,7 +370,7 @@ void storevar(char *key, void *val, size_t len)
     GDBM_FILE db;
     datum k, v;
     
-    dbname = findfile("dc-vardb", "dc-vardb", NULL, 1);
+    dbname = findfile("dc-vardb", NULL, 1);
     if((db = gdbm_open(dbname, 0, GDBM_WRCREAT, 0666, NULL)) == NULL)
     {
 	flog(LOG_CRIT, "could not open var database for writing, cannot continue: %s", gdbm_strerror(gdbm_errno));
@@ -391,7 +391,7 @@ void *fetchvar(char *key, size_t *lenb)
     GDBM_FILE db;
     datum k, v;
     
-    if((dbname = findfile("dc-vardb", "dc-vardb", NULL, 0)) == NULL)
+    if((dbname = findfile("dc-vardb", NULL, 0)) == NULL)
 	return(NULL);
     if((db = gdbm_open(dbname, 0, GDBM_READER, 0666, NULL)) == NULL)
 	return(NULL);
