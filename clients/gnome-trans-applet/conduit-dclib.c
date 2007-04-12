@@ -195,12 +195,12 @@ static void dcfdcb(struct conduit *conduit, int fd, GdkInputCondition condition)
     {
 	if(!wcscmp(resp->cmdname, L".connect"))
 	{
-	    if(resp->code == 200)
+	    if(dc_checkprotocol(resp, DC_LATEST))
 	    {
-		dc_loginasync(NULL, 1, noconv, (void (*)(int, wchar_t *, void *))logincb, conduit);
-	    } else {
 		dc_disconnect();
 		disconnected(conduit);
+	    } else {
+		dc_loginasync(NULL, 1, noconv, (void (*)(int, wchar_t *, void *))logincb, conduit);
 	    }
 	} else if(!wcscmp(resp->cmdname, L".notify")) {
 	    dc_uimisc_handlenotify(resp);

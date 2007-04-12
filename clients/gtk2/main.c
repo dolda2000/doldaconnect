@@ -1067,16 +1067,20 @@ void handleresps(void)
     {
 	if(!wcscmp(resp->cmdname, L".connect"))
 	{
-	    if(resp->code == 200)
+	    if(resp->code != 201)
 	    {
+		msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("The server refused the connection"));
+		dc_disconnect();
+		dcdisconnected();
+	    } else if(dc_checkprotocol(resp, DC_LATEST)) {
+		msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Server protocol revision mismatch"));
+		dc_disconnect();
+		dcdisconnected();
+	    } else {
 		tosbuf = 0x10; /* Minimum cost */
 		setsockopt(dcfd, SOL_IP, IP_TOS, &tosbuf, sizeof(tosbuf));
 		updatesbar(_("Connected"));
 		dc_loginasync(connectas, 1, loginconv, logincallback, NULL);
-	    } else {
-		msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("The server refused the connection"));
-		dc_disconnect();
-		dcdisconnected();
 	    }
 	} else if(!wcscmp(resp->cmdname, L".notify")) {
 	    dc_uimisc_handlenotify(resp);

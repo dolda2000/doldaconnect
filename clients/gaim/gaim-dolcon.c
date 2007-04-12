@@ -170,14 +170,19 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
     }
     while((resp = dc_getresp()) != NULL) {
 	if(!wcscmp(resp->cmdname, L".connect")) {
-	    if(resp->code == 200) {
-		gaim_connection_update_progress(data->gc, "Authenticating", 2, 3);
-		dc_loginasync(NULL, 1, (int (*)(int, wchar_t *, char **, void *))loginconv, (void (*)(int, wchar_t *, void *))logincb, data);
-	    } else {
+	    if(resp->code != 201) {
 		dc_disconnect();
 		disconnected(data);
 		gaim_connection_error(data->gc, "Server refused connection");
 		return;
+	    } else if(dc_checkprotocol(resp, DC_LATEST)) {
+		dc_disconnect();
+		disconnected(data);
+		gaim_connection_error(data->gc, "Server protocol revision mismatch");
+		return;
+	    } else {
+		gaim_connection_update_progress(data->gc, "Authenticating", 2, 3);
+		dc_loginasync(NULL, 1, (int (*)(int, wchar_t *, char **, void *))loginconv, (void (*)(int, wchar_t *, void *))logincb, data);
 	    }
 	} else if(!wcscmp(resp->cmdname, L".notify")) {
 	    dc_uimisc_handlenotify(resp);
