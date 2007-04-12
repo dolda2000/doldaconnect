@@ -3,6 +3,8 @@
 
 #include <wchar.h>
 
+#define DC_LATEST 1
+
 struct dc_response
 {
     struct dc_response *next, *prev;
@@ -51,6 +53,7 @@ int dc_handlewrite(void);
 int dc_connect(char *host);
 struct dc_intresp *dc_interpret(struct dc_response *resp);
 void dc_freeires(struct dc_intresp *ires);
+int dc_checkprotocol(struct dc_response *resp, int revision);
 const char *dc_gethostname(void);
 
 #endif
