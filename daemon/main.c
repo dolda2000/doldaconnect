@@ -385,6 +385,7 @@ int main(int argc, char **argv)
     struct child *child;
     double now;
     
+    now = ntime();
     immsyslog = nofork = 0;
     syslogfac = LOG_DAEMON;
     configfile = NULL;
@@ -494,6 +495,7 @@ int main(int argc, char **argv)
 	fprintf(pfstream, "%i\n", getpid());
 	fclose(pfstream);
     }
+    flog(LOG_INFO, "startup took %f seconds", ntime() - now);
     running = 1;
     reinit = 0;
     while(running)
