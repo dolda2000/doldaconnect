@@ -1,6 +1,6 @@
 (define-module (dolcon ui))
 
-(export dc-connect dc-disconnect dc-connected dc-select dc-getresp dc-extract dc-intresp dc-qcmd dc-loginasync dc-lexsexpr)
+(export dc-connect dc-disconnect dc-connected dc-select dc-getresp dc-extract dc-intresp dc-qcmd dc-loginasync dc-lexsexpr dc-checkproto)
 
 (load-extension "libdolcon-guile" "init_guiledc")
 
@@ -16,15 +16,19 @@
       errsym)))
 
 (define-public dc-must-connect
-  (lambda args
-    (let* ((fd (apply dc-connect args)) (resp (dc-extract (do ((resp (dc-getresp) (dc-getresp)))
-				((and resp
-				      (equal? (cdr (assoc 'cmd (dc-extract resp))) ".connect"))
-				 resp)
-			      (dc-select)))))
-      (if (= (cdr (assoc 'code resp)) 200)
-	  fd
+  (lambda (host . version)
+    (let* ((fd (dc-connect host))
+	   (ores (do ((resp (dc-getresp) (dc-getresp)))
+		     ((and resp
+			   (equal? (cdr (assoc 'cmd (dc-extract resp))) ".connect"))
+		      resp)
+		   (dc-select)))
+	   (resp (dc-extract ores)))
+      (if (not (= (cdr (assoc 'code resp)) 201))
 	  (throw 'bad-return (cdr (assoc 'code resp)) (cadr (assoc 'resp resp)))
+	  (if (dc-checkproto ores (if (pair? version) (car version) dc-latest))
+	      fd
+	      (throw 'bad-protocol ores))
 	  )
       )
     )

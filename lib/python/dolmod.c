@@ -389,6 +389,26 @@ static PyObject *mod_wantwrite(PyObject *self)
 	Py_RETURN_FALSE;
 }
 
+static PyObject *mod_checkproto(PyObject *self, PyObject *args)
+{
+    PyObject *tmp;
+    struct respobj *resp;
+    int version;
+    
+    version = DC_LATEST;
+    if(!PyArg_ParseTuple(args, "O|i", &tmp, &version))
+	return(NULL);
+    if(!PyObject_TypeCheck(tmp, &resptype)) {
+	PyErr_SetString(PyExc_TypeError, "first argument must be a response object");
+	return(NULL);
+    }
+    resp = tmp;
+    if(dc_checkprotocol(resp->resp, version))
+	Py_RETURN_FALSE;
+    else
+	Py_RETURN_TRUE;
+}
+
 static PyMethodDef methods[] = {
     {"connect", mod_connect, METH_VARARGS,
      "Connect to a Dolda Connect server"},
@@ -408,6 +428,8 @@ static PyMethodDef methods[] = {
      "Use a standard algorithm to lex a search expression"},
     {"wantwrite", (PyCFunction)mod_wantwrite, METH_NOARGS,
      "Return a boolean indicating whether there is output to be fed to the server"},
+    {"checkproto", (PyCFunction)mod_checkproto, METH_VARARGS,
+     "Check so that the connect stanza returned by the server indicates support for the correct revision of the protocol"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -420,5 +442,6 @@ PyMODINIT_FUNC initdolmod(void)
     m = Py_InitModule("dolmod", methods);
     Py_INCREF(&resptype);
     PyModule_AddObject(m, "Response", (PyObject *)&resptype);
+    PyModule_AddObject(m, "latest", Py_BuildValue("i", DC_LATEST));
     dc_init();
 }

@@ -25,7 +25,7 @@ def login(useauthless = True, **kw):
         select()
     return result[0]
 
-def mustconnect(host, port = -1):
+def mustconnect(host, revision = latest):
     """A convenience function for connect.
 
     This function will connect to the given host, perform a select
@@ -33,17 +33,19 @@ def mustconnect(host, port = -1):
     any of these steps fail, an exception is raised. If successful,
     the file descriptor for the server connection is returned.
     """
-    fd = connect(host, port)
+    fd = connect(host)
     while True:
         resp = getresp()
         if resp is not None and resp.getcmd() == u".connect":
             break
         select()
-    if resp.getcode() != 200:
+    if resp.getcode() != 201:
         raise RuntimeError, resp.intresp()[0][0]
+    if not checkproto(resp, revision):
+        raise RuntimeError, resp
     return fd
 
-def cnl(host = None, port = -1, useauthless = True, **kw):
+def cnl(host = None, useauthless = True, revision = latest, **kw):
     """A convenience function for connect and loginasync.
 
     This function will connect to the given server, or the server in
@@ -55,7 +57,7 @@ def cnl(host = None, port = -1, useauthless = True, **kw):
         host = os.getenv("DCSERVER")
     if host is None:
         host = "localhost"
-    fd = mustconnect(host, port)
+    fd = mustconnect(host, revision)
     err, reason = login(useauthless, **kw)
     if err != "success":
         raise RuntimeError, (err, reason)

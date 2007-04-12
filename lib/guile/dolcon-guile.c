@@ -294,6 +294,24 @@ static SCM scm_dc_lexsexpr(SCM sexpr)
     return(scm_reverse(ret));
 }
 
+static SCM scm_dc_checkproto(SCM resp, SCM version)
+{
+    int ver;
+    
+    SCM_ASSERT(SCM_SMOB_PREDICATE(resptype, resp), resp, SCM_ARG1, "dc-checkproto");
+    if(version == SCM_UNDEFINED)
+    {
+	ver = DC_LATEST;
+    } else {
+	SCM_ASSERT(SCM_INUMP(version), version, SCM_ARG2, "dc-checkproto");
+	ver = SCM_INUM(version);
+    }
+    if(dc_checkprotocol(((struct respsmob *)SCM_SMOB_DATA(resp))->resp, ver))
+	return(SCM_BOOL_F);
+    else
+	return(SCM_BOOL_T);
+}
+
 static size_t resp_free(SCM respsmob)
 {
     struct respsmob *data;
@@ -331,6 +349,8 @@ void init_guiledc(void)
     scm_c_define_gsubr("dc-qcmd", 1, 1, 0, scm_dc_qcmd);
     scm_c_define_gsubr("dc-loginasync", 2, 1, 0, scm_dc_loginasync);
     scm_c_define_gsubr("dc-lexsexpr", 1, 0, 0, scm_dc_lexsexpr);
+    scm_c_define_gsubr("dc-checkproto", 1, 1, 0, scm_dc_checkproto);
+    scm_c_define("dc-latest", SCM_MAKINUM(DC_LATEST));
     resptype = scm_make_smob_type("dc-resp", sizeof(struct respsmob));
     scm_set_smob_free(resptype, resp_free);
     scm_set_smob_print(resptype, resp_print);
