@@ -213,7 +213,7 @@ static void sq(struct socket *sk, int cont, ...)
 {
     int num, freepart;
     va_list al;
-    char *final;
+    char *final, *sarg;
     wchar_t *buf;
     wchar_t *part, *tpart;
     size_t bufsize, bufdata;
@@ -224,32 +224,38 @@ static void sq(struct socket *sk, int cont, ...)
     va_start(al, cont);
     while((part = va_arg(al, wchar_t *)) != NULL)
     {
+	freepart = 0;
 	if(*part == L'%')
 	{
-	    /*
-	     * This kludge demands that all arguments that you call it
-	     * with are the size of an int. That happens to be the
-	     * case for most datatypes on most platforms and
-	     * compilers, but I don't know exactly which ones, and
-	     * also a long long is a notable candidate of an arg that
-	     * is not the size of an int on 32-bit archs. If it breaks
-	     * some existing call on your architecture, please tell
-	     * me.
-	     */
-	    part = vswprintf2(tpart = (part + 1), al);
-	    for(; *tpart != L'\0'; tpart++)
+	    tpart = part + 1;
+	    if(!wcscmp(tpart, L"i"))
 	    {
-		if(*tpart == L'%')
+		freepart = 1;
+		part = swprintf2(L"%i", va_arg(al, int));
+	    } else if(!wcscmp(tpart, L"s")) {
+		freepart = 1;
+		part = icmbstowcs(sarg = va_arg(al, char *), NULL);
+		if(part == NULL)
 		{
-		    if(tpart[1] == L'%')
-			tpart++;
-		    else
-			va_arg(al, int);
+		    freepart = 0;
+		    part = L"ERROR";
+		    flog(LOG_ERR, "could not convert local string to wcs: %s", sarg);
 		}
+	    } else if(!wcscmp(tpart, L"ls")) {
+		part = va_arg(al, wchar_t *);
+	    } else if(!wcscmp(tpart, L"ll")) {
+		freepart = 1;
+		part = swprintf2(L"%lli", va_arg(al, long long));
+	    } else if(!wcscmp(tpart, L"f")) {
+		freepart = 1;
+		part = swprintf2(L"%f", va_arg(al, double));
+	    } else if(!wcscmp(tpart, L"x")) {
+		freepart = 1;
+		part = swprintf2(L"%x", va_arg(al, int));
+	    } else {
+		flog(LOG_CRIT, "BUG: unknown type code in sq: %ls", tpart);
+		abort();
 	    }
-	    freepart = 1;
-	} else {
-	    freepart = 0;
 	}
 	if((tpart = quoteword(part)) != NULL)
 	{
@@ -318,7 +324,7 @@ static int haspriv(struct uidata *data, int perm)
 
 /* Useful macros for the command functions: */
 #define haveargs(n) do { if(argc < n) { sq(sk, 0, L"501", L"Wrong number of arguments", NULL); return; } } while(0)
-#define havepriv(p) do { if((data->userinfo == NULL) || ((data->userinfo->perms & (p)) != (p))) { sq(sk, 0, L"502", L"%Unauthorized request - %x needed", (p), NULL); return; } } while(0)
+#define havepriv(p) do { if((data->userinfo == NULL) || ((data->userinfo->perms & (p)) != (p))) { sq(sk, 0, L"502", L"Unauthorized request", L"needed", L"%x", (p), L"had", L"%x", data->userinfo->perms, NULL); return; } } while(0)
 
 static void cmd_connect(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
 {
@@ -355,13 +361,13 @@ static void cmd_connect(struct socket *sk, struct uidata *data, int argc, wchar_
 	    return;
 	}
     }
-    sq(sk, 0, L"201", L"1", L"1", L"%Dolda Connect daemon v%s", VERSION, NULL);
+    sq(sk, 0, L"201", L"1", L"1", L"Dolda Connect daemon v" VERSION, NULL);
 }
 
 static void cmd_notfound(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
 {
     if((argv != NULL) && (argv[0] != NULL))
-	sq(sk, 0, L"500", L"%Command not found: %ls", argv[0], NULL);
+	sq(sk, 0, L"500", L"Command not found", NULL);
     else
 	sq(sk, 0, L"500", L"No command", NULL);
 }
@@ -432,7 +438,7 @@ static void cmd_login(struct socket *sk, struct uidata *data, int argc, wchar_t 
 	if(errno == ENOENT)
 	    sq(sk, 0, L"508", L"No such authentication mechanism", NULL);
 	else
-	    sq(sk, 0, L"505", L"Could not initialize authentication system", L"%%s", strerror(errno), NULL);
+	    sq(sk, 0, L"505", L"Could not initialize authentication system", L"%s", strerror(errno), NULL);
 	free(buf);
 	logout(data);
 	return;
@@ -459,7 +465,7 @@ static void cmd_login(struct socket *sk, struct uidata *data, int argc, wchar_t 
 	}
 	break;
     case AUTH_DENIED:
-	sq(sk, 0, L"506", L"Authentication error", L"%%ls", (data->auth->text == NULL)?L"":(data->auth->text), NULL);
+	sq(sk, 0, L"506", L"Authentication error", L"%ls", (data->auth->text == NULL)?L"":(data->auth->text), NULL);
 	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formataddress(sk->remote, sk->remotelen));
 	logout(data);
 	break;
@@ -482,15 +488,15 @@ static void cmd_login(struct socket *sk, struct uidata *data, int argc, wchar_t 
 	    code = 304;
 	    break;
 	}
-	sq(sk, 0, L"%%i", code, data->auth->text, NULL);
+	sq(sk, 0, L"%i", code, data->auth->text, NULL);
 	break;
     case AUTH_ERR:
-	sq(sk, 0, L"505", L"System error", L"%%s", strerror(errno), NULL);
+	sq(sk, 0, L"505", L"System error", L"%s", strerror(errno), NULL);
 	logout(data);
 	break;
     default:
 	flog(LOG_WARNING, "BUG? Non-caught return from authenticate in cmd_login");
-	sq(sk, 0, L"505", L"System error", L"%%s", strerror(errno), NULL);
+	sq(sk, 0, L"505", L"System error", L"%s", strerror(errno), NULL);
 	logout(data);
 	break;
     }
@@ -533,7 +539,7 @@ static void cmd_pass(struct socket *sk, struct uidata *data, int argc, wchar_t *
 	}
 	break;
     case AUTH_DENIED:
-	sq(sk, 0, L"506", L"Authentication error", L"%%ls", (data->auth->text == NULL)?L"":(data->auth->text), NULL);
+	sq(sk, 0, L"506", L"Authentication error", L"%ls", (data->auth->text == NULL)?L"":(data->auth->text), NULL);
 	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formataddress(sk->remote, sk->remotelen));
 	logout(data);
 	break;
@@ -556,15 +562,15 @@ static void cmd_pass(struct socket *sk, struct uidata *data, int argc, wchar_t *
 	    code = 304;
 	    break;
 	}
-	sq(sk, 0, L"%%i", code, data->auth->text, NULL);
+	sq(sk, 0, L"%i", code, data->auth->text, NULL);
 	break;
     case AUTH_ERR:
-	sq(sk, 0, L"505", L"System error", L"%%s", strerror(errno), NULL);
+	sq(sk, 0, L"505", L"System error", L"%s", strerror(errno), NULL);
 	logout(data);
 	break;
     default:
 	flog(LOG_WARNING, "BUG? Non-caught return from authenticate in cmd_pass");
-	sq(sk, 0, L"505", L"System error", L"%%s", strerror(errno), NULL);
+	sq(sk, 0, L"505", L"System error", L"%s", strerror(errno), NULL);
 	logout(data);
 	break;
     }
@@ -602,12 +608,12 @@ static void cmd_fnetconnect(struct socket *sk, struct uidata *data, int argc, wc
 	if(errno == EPROTONOSUPPORT)
 	    sq(sk, 0, L"511", L"No such network name", NULL);
 	else
-	    sq(sk, 0, L"509", L"Could not parse the address", L"%%s", strerror(err), NULL);
+	    sq(sk, 0, L"509", L"Could not parse the address", L"%s", strerror(err), NULL);
 	return;
     }
     linkfnetnode(fn);
     fnetsetname(fn, argv[2]);
-    sq(sk, 0, L"200", L"%%i", fn->id, L"Connection under way", NULL);
+    sq(sk, 0, L"200", L"%i", fn->id, L"Connection under way", NULL);
     putfnetnode(fn);
 }
 
@@ -622,7 +628,7 @@ static void cmd_lsnodes(struct socket *sk, struct uidata *data, int argc, wchar_
     }
     for(fn = fnetnodes; fn != NULL; fn = fn->next)
     {
-	sq(sk, (fn->next != NULL)?1:0, L"200", L"%%i", fn->id, fn->fnet->name, (fn->name == NULL)?L"":fn->name, L"%%i", fn->numpeers, L"%%i", fn->state, L"%%ls", fn->pubid, NULL);
+	sq(sk, (fn->next != NULL)?1:0, L"200", L"%i", fn->id, fn->fnet->name, (fn->name == NULL)?L"":fn->name, L"%i", fn->numpeers, L"%i", fn->state, L"%ls", fn->pubid, NULL);
     }
 }
 
@@ -672,7 +678,7 @@ static void cmd_lspa(struct socket *sk, struct uidata *data, int argc, wchar_t *
 	sq(sk, 0, L"201", L"No data available", NULL);
     } else {
 	for(datum = fn->peerdata; datum != NULL; datum = datum->next)
-	    sq(sk, (datum->next != NULL)?1:0, L"200", datum->id, L"%%i", datum->datatype, NULL);
+	    sq(sk, (datum->next != NULL)?1:0, L"200", datum->id, L"%i", datum->datatype, NULL);
     }
 }
 
@@ -681,7 +687,6 @@ static void cmd_lspeers(struct socket *sk, struct uidata *data, int argc, wchar_
     int i;
     struct fnetnode *fn;
     struct fnetpeer *peer;
-    wchar_t buf[40];
     
     haveargs(2);
     if((fn = findfnetnode(wcstol(argv[1], NULL, 0))) == NULL)
@@ -695,20 +700,15 @@ static void cmd_lspeers(struct socket *sk, struct uidata *data, int argc, wchar_
     } else {
 	for(peer = fn->peers; peer != NULL; peer = peer->next)
 	{
-	    sq(sk, 2 | ((peer->next != NULL)?1:0), L"200", L"%%ls", peer->id, L"%%ls", peer->nick, NULL);
+	    sq(sk, 2 | ((peer->next != NULL)?1:0), L"200", L"%ls", peer->id, L"%ls", peer->nick, NULL);
 	    for(i = 0; i < peer->dinum; i++)
 	    {
 		if(peer->peerdi[i].datum->datatype == FNPD_INT)
-		    sq(sk, 2, peer->peerdi[i].datum->id, L"%%i", peer->peerdi[i].data.num, NULL);
-		/* Note: A long long is not the size of an int, so
-		 * sq() can't handle the conversion itself. */
+		    sq(sk, 2, peer->peerdi[i].datum->id, L"%i", peer->peerdi[i].data.num, NULL);
 		if(peer->peerdi[i].datum->datatype == FNPD_LL)
-		{
-		    swprintf(buf, 40, L"%lli", peer->peerdi[i].data.lnum);
-		    sq(sk, 2, peer->peerdi[i].datum->id, buf, NULL);
-		}
+		    sq(sk, 2, peer->peerdi[i].datum->id, L"%ll", peer->peerdi[i].data.lnum, NULL);
 		if((peer->peerdi[i].datum->datatype == FNPD_STR) && (peer->peerdi[i].data.str != NULL))
-		    sq(sk, 2, peer->peerdi[i].datum->id, L"%%ls", peer->peerdi[i].data.str, NULL);
+		    sq(sk, 2, peer->peerdi[i].datum->id, L"%ls", peer->peerdi[i].data.str, NULL);
 	    }
 	    sq(sk, 0, NULL);
 	}
@@ -777,7 +777,7 @@ static void cmd_download(struct socket *sk, struct uidata *data, int argc, wchar
 	    }
 	}
     }
-    sq(sk, 0, L"200", L"%%i", transfer->id, L"Download queued", NULL);
+    sq(sk, 0, L"200", L"%i", transfer->id, L"Download queued", NULL);
     transfersetactivity(transfer, L"create");
 }
 
@@ -792,11 +792,11 @@ static void cmd_lstrans(struct socket *sk, struct uidata *data, int argc, wchar_
 	if((transfer->dir != TRNSD_DOWN) || (transfer->owner == data->uid))
 	{
 	    if(pt != NULL)
-		sq(sk, 1, L"200", L"%%i", pt->id, L"%%i", pt->dir,
-		   L"%%i", pt->state, pt->peerid,
+		sq(sk, 1, L"200", L"%i", pt->id, L"%i", pt->dir,
+		   L"%i", pt->state, pt->peerid,
 		   (pt->peernick == NULL)?L"":(pt->peernick),
 		   (pt->path == NULL)?L"":(pt->path),
-		   L"%%i", pt->size, L"%%i", pt->curpos,
+		   L"%i", pt->size, L"%i", pt->curpos,
 		   (pt->hash == NULL)?L"":unparsehash(pt->hash),
 		   NULL);
 	    pt = transfer;
@@ -805,11 +805,11 @@ static void cmd_lstrans(struct socket *sk, struct uidata *data, int argc, wchar_
     if(pt == NULL)
 	sq(sk, 0, L"201", L"No transfers", NULL);
     else
-	sq(sk, 0, L"200", L"%%i", pt->id, L"%%i", pt->dir,
-	   L"%%i", pt->state, pt->peerid,
+	sq(sk, 0, L"200", L"%i", pt->id, L"%i", pt->dir,
+	   L"%i", pt->state, pt->peerid,
 	   (pt->peernick == NULL)?L"":(pt->peernick),
 	   (pt->path == NULL)?L"":(pt->path),
-	   L"%%i", pt->size, L"%%i", pt->curpos,
+	   L"%i", pt->size, L"%i", pt->curpos,
 	   (pt->hash == NULL)?L"":unparsehash(pt->hash),
 	   NULL);
 }
@@ -982,7 +982,7 @@ static void cmd_search(struct socket *sk, struct uidata *data, int argc, wchar_t
     CBREG(srch, search_eta, srcheta, NULL, NULL);
     CBREG(srch, search_commit, srchcommit, NULL, NULL);
     CBREG(srch, search_result, srchres, NULL, NULL);
-    sq(sk, 0, L"200", L"%%i", srch->id, L"%%i", srch->eta - time(NULL), NULL);
+    sq(sk, 0, L"200", L"%i", srch->id, L"%i", srch->eta - time(NULL), NULL);
     putsexpr(sexpr);
 }
 
@@ -999,21 +999,20 @@ static void cmd_lssrch(struct socket *sk, struct uidata *data, int argc, wchar_t
 	if(!wcscmp(srch->owner, data->username))
 	{
 	    if(pt != NULL)
-		sq(sk, 1, L"200", L"%%i", pt->id, L"%%i", pt->state, L"%%i", pt->eta - now, L"%%i", pt->numres, NULL);
+		sq(sk, 1, L"200", L"%i", pt->id, L"%i", pt->state, L"%i", pt->eta - now, L"%i", pt->numres, NULL);
 	    pt = srch;
 	}
     }
     if(pt == NULL)
 	sq(sk, 0, L"201", L"No searches", NULL);
     else
-	sq(sk, 0, L"200", L"%%i", pt->id, L"%%i", pt->state, L"%%i", pt->eta - now, L"%%i", pt->numres, NULL);
+	sq(sk, 0, L"200", L"%i", pt->id, L"%i", pt->state, L"%i", pt->eta - now, L"%i", pt->numres, NULL);
 }
 
 static void cmd_lssr(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
 {
     struct search *srch;
     struct srchres *sr;
-    wchar_t buf[64];
     
     haveargs(2);
     havepriv(PERM_SRCH);
@@ -1028,8 +1027,11 @@ static void cmd_lssr(struct socket *sk, struct uidata *data, int argc, wchar_t *
     } else {
 	for(sr = srch->results; sr != NULL; sr = sr->next)
 	{
-	    swprintf(buf, 64, L"%f", sr->time);
-	    sq(sk, (sr->next != NULL)?1:0, L"200", L"%%ls", sr->filename, sr->fnet->name, L"%%ls", sr->peerid, L"%%i", sr->size, L"%%i", sr->slots, L"%%i", (sr->fn == NULL)?-1:(sr->fn->id), buf, L"%%ls", (sr->hash == NULL)?L"":unparsehash(sr->hash), NULL);
+	    sq(sk, (sr->next != NULL)?1:0, L"200", L"%ls", sr->filename,
+	       sr->fnet->name, L"%ls", sr->peerid, L"%i", sr->size,
+	       L"%i", sr->slots, L"%i", (sr->fn == NULL)?-1:(sr->fn->id),
+	       L"%f", sr->time,
+	       L"%ls", (sr->hash == NULL)?L"":unparsehash(sr->hash), NULL);
 	}
     }
 }
@@ -1085,7 +1087,7 @@ static void fcmderr(struct socket *sk, int err, struct uidata *data)
 	    data->fcmdbuf = NULL;
 	}
 	data->fcmdbufsize = data->fcmdbufdata = 0;
-	sq(data->sk, 0, L"505", L"An error occurred on the pipe to the filtercmd", L"%%s", strerror(err), NULL);
+	sq(data->sk, 0, L"505", L"An error occurred on the pipe to the filtercmd", L"%s", strerror(err), NULL);
 	return;
     }
     putsock(data->fcmdsk);
@@ -1110,7 +1112,7 @@ static void fcmderr(struct socket *sk, int err, struct uidata *data)
     for(p2 = wcschr(p, L'\n'); p2 != NULL; p2 = wcschr(p, L'\n'))
     {
 	*(p2++) = L'\0';
-	sq(data->sk, (*p2 == L'\0')?0:1, L"200", L"%%ls", p, NULL);
+	sq(data->sk, (*p2 == L'\0')?0:1, L"200", L"%ls", p, NULL);
 	p = p2;
     }
     if(*p == L'\0')
@@ -1118,7 +1120,7 @@ static void fcmderr(struct socket *sk, int err, struct uidata *data)
 	if(p == wbuf)
 	    sq(data->sk, 0, L"201", L"No data returned", NULL);
     } else {
-	sq(data->sk, 0, L"200", L"%%ls", p, NULL);
+	sq(data->sk, 0, L"200", L"%ls", p, NULL);
     }
     free(wbuf);
 }
@@ -1160,7 +1162,7 @@ static void cmd_filtercmd(struct socket *sk, struct uidata *data, int argc, wcha
 	    for(i = 0; i < cargvdata; i++)
 		free(cargv[i]);
 	    free(cargv);
-	    sq(sk, 0, L"504", L"%Could not convert argument %i into local character set", i, L"%%s", strerror(errno), NULL);
+	    sq(sk, 0, L"504", L"Could not convert argument into local character set", L"%i", i, L"%s", strerror(errno), NULL);
 	    return;
 	}
 	addtobuf(cargv, argbuf);
@@ -1169,7 +1171,7 @@ static void cmd_filtercmd(struct socket *sk, struct uidata *data, int argc, wcha
     if((pid = forksess(data->uid, data->auth, NULL, NULL, FD_FILE, 0, O_RDWR, "/dev/null", FD_PIPE, 1, O_RDONLY, &pipe, FD_FILE, 2, O_RDWR, "/dev/null", FD_END)) < 0)
     {
 	flog(LOG_WARNING, "could not fork session in filtercmd: %s", strerror(errno));
-	sq(sk, 0, L"505", L"System error - Could not fork session", L"%%s", strerror(errno), NULL);
+	sq(sk, 0, L"505", L"System error - Could not fork session", L"%s", strerror(errno), NULL);
 	return;
     }
     if(pid == 0)
@@ -1216,7 +1218,7 @@ static void cmd_lstrarg(struct socket *sk, struct uidata *data, int argc, wchar_
 	sq(sk, 0, L"201", L"Transfer has no arguments", NULL);
     } else {
 	for(ta = transfer->args; ta != NULL; ta = ta->next)
-	    sq(sk, ta->next != NULL, L"200", L"%%ls", ta->key, L"%%ls", ta->val, NULL);
+	    sq(sk, ta->next != NULL, L"200", L"%ls", ta->key, L"%ls", ta->val, NULL);
     }
 }
 
@@ -1235,19 +1237,13 @@ static void cmd_hashstatus(struct socket *sk, struct uidata *data, int argc, wch
 		hashed++;
 	}
     }
-    sq(sk, 0, L"200", L"%%i", total, L"tth", L"%%i", hashed, NULL);
+    sq(sk, 0, L"200", L"%i", total, L"tth", L"%i", hashed, NULL);
 }
 
 static void cmd_transstatus(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
 {
-    wchar_t *buf1, *buf2;
-    
     havepriv(PERM_TRANS);
-    buf1 = swprintf2(L"%lli", bytesdownload);
-    buf2 = swprintf2(L"%lli", bytesupload);
-    sq(sk, 0, L"200", L"down", L"%%ls", buf1, L"up", L"%%ls", buf2, NULL);
-    free(buf1);
-    free(buf2);
+    sq(sk, 0, L"200", L"down", L"%ll", bytesdownload, L"up", L"%ll", bytesupload, NULL);
 }
 
 static void cmd_register(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
@@ -1319,7 +1315,7 @@ static void cmd_sendmsg(struct socket *sk, struct uidata *data, int argc, wchar_
 
 static void cmd_uptime(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
 {
-    sq(sk, 0, L"200", L"%%i", time(NULL) - starttime, NULL);
+    sq(sk, 0, L"200", L"%i", time(NULL) - starttime, NULL);
 }
 
 #undef haveargs
@@ -2288,7 +2284,6 @@ static int run(void)
     struct uidata *data, *next;
     struct qcommand *qcmd;
     struct notif *notif, *nnotif;
-    wchar_t buf[64];
     
     for(data = actives; data != NULL; data = next)
     {
@@ -2314,24 +2309,23 @@ static int run(void)
 	    }
 	    if(findnotif(notif->prev, 0, -1, notif->code, id) != NULL)
 		continue;
-	    sq(data->sk, 2, L"%%i", notif->code, NULL);
+	    sq(data->sk, 2, L"%i", notif->code, NULL);
 	    for(i = 0; i < notif->argc; i++)
 	    {
 		switch(notif->argv[i].dt)
 		{
 		case NOTIF_INT:
 		case NOTIF_ID:
-		    sq(data->sk, 2, L"%%i", notif->argv[i].d.n, NULL);
+		    sq(data->sk, 2, L"%i", notif->argv[i].d.n, NULL);
 		    break;
 		case NOTIF_STR:
 		    if(notif->argv[i].d.s[0] == L'%')
-			sq(data->sk, 2, L"%%s", notif->argv[i].d.s, NULL);
+			sq(data->sk, 2, L"%ls", notif->argv[i].d.s, NULL);
 		    else
 			sq(data->sk, 2, notif->argv[i].d.s, NULL);
 		    break;
 		case NOTIF_FLOAT:
-		    swprintf(buf, 64, L"%f", notif->argv[i].d.d);
-		    sq(data->sk, 2, buf, NULL);
+		    sq(data->sk, 2, L"%f", notif->argv[i].d.d, NULL);
 		    break;
 		}
 	    }
