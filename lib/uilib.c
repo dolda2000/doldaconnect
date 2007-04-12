@@ -1225,6 +1225,24 @@ void dc_freeires(struct dc_intresp *ires)
     free(ires);
 }
 
+int dc_checkprotocol(struct dc_response *resp, int revision)
+{
+    struct dc_intresp *ires;
+    int low, high;
+    
+    if(resp->code != 201)
+	return(-1);
+    resp->curline = 0;
+    if((ires = dc_interpret(resp)) == NULL)
+	return(-1);
+    low = ires->argv[0].val.num;
+    high = ires->argv[0].val.num;
+    dc_freeires(ires);
+    if((revision < low) || (revision > high))
+	return(-1);
+    return(0);
+}
+
 const char *dc_gethostname(void)
 {
     return(servinfo.hostname);
