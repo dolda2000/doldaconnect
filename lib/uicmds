@@ -146,5 +146,6 @@
 632 i s s       ; More data follows, but cannot be handled by dc_interpret
 640 s		; Client-to-client message, also variable length
 : ; Nameless connection
-200 s
+200 s		; Old, non-versioned welcome message
+201 i i s	; New, versioned message -- supported revisions are i1 to i2, incl.
 502
