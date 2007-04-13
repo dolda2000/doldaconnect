@@ -22,7 +22,7 @@ struct scmcb
 };
 
 static int fd = -1;
-static scm_bits_t resptype;
+static scm_t_bits resptype;
 
 static SCM scm_dc_connect(SCM host)
 {
