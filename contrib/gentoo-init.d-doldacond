@@ -7,20 +7,23 @@ depend() {
 }
 
 start() {
+    ebegin "Cleaning file lists"
+    rm -f /tmp/dc-filelist-*
+    eend 0
     ebegin "Starting doldacond"
     ulimit -c unlimited
-    start-stop-daemon -S -p /var/run/doldacond.pid -qx /usr/local/bin/doldacond -- -p /var/run/doldacond.pid
+    start-stop-daemon -S -p /var/run/doldacond.pid -q -e LD_PRELOAD=/usr/lib/libkrb4.so:/usr/lib/libdes425.so -x /usr/local/bin/doldacond -- -sp /var/run/doldacond.pid
     eend $?
 }
 
 stop() {
     ebegin "Stopping doldacond"
-    start-stop-daemon -K -p /var/run/doldacond.pid -qx /usr/local/bin/doldacond
+    start-stop-daemon -K -p /var/run/doldacond.pid -q -x /usr/local/bin/doldacond
     eend $?
 }
 
 reload() {
     ebegin "Reloading doldacond"
-    start-stop-daemon -K -p /var/run/doldacond.pid -qx /usr/local/bin/doldacond -s HUP
+    start-stop-daemon -K -p /var/run/doldacond.pid -q -x /usr/local/bin/doldacond -s HUP
     eend $?
 }
