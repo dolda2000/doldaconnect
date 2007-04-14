@@ -112,6 +112,17 @@ static gboolean gi_chatleavecb(GaimConversation *conv, const char *user, const c
     return(FALSE);
 }
 
+static void regsigs(void)
+{
+    static GaimPlugin *regged = NULL;
+    
+    if(regged != me) {
+	gaim_signal_connect(gaim_conversations_get_handle(), "chat-buddy-joining", me, GAIM_CALLBACK(gi_chatjoincb), NULL);
+	gaim_signal_connect(gaim_conversations_get_handle(), "chat-buddy-leaving", me, GAIM_CALLBACK(gi_chatleavecb), NULL);
+	regged = me;
+    }
+}
+
 static void newpeercb(struct dc_fnetpeer *peer)
 {
     struct conndata *data;
@@ -119,8 +130,7 @@ static void newpeercb(struct dc_fnetpeer *peer)
     char *buf;
     
     data = peer->fn->udata;
-    if((conv = gaim_find_chat(data->gc, peer->fn->id)) != NULL)
-    {
+    if((conv = gaim_find_chat(data->gc, peer->fn->id)) != NULL) {
 	buf = sprintf2("%s", icswcstombs(peer->nick, "UTF-8", NULL));
 	gaim_conv_chat_add_user(GAIM_CONV_CHAT(conv), buf, NULL, GAIM_CBFLAGS_NONE, TRUE);
 	free(buf);
@@ -134,8 +144,7 @@ static void delpeercb(struct dc_fnetpeer *peer)
     char *buf;
     
     data = peer->fn->udata;
-    if((conv = gaim_find_chat(data->gc, peer->fn->id)) != NULL)
-    {
+    if((conv = gaim_find_chat(data->gc, peer->fn->id)) != NULL) {
 	buf = sprintf2("%s", icswcstombs(peer->nick, "UTF-8", NULL));
 	gaim_conv_chat_remove_user(GAIM_CONV_CHAT(conv), buf, NULL);
 	free(buf);
@@ -185,8 +194,7 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
     GaimConversation *conv;
     char *peer, *msg;
     
-    if(((condition & GAIM_INPUT_READ) && dc_handleread()) || ((condition & GAIM_INPUT_WRITE) && dc_handlewrite()))
-    {
+    if(((condition & GAIM_INPUT_READ) && dc_handleread()) || ((condition & GAIM_INPUT_WRITE) && dc_handlewrite())) {
 	disconnected(data);
 	gaim_connection_error(data->gc, "Server has disconnected");
 	return;
@@ -466,6 +474,7 @@ static void gi_joinchat(GaimConnection *gc, GHashTable *chatdata)
     char *buf;
     GList *ul, *fl, *c;
     
+    regsigs();
     data = gc->proto_data;
     if((fn = dc_findfnetnode(GPOINTER_TO_INT(g_hash_table_lookup(chatdata, "id")))) == NULL)
 	return;
@@ -532,8 +541,6 @@ static void init(GaimPlugin *pl)
     protinfo.protocol_options = g_list_append(protinfo.protocol_options, opt);
     opt = gaim_account_option_bool_new("Do not pop up private messages automatically", "represspm", FALSE);
     protinfo.protocol_options = g_list_append(protinfo.protocol_options, opt);
-    gaim_signal_connect(gaim_conversations_get_handle(), "chat-buddy-joining", pl, GAIM_CALLBACK(gi_chatjoincb), NULL);
-    gaim_signal_connect(gaim_conversations_get_handle(), "chat-buddy-leaving", pl, GAIM_CALLBACK(gi_chatleavecb), NULL);
     me = pl;
 }
 
