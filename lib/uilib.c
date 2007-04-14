@@ -378,7 +378,7 @@ int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...)
     struct qcmd *qcmd;
     int num, freepart;
     va_list al;
-    char *final;
+    char *final, *sarg;
     wchar_t **toks;
     wchar_t *buf;
     wchar_t *part, *tpart;
@@ -390,7 +390,7 @@ int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...)
     va_start(al, data);
     while((part = va_arg(al, wchar_t *)) != NULL)
     {
-	if(!wcscmp(part, L"%%a"))
+	if(!wcscmp(part, L"%a"))
 	{
 	    for(toks = va_arg(al, wchar_t **); *toks != NULL; toks++)
 	    {
@@ -410,25 +410,36 @@ int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...)
 	} else {
 	    if(*part == L'%')
 	    {
-		/* This demands that all arguments that are passed to the
-		 * function are of equal length, that of an int. I know
-		 * that GCC does that on IA32 platforms, but I do not know
-		 * which other platforms and compilers that it applies
-		 * to. If this breaks your platform, please mail me about
-		 * it.
-		 */
-		part = vswprintf2(tpart = (part + 1), al);
-		for(; *tpart != L'\0'; tpart++)
+		tpart = part + 1;
+		if(!wcscmp(tpart, L"i"))
 		{
-		    if(*tpart == L'%')
+		    freepart = 1;
+		    part = swprintf2(L"%i", va_arg(al, int));
+		} else if(!wcscmp(tpart, L"s")) {
+		    freepart = 1;
+		    part = icmbstowcs(sarg = va_arg(al, char *), NULL);
+		    if(part == NULL)
 		    {
-			if(tpart[1] == L'%')
-			    tpart++;
-			else
-			    va_arg(al, int);
+			if(buf != NULL)
+			    free(buf);
+			return(-1);
 		    }
+		} else if(!wcscmp(tpart, L"ls")) {
+		    part = va_arg(al, wchar_t *);
+		} else if(!wcscmp(tpart, L"ll")) {
+		    freepart = 1;
+		    part = swprintf2(L"%lli", va_arg(al, long long));
+		} else if(!wcscmp(tpart, L"f")) {
+		    freepart = 1;
+		    part = swprintf2(L"%f", va_arg(al, double));
+		} else if(!wcscmp(tpart, L"x")) {
+		    freepart = 1;
+		    part = swprintf2(L"%x", va_arg(al, int));
+		} else {
+		    if(buf != NULL)
+			free(buf);
+		    return(-1);
 		}
-		freepart = 1;
 	    } else {
 		freepart = 0;
 	    }
