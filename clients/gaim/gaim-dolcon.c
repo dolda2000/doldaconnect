@@ -40,6 +40,7 @@ struct conndata {
 };
 
 static struct conndata *inuse = NULL;
+static GaimPlugin *me;
 
 static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition);
 
@@ -87,6 +88,28 @@ static int loginconv(int type, wchar_t *text, char **resp, struct conndata *data
 	updatewrite(data);
 	return(1);
     }
+}
+
+static gboolean gi_chatjoincb(GaimConversation *conv, const char *user, GaimConvChatBuddyFlags flags, void *uudata)
+{
+    GaimConnection *c;
+    
+    if((c = gaim_conversation_get_gc(conv)) == NULL)
+	return(FALSE);
+    if(c->prpl == me)
+	return(TRUE);
+    return(FALSE);
+}
+
+static gboolean gi_chatleavecb(GaimConversation *conv, const char *user, const char *reason, void *uudata)
+{
+    GaimConnection *c;
+    
+    if((c = gaim_conversation_get_gc(conv)) == NULL)
+	return(FALSE);
+    if(c->prpl == me)
+	return(TRUE);
+    return(FALSE);
 }
 
 static void newpeercb(struct dc_fnetpeer *peer)
@@ -315,7 +338,7 @@ static char *gi_statustext(GaimBuddy *b)
     return(NULL);
 }
 
-static void gi_tiptext(GaimBuddy *b, GString *buf, gboolean full)
+static void gi_tiptext(GaimBuddy *b, GaimNotifyUserInfo *inf, gboolean full)
 {
     /* Nothing for now */
 }
@@ -507,10 +530,11 @@ static void init(GaimPlugin *pl)
     dc_init();
     opt = gaim_account_option_string_new("Server", "server", "");
     protinfo.protocol_options = g_list_append(protinfo.protocol_options, opt);
-    opt = gaim_account_option_int_new("Port", "port", -1);
-    protinfo.protocol_options = g_list_append(protinfo.protocol_options, opt);
     opt = gaim_account_option_bool_new("Do not pop up private messages automatically", "represspm", FALSE);
     protinfo.protocol_options = g_list_append(protinfo.protocol_options, opt);
+    gaim_signal_connect(gaim_conversations_get_handle(), "chat-buddy-joining", pl, GAIM_CALLBACK(gi_chatjoincb), NULL);
+    gaim_signal_connect(gaim_conversations_get_handle(), "chat-buddy-leaving", pl, GAIM_CALLBACK(gi_chatleavecb), NULL);
+    me = pl;
 }
 
 GAIM_INIT_PLUGIN(dolcon, init, info);
