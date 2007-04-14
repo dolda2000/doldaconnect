@@ -304,7 +304,7 @@ pid_t forksess(uid_t user, struct authhandle *auth, void (*ccbfunc)(pid_t, int, 
 		close(i);
 	    }
 	}
-	setpgrp();
+	setpgid(0, 0);
 	signal(SIGHUP, SIG_IGN);
 	errno = 0;
 #ifdef HAVE_KEYUTILS
