@@ -402,7 +402,7 @@ static PyObject *mod_checkproto(PyObject *self, PyObject *args)
 	PyErr_SetString(PyExc_TypeError, "first argument must be a response object");
 	return(NULL);
     }
-    resp = tmp;
+    resp = (struct respobj *)tmp;
     if(dc_checkprotocol(resp->resp, version))
 	Py_RETURN_FALSE;
     else
