@@ -267,13 +267,13 @@ static PyObject *mod_qcmd(PyObject *self, PyObject *args, PyObject *kwargs)
     if(PyMapping_HasKeyString(kwargs, "cb")) {
 	cb = PyMapping_GetItemString(kwargs, "cb");
 	if(PyCallable_Check(cb)) {
-	    ret = PyInt_FromLong(dc_queuecmd(qcmd_cb, cb, cmd, L"%%a", toks, NULL));
+	    ret = PyInt_FromLong(dc_queuecmd(qcmd_cb, cb, cmd, L"%a", toks, NULL));
 	} else {
 	    PyErr_SetString(PyExc_TypeError, "Callback must be callable");
 	    Py_DECREF(cb);
 	}
     } else {
-	ret = PyInt_FromLong(dc_queuecmd(NULL, NULL, cmd, L"%%a", toks, NULL));
+	ret = PyInt_FromLong(dc_queuecmd(NULL, NULL, cmd, L"%a", toks, NULL));
     }
 
 out:

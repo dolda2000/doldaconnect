@@ -1043,7 +1043,7 @@ gint ksupdatecb(gpointer data)
 	    }
 	}
 	addtobuf(users, NULL);
-	ksquerytag = dc_queuecmd(NULL, NULL, L"filtercmd", L"userspeeda", L"%%a", users, NULL);
+	ksquerytag = dc_queuecmd(NULL, NULL, L"filtercmd", L"userspeeda", L"%a", users, NULL);
 	dc_freewcsarr(users);
     }
     return(TRUE);
@@ -1145,7 +1145,7 @@ void handleresps(void)
 		    if(ires->argv[0].val.num == nextsrch)
 		    {
 			if(cursrch != -1)
-			    dc_queuecmd(NULL, NULL, L"cansrch", L"%%i", cursrch, NULL);
+			    dc_queuecmd(NULL, NULL, L"cansrch", L"%i", cursrch, NULL);
 			cursrch = nextsrch;
 			nextsrch = -1;
 			gtk_widget_set_sensitive(main_realsrch, TRUE);
@@ -1432,7 +1432,7 @@ void cb_main_fnaddr_activate(GtkWidget *widget, gpointer data)
 	toks[0] = srealloc(toks[0], (wcslen(toks[0]) + 5) * sizeof(wchar_t));
 	wcscat(toks[0], L":411");
     }
-    tag = dc_queuecmd(NULL, NULL, L"cnct", L"dc", L"%%a", toks, NULL);
+    tag = dc_queuecmd(NULL, NULL, L"cnct", L"dc", L"%a", toks, NULL);
     dc_freewcsarr(toks);
     if((resp = dc_gettaggedrespsync(tag)) != NULL)
     {
@@ -1857,7 +1857,7 @@ void cb_main_dcnctbtn_clicked(GtkWidget *widget, gpointer data)
 	return;
     }
     gtk_tree_model_get(GTK_TREE_MODEL(fnmodel), &iter, 0, &id, -1);
-    tag = dc_queuecmd(NULL, NULL, L"dcnct", L"%%i", id, NULL);
+    tag = dc_queuecmd(NULL, NULL, L"dcnct", L"%i", id, NULL);
     if((resp = dc_gettaggedrespsync(tag)) != NULL)
     {
 	if(resp->code == 502)
@@ -1902,7 +1902,7 @@ void cb_main_phublist_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeView
 	buf = g_realloc(buf, strlen(buf) + 5);
 	strcat(buf, ":411");
     }
-    tag = dc_queuecmd(NULL, NULL, L"cnct", L"dc", L"%%s", buf, NULL);
+    tag = dc_queuecmd(NULL, NULL, L"cnct", L"dc", L"%s", buf, NULL);
     g_free(buf);
     gtk_entry_set_text(GTK_ENTRY(main_fnaddr), "");
     if((resp = dc_gettaggedrespsync(tag)) != NULL)
@@ -1963,7 +1963,7 @@ void cb_main_chatstr_activate(GtkWidget *widget, gpointer data)
 	return;
     }
     buf = gtk_entry_get_text(GTK_ENTRY(main_chatstr));
-    tag = dc_queuecmd(NULL, NULL, L"sendchat", L"%%i", curchat, L"1", L"", L"%%s", buf, NULL);
+    tag = dc_queuecmd(NULL, NULL, L"sendchat", L"%i", curchat, L"1", L"", L"%s", buf, NULL);
     if((resp = dc_gettaggedrespsync(tag)) != NULL)
     {
 	if(resp->code == 502)
@@ -2053,7 +2053,7 @@ void cb_main_srchbtn_clicked(GtkWidget *widget, gpointer data)
 	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Please enter a search expression before searching"));
 	return;
     }
-    tag = dc_queuecmd(NULL, NULL, L"search", L"all", L"%%a", toks, NULL);
+    tag = dc_queuecmd(NULL, NULL, L"search", L"all", L"%a", toks, NULL);
     dc_freewcsarr(toks);
     if((resp = dc_gettaggedrespsync(tag)) != NULL)
     {
@@ -2088,7 +2088,7 @@ void cb_main_srchcanbtn_clicked(GtkWidget *widget, gpointer data)
 {
     if(nextsrch == -1)
 	return;
-    dc_queuecmd(NULL, NULL, L"cansrch", L"%%i", nextsrch, NULL);
+    dc_queuecmd(NULL, NULL, L"cansrch", L"%i", nextsrch, NULL);
     nextsrch = -1;
     gtk_widget_set_sensitive(main_realsrch, TRUE);
     gtk_widget_set_sensitive(main_simplesrch, TRUE);
@@ -2111,7 +2111,7 @@ gboolean cb_main_trlist_keypress(GtkWidget *widget, GdkEventKey *event, gpointer
 	if(gtk_tree_selection_get_selected(sel, &model, &iter))
 	{
 	    gtk_tree_model_get(model, &iter, 0, &id, -1);
-	    tag = dc_queuecmd(NULL, NULL, L"cancel", L"%%i", id, NULL);
+	    tag = dc_queuecmd(NULL, NULL, L"cancel", L"%i", id, NULL);
 	    if((resp = dc_gettaggedrespsync(tag)) != NULL)
 	    {
 		if(resp->code == 502)
@@ -2175,9 +2175,9 @@ void cb_main_srchres_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewC
     g_free(tfilename);
     arg = (char *)gtk_entry_get_text(GTK_ENTRY(main_dlarg));
     if(*arg)
-	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%%ls", peerid, L"%%ls", filename, L"%%i", size, L"hash", L"%%ls", (hash == NULL)?L"":hash, L"user", L"%%s", arg, NULL);
+	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%ls", peerid, L"%ls", filename, L"%i", size, L"hash", L"%ls", (hash == NULL)?L"":hash, L"user", L"%s", arg, NULL);
     else
-	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%%ls", peerid, L"%%ls", filename, L"%%i", size, L"hash", L"%%ls", (hash == NULL)?L"":hash, NULL);
+	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%ls", peerid, L"%ls", filename, L"%i", size, L"hash", L"%ls", (hash == NULL)?L"":hash, NULL);
     free(fnet);
     free(peerid);
     free(filename);
@@ -2309,7 +2309,7 @@ void cb_main_trcancel_activate(GtkWidget *widget, gpointer data)
     if(gtk_tree_selection_get_selected(sel, &model, &iter))
     {
 	gtk_tree_model_get(model, &iter, 0, &id, -1);
-	tag = dc_queuecmd(NULL, NULL, L"cancel", L"%%i", id, NULL);
+	tag = dc_queuecmd(NULL, NULL, L"cancel", L"%i", id, NULL);
 	if((resp = dc_gettaggedrespsync(tag)) != NULL)
 	{
 	    if(resp->code == 502)
@@ -2415,7 +2415,7 @@ int rmres(char *id)
     struct dc_response *resp;
     
     ret = -1;
-    tag = dc_queuecmd(NULL, NULL, L"filtercmd", L"rmres", L"%%s", id, NULL);
+    tag = dc_queuecmd(NULL, NULL, L"filtercmd", L"rmres", L"%s", id, NULL);
     if((resp = dc_gettaggedrespsync(tag)) != NULL)
     {
 	if(resp->numlines > 0)

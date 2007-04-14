@@ -276,7 +276,7 @@ static int gi_sendchat(GaimConnection *gc, int id, const char *what, GaimMessage
     /* XXX: Handle chat rooms */
     if((wwhat = icmbstowcs((char *)what, "UTF-8")) == NULL)
 	return(-errno);
-    dc_queuecmd(NULL, NULL, L"sendchat", L"%%i", fn->id, L"1", L"", L"%%ls", wwhat, NULL);
+    dc_queuecmd(NULL, NULL, L"sendchat", L"%i", fn->id, L"1", L"", L"%ls", wwhat, NULL);
     free(wwhat);
     updatewrite(data);
     return(0);
@@ -316,7 +316,7 @@ static int gi_sendim(GaimConnection *gc, const char *who, const char *what, Gaim
 	free(wwho);
 	return(-en);
     }
-    dc_queuecmd(NULL, NULL, L"sendchat", L"%%i", fn->id, L"0", L"%%ls", peer->nick, L"%%ls", wwhat, NULL);
+    dc_queuecmd(NULL, NULL, L"sendchat", L"%i", fn->id, L"0", L"%ls", peer->nick, L"%ls", wwhat, NULL);
     free(wwho);
     free(wwhat);
     updatewrite(data);

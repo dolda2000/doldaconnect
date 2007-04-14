@@ -142,7 +142,7 @@ static void inittrans(struct conduit *conduit, struct dc_transfer *dt)
     dtd->conduit = conduit;
     dt->udata = dtd;
     dt->destroycb = dtfreecb;
-    dc_queuecmd(lstrargcb, dt, L"lstrarg", L"%%i", dt->id, NULL);
+    dc_queuecmd(lstrargcb, dt, L"lstrarg", L"%i", dt->id, NULL);
 }
 
 static void trlistcb(int resp, struct conduit *conduit)
@@ -312,7 +312,7 @@ static int cancel(struct conduit *conduit, struct transfer *transfer)
     {
 	if(((dtd = dt->udata) != NULL) && (dtd->ct == transfer))
 	{
-	    dc_queuecmd(NULL, NULL, L"cancel", L"%%i", dt->id, NULL);
+	    dc_queuecmd(NULL, NULL, L"cancel", L"%i", dt->id, NULL);
 	    return(0);
 	}
     }

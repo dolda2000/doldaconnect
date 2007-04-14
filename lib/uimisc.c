@@ -190,7 +190,7 @@ static void process_pam(struct dc_response *resp, struct logindata *data)
 		data->callback(DC_LOGIN_ERR_CONV, NULL, data->data);
 		freelogindata(data);
 	    } else {
-		dc_queuecmd(logincallback, data, L"pass", L"%%s", buf, NULL);
+		dc_queuecmd(logincallback, data, L"pass", L"%s", buf, NULL);
 	    }
 	    if(buf != NULL)
 	    {
@@ -249,7 +249,7 @@ static void process_krb5(struct dc_response *resp, struct logindata *data)
 	{
 	case 0:
 	    buf = hexencode(krb->reqbuf.data, krb->reqbuf.length);
-	    dc_queuecmd(logincallback, data, L"pass", L"%%s", buf, NULL);
+	    dc_queuecmd(logincallback, data, L"pass", L"%s", buf, NULL);
 	    free(buf);
 	    krb->state = 1;
 	    break;
@@ -522,7 +522,7 @@ static int logincallback(struct dc_response *resp)
 		    }
 		    username = pwent->pw_name;
 		}
-		dc_queuecmd(logincallback, data, L"login", data->mech->name, L"%%s", username, NULL);
+		dc_queuecmd(logincallback, data, L"login", data->mech->name, L"%s", username, NULL);
 	    }
 	}
     } else if(!wcscmp(resp->cmdname, L"login") || !wcscmp(resp->cmdname, L"pass")) {
@@ -1071,9 +1071,9 @@ static int getpalistcallback(struct dc_response *resp)
 	    adddatum(fn, ires->argv[0].val.str, ires->argv[1].val.num);
 	    dc_freeires(ires);
 	}
-	dc_queuecmd(getpeerlistcallback, data, L"lspeers", L"%%i", fn->id, NULL);
+	dc_queuecmd(getpeerlistcallback, data, L"lspeers", L"%i", fn->id, NULL);
     } else if(resp->code == 201) {
-	dc_queuecmd(getpeerlistcallback, data, L"lspeers", L"%%i", fn->id, NULL);
+	dc_queuecmd(getpeerlistcallback, data, L"lspeers", L"%i", fn->id, NULL);
     } else {
 	data->callback(fn, resp->code, data->data);
 	free(data);
@@ -1109,7 +1109,7 @@ void dc_getpeerlistasync(struct dc_fnetnode *fn, void (*callback)(struct dc_fnet
     data->callback = callback;
     data->fnid = fn->id;
     data->data = udata;
-    dc_queuecmd(getpalistcallback, data, L"lspa", L"%%i", fn->id, NULL);
+    dc_queuecmd(getpalistcallback, data, L"lspa", L"%i", fn->id, NULL);
 }
 
 void dc_uimisc_disconnected(void)

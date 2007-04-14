@@ -221,11 +221,11 @@ static SCM scm_dc_qcmd(SCM argv, SCM callback)
     addtobuf(toks, NULL);
     if(callback == SCM_UNDEFINED)
     {
-	tag = dc_queuecmd(NULL, NULL, cmd, L"%%a", toks, NULL);
+	tag = dc_queuecmd(NULL, NULL, cmd, L"%a", toks, NULL);
     } else {
 	scmcb = scm_must_malloc(sizeof(*scmcb), "scmcb");
 	scm_gc_protect_object(scmcb->subr = callback);
-	tag = dc_queuecmd(qcmd_scmcb, scmcb, cmd, L"%%a", toks, NULL);
+	tag = dc_queuecmd(qcmd_scmcb, scmcb, cmd, L"%a", toks, NULL);
     }
     dc_freewcsarr(toks);
     if(cmd != NULL)
