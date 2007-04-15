@@ -3093,6 +3093,8 @@ static void hubdestroy(struct fnetnode *fn)
     if((fn->sk != NULL) && (fn->sk->data == fn))
     {
 	fn->sk->data = NULL;
+	fn->sk->readcb = NULL;
+	fn->sk->errcb = NULL;
 	putfnetnode(fn);
     }
     if(hub == NULL)
