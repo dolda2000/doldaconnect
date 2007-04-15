@@ -60,6 +60,7 @@ static char *base64dec2(char *data, size_t *datalen)
 int main(int argc, char **argv)
 {
     int i, ret;
+    size_t size;
     int c, fd, outfd;
     int len, len2;
     int filter, output;
@@ -128,8 +129,8 @@ int main(int argc, char **argv)
 			fprintf(stderr, "tigersum: %s: could not read entire state\n", statefile);
 			exit(1);
 		    }
-		    dec = base64dec2(buf, &ret);
-		    if(ret != 24) {
+		    dec = base64dec2(buf, &size);
+		    if(size != 24) {
 			fprintf(stderr, "tigersum: %s: illegal state\n", statefile);
 			exit(1);
 		    }
@@ -144,8 +145,8 @@ int main(int argc, char **argv)
 		    fprintf(stderr, "tigersum: %s: could not read entire state\n", statefile);
 		    exit(1);
 		}
-		dec = base64dec2(buf, &ret);
-		if(ret != tth.offset) {
+		dec = base64dec2(buf, &size);
+		if(size != tth.offset) {
 		    fprintf(stderr, "tigersum: %s: illegal state\n", statefile);
 		    exit(1);
 		}
