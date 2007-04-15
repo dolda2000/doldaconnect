@@ -1,5 +1,5 @@
 AC_INIT(daemon/main.c)
-AM_INIT_AUTOMAKE([doldaconnect], [0.3])
+AM_INIT_AUTOMAKE([doldaconnect], [0.4])
 AM_CONFIG_HEADER(config.h)
 
 AC_PROG_CC
