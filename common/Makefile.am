@@ -1,3 +1,5 @@
+EXTRA_DIST = makegdesc
+
 noinst_LIBRARIES = libcommon.a
 
 libcommon_a_SOURCES =	tiger.c \

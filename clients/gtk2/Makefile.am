@@ -4,7 +4,7 @@ dolcon_SOURCES=	main.c \
 		progressbar.c \
 		progressbar.h
 
-EXTRA_DIST=mainwnd.desc inpdialog.desc pref.desc reslist.desc $(top_srcdir)/common/makegdesc
+EXTRA_DIST=mainwnd.desc inpdialog.desc pref.desc reslist.desc
 
 BUILT_SOURCES=mainwnd.gtk inpdialog.gtk pref.gtk reslist.gtk
 
