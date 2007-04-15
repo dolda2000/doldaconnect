@@ -696,6 +696,7 @@ static void delpeer(struct dc_fnetpeer *peer)
 	    free(peer->di[i].d.str);
 	putdatum(peer->fn, peer->di[i].datum);
     }
+    free(peer->di);
     free(peer);
 }
 
