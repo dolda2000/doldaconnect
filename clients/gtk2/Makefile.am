@@ -4,7 +4,7 @@ dolcon_SOURCES=	main.c \
 		progressbar.c \
 		progressbar.h
 
-EXTRA_DIST=mainwnd.desc inpdialog.desc pref.desc reslist.desc makegdesc
+EXTRA_DIST=mainwnd.desc inpdialog.desc pref.desc reslist.desc $(top_srcdir)/common/makegdesc
 
 BUILT_SOURCES=mainwnd.gtk inpdialog.gtk pref.gtk reslist.gtk
 
@@ -18,7 +18,7 @@ dolcon_CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0) \
 		$(shell pkg-config --cflags libxml-2.0) \
 		-DLOCALEDIR=\"$(localedir)\"
 
-%.gtk: %.desc makegdesc
-	cpp $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< | ./makegdesc >$@
+%.gtk: %.desc $(top_srcdir)/common/makegdesc
+	cpp $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< | $(top_srcdir)/common/makegdesc >$@
 
 mainwnd.desc: ../../config.h
