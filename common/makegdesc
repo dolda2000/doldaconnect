@@ -38,7 +38,7 @@ sub printwidgets
 		    print "${p}gtk_assistant_set_page_type(GTK_ASSISTANT(stack[" . ($sl - 1) . "]), stack[" . $sl . "], GTK_ASSISTANT_PAGE_" . $widget->{"ptype"} . ");\n";
 		}
 		if(defined($widget->{"cmpl"})) {
-		    print "${p}gtk_assistant_set_page_complete(GTK_ASSISTANT(stack[" . ($sl - 1) . "]), stack[" . $sl . "], " . $widget->{"ptype"} . ");\n";
+		    print "${p}gtk_assistant_set_page_complete(GTK_ASSISTANT(stack[" . ($sl - 1) . "]), stack[" . $sl . "], " . $widget->{"cmpl"} . ");\n";
 		}
 	    }
 	} elsif($widget->{"type"} =~ /[hv]box/) {
