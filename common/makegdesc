@@ -27,6 +27,9 @@ sub printwidgets
 	    }
 	} elsif($widget->{"type"} eq "assistant") {
 	    print "${p}stack[$sl] = gtk_assistant_new();\n";
+	    if(defined($widget->{"title"})) {
+		print "${p}gtk_window_set_title(GTK_WINDOW(stack[$sl]), \"" . $widget->{"title"} . "\");\n";
+	    }
 	    $pf = sub
 	    {
 		my($widget, $p, $sl) = @_;
