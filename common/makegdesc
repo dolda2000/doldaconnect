@@ -25,6 +25,22 @@ sub printwidgets
 		my($widget, $p, $sl) = @_;
 		print "${p}gtk_container_add(GTK_CONTAINER(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
 	    }
+	} elsif($widget->{"type"} eq "assistant") {
+	    print "${p}stack[$sl] = gtk_assistant_new();\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_assistant_append_page(GTK_ASSISTANT(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+		if(defined($widget->{"title"})) {
+		    print "${p}gtk_assistant_set_page_title(GTK_ASSISTANT(stack[" . ($sl - 1) . "]), stack[" . $sl . "], _(\"" . $widget->{"title"} . "\"));\n";
+		}
+		if(defined($widget->{"ptype"})) {
+		    print "${p}gtk_assistant_set_page_type(GTK_ASSISTANT(stack[" . ($sl - 1) . "]), stack[" . $sl . "], GTK_ASSISTANT_PAGE_" . $widget->{"ptype"} . ");\n";
+		}
+		if(defined($widget->{"cmpl"})) {
+		    print "${p}gtk_assistant_set_page_complete(GTK_ASSISTANT(stack[" . ($sl - 1) . "]), stack[" . $sl . "], " . $widget->{"ptype"} . ");\n";
+		}
+	    }
 	} elsif($widget->{"type"} =~ /[hv]box/) {
 	    print "${p}stack[$sl] = gtk_" . $widget->{"type"} . "_new(";
 	    print $widget->{"homo"}?"TRUE, ":"FALSE, ";
