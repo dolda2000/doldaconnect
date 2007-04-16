@@ -5,4 +5,4 @@ doldacond.conf.5: doldacond.conf.5.in ../daemon/*.c
 	./mkcvman ../daemon/*.c <doldacond.conf.5.in >doldacond.conf.5
 
 EXTRA_DIST =	doldacond.conf.5.in mkcvman \
-		INSTALL
+		INSTALL doldacond.8
