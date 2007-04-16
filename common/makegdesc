@@ -293,6 +293,8 @@ sub printwidgets
 	    if($widget->{"grip"} eq "n") {
 		print "${p}gtk_statusbar_set_has_resize_grip(GTK_STATUSBAR(stack[$sl]), FALSE);\n";
 	    }
+	} elsif($widget->{"type"} eq "filechooser") {
+	    print "${p}stack[$sl] = gtk_file_chooser_widget_new(GTK_FILE_CHOOSER_ACTION_" . (defined($widget->{"action"})?$widget->{"action"}:"OPEN") . ");\n";
 	} else {
 	    print STDERR "Unknown widget: " . $widget->{"type"} ."\n";
 	}
