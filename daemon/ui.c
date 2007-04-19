@@ -1143,9 +1143,9 @@ static void cmd_filtercmd(struct socket *sk, struct uidata *data, int argc, wcha
 	sq(sk, 0, L"505", L"System error - Could not fork session", "Internal error", NULL);
 	return;
     }
-    filtercmd = findfile(icswcstombs(confgetstr("ui", "filtercmd"), NULL, NULL), NULL, 0);
+    filtercmd = findfile("dc-filtercmd", pwent->pw_dir, 0);
     if(filtercmd == NULL)
-	filtercmd = findfile("dc-filtercmd", pwent->pw_dir, 0);
+	filtercmd = findfile(icswcstombs(confgetstr("ui", "filtercmd"), NULL, NULL), NULL, 0);
     if(filtercmd == NULL)
     {
 	flog(LOG_WARNING, "could not find filtercmd executable for user %s", pwent->pw_name);
