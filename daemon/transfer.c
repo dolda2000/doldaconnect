@@ -627,9 +627,9 @@ int forkfilter(struct transfer *transfer)
 	errno = EACCES;
 	return(-1);
     }
-    filtername = findfile(icswcstombs(confgetstr("transfer", "filter"), NULL, NULL), NULL, 0);
+    filtername = findfile("dc-filter", pwent->pw_dir, 0);
     if(filtername == NULL)
-	filtername = findfile("dc-filter", pwent->pw_dir, 0);
+	filtername = findfile(icswcstombs(confgetstr("transfer", "filter"), NULL, NULL), NULL, 0);
     if(filtername == NULL)
     {
 	flog(LOG_WARNING, "could not find filter for user %s", pwent->pw_name);
