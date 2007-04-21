@@ -100,6 +100,13 @@ sub printwidgets
 	} elsif($widget->{"type"} eq "chk") {
 	    $widget->{"label"} || die("Can't have check button without label\n");
 	    print "${p}stack[$sl] = gtk_check_button_new_with_mnemonic(_(\"" . $widget->{"label"} . "\"));\n";
+	} elsif($widget->{"type"} eq "radio") {
+	    $widget->{"label"} || die("Can't have check button without label\n");
+	    if(defined($widget->{"group"})) {
+		print "${p}stack[$sl] = gtk_radio_button_new_with_mnemonic_from_widget(GTK_RADIO_BUTTON(" . $options{"prefix"} . $widget->{"group"} . "), _(\"" . $widget->{"label"} . "\"));\n";
+	    } else {
+		print "${p}stack[$sl] = gtk_radio_button_new_with_mnemonic(NULL, _(\"" . $widget->{"label"} . "\"));\n";
+	    }
 	} elsif($widget->{"type"} eq "sbtn") {
 	    $widget->{"stock"} || die("Can't have button without stock\n");
 	    print "${p}stack[$sl] = gtk_button_new_from_stock(GTK_STOCK_" . $widget->{"stock"} . ");\n";
@@ -205,6 +212,34 @@ sub printwidgets
 	    }
 	} elsif($widget->{"type"} eq "exp") {
 	    print "${p}stack[$sl] = gtk_expander_new_with_mnemonic(_(\"" . $widget->{"label"} . "\"));\n";
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_container_add(GTK_CONTAINER(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+	    }
+	} elsif($widget->{"type"} eq "align") {
+	    print "${p}stack[$sl] = gtk_alignment_new(";
+	    if(defined($widget->{"xa"})) {
+		print $widget->{"xa"};
+	    } else {
+		print "0.5";
+	    }
+	    if(defined($widget->{"ya"})) {
+		print $widget->{"ya"};
+	    } else {
+		print "0.5";
+	    }
+	    if(defined($widget->{"xs"})) {
+		print $widget->{"xs"};
+	    } else {
+		print "1.0";
+	    }
+	    if(defined($widget->{"ys"})) {
+		print $widget->{"ys"};
+	    } else {
+		print "1.0";
+	    }
+	    print ");\n";
 	    $pf = sub
 	    {
 		my($widget, $p, $sl) = @_;
