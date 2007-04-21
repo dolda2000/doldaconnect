@@ -224,16 +224,19 @@ sub printwidgets
 	    } else {
 		print "0.5";
 	    }
+	    print ", ";
 	    if(defined($widget->{"ya"})) {
 		print $widget->{"ya"};
 	    } else {
 		print "0.5";
 	    }
+	    print ", ";
 	    if(defined($widget->{"xs"})) {
 		print $widget->{"xs"};
 	    } else {
 		print "1.0";
 	    }
+	    print ", ";
 	    if(defined($widget->{"ys"})) {
 		print $widget->{"ys"};
 	    } else {
