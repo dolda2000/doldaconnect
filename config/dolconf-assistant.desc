@@ -30,9 +30,23 @@
 	:vbox title: "Network" cmpl: TRUE
 		$lbl label: "Please choose the network mode to use"
 		$radio label: "_Active mode" var: y name: mode_act
-		$lbl label: "Active mode is the best choice when this computer is connected directly to the internet" wrap: y
+		$lbl markup: "<i>Active mode is the best choice when this computer is connected directly to the internet.</i>" wrap: y align: "0:0.5" wpad: "20:0"
 		$radio label: "Active with specified _port" var: y name: mode_nat group: mode_act
+		:vbox sensitive: FALSE var: y name: portbox
+			:hbox spacing: 10
+				$mlbl label: "_TCP port:" mwidget: tcpport
+				$text name: tcpport var: y fill: y expand: y
+				$mlbl label: "_UDP port:" mwidget: udpport
+				$text name: udpport var: y fill: y expand: y
+			end
+			:hbox spacing: 10
+				$mlbl label: "_IP address:" mwidget: extip
+				$text name: extip var: y fill: y expand: y
+			end
+		end
+		$lbl markup: "<i>Specify a port when this computer is behind a NAT router or similar. You will also need to configure your NAT router to forward that port to this computer, and specify what external IP address to use.</i>" wrap: y align: "0:0.5" wpad: "20:0"
 		$radio label: "Passi_ve mode" var: y name: mode_psv group: mode_act
+		$lbl markup: "<i>Passive mode can be used as a last resort if you truly cannot use active mode. It is highly likely that using passive mode will lead to impaired performance.</i>" wrap: y align: "0:0.5" wpad: "20:0"
 	end
 	:vbox title: "Confirmation" ptype: CONFIRM cmpl: TRUE
 		$lbl label: "Please confirm that you wish to apply the following options:"
