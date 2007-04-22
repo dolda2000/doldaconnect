@@ -1,0 +1,43 @@
+;prefix: ast_
+;hascolumns: y
+:assistant name: wnd var: y sig(cancel): astcancel sig(close): astcancel sig(prepare): astupdate sig: apply title: "Dolda Connect configurator"
+	:align title: Introduction ptype: INTRO cmpl: TRUE xs: 0 ys: 0 xa: 0 ya: 0
+		$lbl wrap: y label: "This assistent will guide you through the steps minimally required for setting up Dolda Connect as a normal Direct Connect client.\\nIf you wish to set up the more advanced features of Dolda Connect, please either use the more complete setup form of this program, which will be available after this assistant is complete, or edit the configuration file (~/.doldacond.conf) manually."
+	end
+	:vbox title: "Personal info" var: y name: page1
+		$lbl label: "Please enter your personal information:"
+		:table rows: 2 cols: 2 fill: TRUE
+			$mlbl label: "_Screen name" mwidget: nick tx: 0 ty: 0
+			$text name: nick var: y expand: y fill: y sig: changed tx: 1 ty: 0
+			$mlbl label: "_Description" mwidget: desc tx: 0 ty: 1
+			$text name: desc var: y expand: y fill: y tx: 1 ty: 1
+		end
+	end
+	:vbox title: "Shared directories" var: y name: page2
+		$lbl label: "Please choose the directories that you wish to share:"
+		:vbox expand: TRUE fill: TRUE
+			:sw expand: TRUE fill: TRUE
+				:treeview name: sharelist var: y
+					$tvcol title: Path text: 1 sortcol: 1
+				end
+			end
+			:hbox
+				$sbtn name: shareadd stock: ADD sig: clicked
+				$sbtn name: sharerem stock: REMOVE sig: clicked
+			end
+		end
+	end
+	:vbox title: "Network" cmpl: TRUE
+		$lbl label: "Please choose the network mode to use"
+		$radio label: "_Active mode" var: y name: mode_act
+		$lbl label: "Active mode is the best choice when this computer is connected directly to the internet" wrap: y
+		$radio label: "Active with specified _port" var: y name: mode_nat group: mode_act
+		$radio label: "Passi_ve mode" var: y name: mode_psv group: mode_act
+	end
+	:vbox title: "Confirmation" ptype: CONFIRM cmpl: TRUE
+		$lbl label: "Please confirm that you wish to apply the following options:"
+		:sw fill: TRUE expand: TRUE
+			$textview name: summary var: y editable: FALSE
+		end
+	end
+end
