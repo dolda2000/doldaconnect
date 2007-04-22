@@ -1,15 +1,28 @@
-bin_PROGRAMS=locktouch tthsum
+bin_PROGRAMS=locktouch tthsum dolconf
 libexec_PROGRAMS=speedrec
 
 speedrec_SOURCES=speedrec.c
-
 locktouch_SOURCES=locktouch.c
 tthsum_SOURCES=tthsum.c
+dolconf_SOURCES=dolconf.c
+BUILT_SOURCES=dolconf-assistant.gtk
 
 AM_CPPFLAGS=-I$(top_srcdir)/include
 tthsum_LDADD=$(top_srcdir)/common/libcommon.a
 
-EXTRA_DIST=doldacond.conf dc-filter dc-filtercmd
+dolconf.c: dolconf-assistant.desc
+localedir=$(datadir)/locale
+dolconf_LDFLAGS=	$(shell pkg-config --libs gtk+-2.0) \
+			$(shell pkg-config --libs libxml-2.0)
+dolconf_CPPFLAGS=	$(shell pkg-config --cflags gtk+-2.0) \
+			$(shell pkg-config --cflags libxml-2.0) \
+			-DLOCALEDIR=\"$(localedir)\"
+dolconf_LDADD=		$(top_srcdir)/common/libcommon.a
+
+%.gtk: %.desc $(top_srcdir)/common/makegdesc
+	$(top_srcdir)/common/makegdesc $< >$@
+
+EXTRA_DIST=doldacond.conf dc-filter dc-filtercmd dolconf-assistant.desc
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir); \
