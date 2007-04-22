@@ -115,8 +115,13 @@ sub printwidgets
 	    $widget->{"size"} || die("Can't have image without size\n");
 	    print "${p}stack[$sl] = gtk_image_new_from_stock(GTK_STOCK_" . $widget->{"stock"} . ", GTK_ICON_SIZE_" . $widget->{"size"} . ");\n";
 	} elsif($widget->{"type"} eq "lbl") {
-	    $widget->{"label"} || die("Can't have label without label\n");
-	    print "${p}stack[$sl] = gtk_label_new(_(\"" . $widget->{"label"} . "\"));\n";
+	    $widget->{"label"} || $widget->{"markup"} || die("Can't have label without label\n");
+	    if($widget->{"label"}) {
+		print "${p}stack[$sl] = gtk_label_new(_(\"" . $widget->{"label"} . "\"));\n";
+	    } else {
+		print "${p}stack[$sl] = gtk_label_new(NULL);\n";
+		print "${p}gtk_label_set_markup(GTK_LABEL(stack[$sl]), _(\"" . $widget->{"label"} . "\"));\n";
+	    }
 	    if($widget->{"wrap"} eq "y") {
 		print "${p}gtk_label_set_line_wrap(GTK_LABEL(stack[$sl]), TRUE);\n";
 	    }
@@ -344,6 +349,12 @@ sub printwidgets
 	}
 	if($widget->{"sensitive"}) {
 	    print "${p}gtk_widget_set_sensitive(stack[$sl], " . $widget->{"sensitive"} . ");\n";
+	}
+	if($widget->{"rqsz"} =~ /(\d+)x(\d+)/) {
+	    print "${p}gtk_widget_set_size_request(stack[$sl], $1, $2);\n";
+	}
+	if($widget->{"align"} =~ /([\d\.]+):([\d\.]+)/) {
+	    print "${p}gtk_misc_set_alignment(GTK_MISC(stack[$sl]), $1, $2);\n";
 	}
 	if($widget->{"var"} eq "y") {
 	    print $p . $options{"prefix"} . $widget->{"name"} . " = stack[$sl];\n";
