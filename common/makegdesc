@@ -117,6 +117,9 @@ sub printwidgets
 	} elsif($widget->{"type"} eq "lbl") {
 	    $widget->{"label"} || die("Can't have label without label\n");
 	    print "${p}stack[$sl] = gtk_label_new(_(\"" . $widget->{"label"} . "\"));\n";
+	    if($widget->{"wrap"} eq "y") {
+		print "${p}gtk_label_set_line_wrap(GTK_LABEL(stack[$sl]), TRUE);\n";
+	    }
 	} elsif($widget->{"type"} eq "mlbl") {
 	    $widget->{"label"} || die("Can't have label without label\n");
 	    print "${p}stack[$sl] = gtk_label_new_with_mnemonic(_(\"" . $widget->{"label"} . "\"));\n";
