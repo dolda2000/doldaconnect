@@ -29,6 +29,7 @@
 #include <libintl.h>
 #include <pwd.h>
 #include <stdarg.h>
+#include <arpa/inet.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -63,15 +64,37 @@ int v_dcstring(const char *val)
 	   (strchr(val, '$') == NULL));
 }
 
-int v_numeric(const char *val)
+int v_natural(const char *val)
 {
-    int f;
-    
-    for(f = 1; *val; val++, f = 0) {
-	if(!isdigit(val) && (!f || (*val != '-')))
+    if(!*val)
+	return(0);
+    for(; *val; val++) {
+	if(!isdigit(*val))
 	    return(0);
     }
     return(1);
+}
+
+int v_integer(const char *val)
+{
+    int f, d;
+    
+    for(f = 1, d = 0; *val; val++, f = 0) {
+	if(isdigit(*val)) {
+	    d = 1;
+	} else if(f && (*val == '-')) {
+	} else {
+	    return(0);
+	}
+    }
+    return(d);
+}
+
+int v_ipv4(const char *val)
+{
+    struct in_addr buf;
+    
+    return(inet_aton(val, &buf) != 0);
 }
 
 #define _(text) text
@@ -86,24 +109,38 @@ struct validation dcstring = {
     .invmsg = _("%s must not contain spaces, `|' or `$'"),
 };
 
-struct validation numeric = {
-    .check = v_numeric,
-    .invmsg = _("%s must be numeric"),
+struct validation natural = {
+    .check = v_natural,
+    .invmsg = _("%s must be a natural number"),
+};
+
+struct validation integer = {
+    .check = v_integer,
+    .invmsg = _("%s must be an integer"),
+};
+
+struct validation ipv4 = {
+    .check = v_ipv4,
+    .invmsg = _("%s must be an IP address"),
 };
 
 struct validation *vldxlate[] = {
-    &nonempty, &dcstring, &numeric,
+    &nonempty, &dcstring, &natural, &integer, &ipv4,
     NULL
 };
 
 struct cfvar config[] = {
     {"cli.defnick", _("Nickname"), "", &dcstring},
-    {"net.mode", NULL, "0", &numeric},
-    {"ui.onlylocal", NULL, "0", &numeric},
-    {"auth.authless", NULL, "0", &numeric},
-    {"transfer.slots", _("Upload slots"), "6", &numeric},
+    {"net.mode", NULL, "0", &natural},
+    {"net.visibleipv4", "IP address", "0.0.0.0", &ipv4},
+    {"ui.onlylocal", NULL, "0", &natural},
+    {"ui.port", NULL, "-1", &integer},
+    {"auth.authless", NULL, "0", &natural},
+    {"transfer.slots", _("Upload slots"), "6", &natural},
     {"dc.speedstring", _("Connection speed"), "DSL", &dcstring},
     {"dc.desc", _("Share description"), "", NULL},
+    {"dc.tcpport", _("Direct Connect TCP port"), "0", &natural},
+    {"dc.udpport", _("Direct Connect UDP port"), "0", &natural},
     {NULL}
 };
 
@@ -116,6 +153,8 @@ void cb_ast_wnd_apply(GtkWidget *widget, gpointer uudata);
 void cb_ast_nick_changed(GtkWidget *widget, gpointer uudata);
 void cb_ast_shareadd_clicked(GtkWidget *widget, gpointer uudata);
 void cb_ast_sharerem_clicked(GtkWidget *widget, gpointer uudata);
+void cb_ast_checkports(GtkWidget *widget, gpointer uudata);
+void cb_ast_mode_nat_toggled(GtkWidget *widget, gpointer uudata);
 
 #include "dolconf-assistant.gtk"
 
@@ -366,6 +405,20 @@ void astupdate(GtkWidget *widget, GtkWidget *page, gpointer uudata)
     
     setcfvar("cli.defnick", gtk_entry_get_text(GTK_ENTRY(ast_nick)));
     setcfvar("dc.desc", gtk_entry_get_text(GTK_ENTRY(ast_desc)));
+    if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ast_mode_psv))) {
+	setcfvar("net.mode", "1");
+    } else {
+	setcfvar("net.mode", "0");
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ast_mode_nat))) {
+	    setcfvar("net.visibleipv4", gtk_entry_get_text(GTK_ENTRY(ast_extip)));
+	    setcfvar("dc.tcpport", gtk_entry_get_text(GTK_ENTRY(ast_udpport)));
+	    setcfvar("dc.udpport", gtk_entry_get_text(GTK_ENTRY(ast_tcpport)));
+	} else {
+	    setcfvar("net.visibleipv4", "0.0.0.0");
+	    setcfvar("dc.tcpport", "0");
+	    setcfvar("dc.udpport", "0");
+	}
+    }
     s = NULL;
     sdata = ssize = 0;
     for(var = config; var->name != NULL; var++) {
@@ -478,6 +531,25 @@ void cb_ast_sharerem_clicked(GtkWidget *widget, gpointer uudata)
 	gtk_list_store_remove(shares, &iter);
     if(gtk_tree_model_iter_n_children(GTK_TREE_MODEL(shares), NULL) == 0)
 	gtk_assistant_set_page_complete(GTK_ASSISTANT(ast_wnd), ast_page2, FALSE);
+}
+
+void cb_ast_checkports(GtkWidget *widget, gpointer uudata)
+{
+    gtk_assistant_set_page_complete(GTK_ASSISTANT(ast_wnd), ast_page3,
+				    v_natural(gtk_entry_get_text(GTK_ENTRY(ast_tcpport))) &&
+				    v_natural(gtk_entry_get_text(GTK_ENTRY(ast_udpport))) &&
+				    v_ipv4(gtk_entry_get_text(GTK_ENTRY(ast_extip))));
+}
+
+void cb_ast_mode_nat_toggled(GtkWidget *widget, gpointer uudata)
+{
+    if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
+	gtk_widget_set_sensitive(GTK_WIDGET(ast_portbox), TRUE);
+	cb_ast_checkports(widget, NULL);
+    } else {
+	gtk_widget_set_sensitive(GTK_WIDGET(ast_portbox), FALSE);
+	gtk_assistant_set_page_complete(GTK_ASSISTANT(ast_wnd), ast_page3, TRUE);
+    }
 }
 
 int main(int argc, char **argv)
