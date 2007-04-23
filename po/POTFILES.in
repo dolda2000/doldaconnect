@@ -5,3 +5,5 @@ clients/gtk2/pref.gtk
 clients/gnome-trans-applet/dolcon-trans-applet.c
 clients/gnome-trans-applet/conduit.c
 clients/gnome-trans-applet/conduit-pipe.c
+config/dolconf.c
+config/dolconf-assistant.gtk
