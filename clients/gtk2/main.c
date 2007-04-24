@@ -102,7 +102,7 @@ pid_t pubhubproc = 0;
 char *pubhubaddr = NULL;
 char *connectas = NULL;
 char *dcserver = NULL;
-int autoconn = 0;
+int autoconn = 1;
 int srchautoupdate = 0;
 int cursrch = -1, nextsrch = -1;
 time_t srcheta;
