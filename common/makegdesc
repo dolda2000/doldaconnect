@@ -185,9 +185,6 @@ sub printwidgets
 	    $widget->{"noshow"} = 1;
 	} elsif($widget->{"type"} =~ /^[hv]paned$/) {
 	    print "${p}stack[$sl] = gtk_" . $widget->{"type"} . "_new();\n";
-	    if(defined($widget->{"pos"})) {
-		print "${p}gtk_notebook_set_tab_pos(GTK_NOTEBOOK(stack[$sl]), GTK_POS_" . $widget->{"pos"} . ")\n";
-	    }
 	    $widget->{"cur"} = 1;
 	    $pf = sub
 	    {
@@ -200,6 +197,9 @@ sub printwidgets
 	    }
 	} elsif($widget->{"type"} eq "notebook") {
 	    print "${p}stack[$sl] = gtk_notebook_new();\n";
+	    if(defined($widget->{"pos"})) {
+		print "${p}gtk_notebook_set_tab_pos(GTK_NOTEBOOK(stack[$sl]), GTK_POS_" . $widget->{"pos"} . ")\n";
+	    }
 	    $pf = sub
 	    {
 		my($widget, $p, $sl) = @_;
