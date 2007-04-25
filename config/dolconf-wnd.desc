@@ -1,0 +1,31 @@
+;prefix: cfw_
+;hascolumns: y
+:wnd name: wnd title: "Dolda Connect configurator" var: y sig(delete_event): astcancel
+	:vbox
+		:notebook pos: LEFT fill: y expand: y
+			:table rows: 2 cols: 2 nblabel: "_Personal info"
+				$mlbl label: "Screen _name" mwidget: nick tx: 0 ty: 0
+				$text name: nick var: y expandx: y fillx: y tx: 1 ty: 0
+				$mlbl label: "_Description" mwidget: desc tx: 0 ty: 1
+				$text name: desc var: y expandx: y fillx: y tx: 1 ty: 1
+			end
+			:vbox nblabel: "S_hared directories" var: y name: page2
+				:vbox expand: TRUE fill: TRUE
+					:sw expand: TRUE fill: TRUE
+						:treeview name: sharelist var: y
+							$tvcol title: Path text: 1 sortcol: 1
+						end
+					end
+					:hbox
+						$sbtn name: shareadd stock: ADD sig: clicked
+						$sbtn name: sharerem stock: REMOVE sig: clicked
+					end
+				end
+			end
+		end
+		:hbox
+			$btn label: "_Save settings" name: save sig: clicked
+			$sbtn stock: QUIT name: quit sig: clicked
+		end
+	end
+end
