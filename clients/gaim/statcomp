@@ -1,0 +1,38 @@
+#!/usr/bin/perl
+
+$x = -1;
+$data = {};
+
+while(<>) {
+    if(/^(\d+):/) {
+	if($x != -1) {
+	    for $k (keys %$data) {
+		$sum = $num = 0;
+		$min = $max = -1;
+		for $v (@{$data->{$k}}) {
+		    $sum += $v;
+		    $num++;
+		    if(($min == -1) || ($min > $v)) {
+			$min = $v;
+		    }
+		    if(($max == -1) || ($max < $v)) {
+			$max = $v;
+		    }
+		}
+		$avg = $sum / $num;
+		$devsum = 0;
+		for $v (@{$data->{$k}}) {
+		    $devsum += ($v - $avg) ** 2;
+		}
+		$dev = sqrt($devsum / $num);
+		$devmin = $avg - $dev;
+		$devmax = $avg + $dev;
+		print "$k $x $avg $dev $devmin $devmax $min $max\n";
+	    }
+	}
+	$x = $1;
+	$data = {};
+    } elsif(/(\w+): ([\d.]+)/) {
+	push @{$data->{$1}}, $2;
+    }
+}

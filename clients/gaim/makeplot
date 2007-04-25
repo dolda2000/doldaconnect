@@ -1,0 +1,16 @@
+#!/bin/bash
+
+rm -f plot-*
+
+./statcomp gstat | while read k x avg dev dl dh min max; do
+    echo "$x $dl $min $max $dh" >>plot-$k-dev; echo "$x $avg" >>plot-$k-avg
+done
+
+for k in au du; do
+    gnuplot <<EOF
+set xrange [0:10000]
+set terminal postscript eps enhanced
+set output "$k.ps"
+plot "plot-$k-dev" with candlesticks, "plot-$k-avg" with lines;
+EOF
+done
