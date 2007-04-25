@@ -198,7 +198,7 @@ sub printwidgets
 	} elsif($widget->{"type"} eq "notebook") {
 	    print "${p}stack[$sl] = gtk_notebook_new();\n";
 	    if(defined($widget->{"pos"})) {
-		print "${p}gtk_notebook_set_tab_pos(GTK_NOTEBOOK(stack[$sl]), GTK_POS_" . $widget->{"pos"} . ")\n";
+		print "${p}gtk_notebook_set_tab_pos(GTK_NOTEBOOK(stack[$sl]), GTK_POS_" . $widget->{"pos"} . ");\n";
 	    }
 	    $pf = sub
 	    {
