@@ -400,7 +400,7 @@ sub printwidgets
 		    $cb = $widget->{$attr};
 		    $data = "NULL";
 		}
-		print "${p}g_signal_connect(G_OBJECT(stack[$sl]), \"$1\", G_CALLBACK($cb), (gpointer)$data);\n";
+		print "${p}g_signal_connect(G_OBJECT(stack[$sl]), \"$sig\", G_CALLBACK($cb), (gpointer)$data);\n";
 	    }
 	}
 	if($widget->{"subwidgets"})
