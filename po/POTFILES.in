@@ -7,3 +7,4 @@ clients/gnome-trans-applet/conduit.c
 clients/gnome-trans-applet/conduit-pipe.c
 config/dolconf.c
 config/dolconf-assistant.gtk
+config/dolconf-wnd.gtk
