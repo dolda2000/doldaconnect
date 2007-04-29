@@ -361,7 +361,7 @@ static void cmd_connect(struct socket *sk, struct uidata *data, int argc, wchar_
 	    return;
 	}
     }
-    sq(sk, 0, L"201", L"1", L"1", L"Dolda Connect daemon v" VERSION, NULL);
+    sq(sk, 0, L"201", L"1", L"2", L"Dolda Connect daemon v" VERSION, NULL);
 }
 
 static void cmd_notfound(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
@@ -837,6 +837,26 @@ static void cmd_cancel(struct socket *sk, struct uidata *data, int argc, wchar_t
     }
     transfer->close = 1;
     sq(sk, 0, L"200", L"Transfer cancelled", NULL);
+}
+
+static void cmd_reset(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
+{
+    struct transfer *transfer;
+    
+    haveargs(2);
+    havepriv(PERM_TRANS);
+    if((transfer = findtransfer(wcstol(argv[1], NULL, 0))) == NULL)
+    {
+	sq(sk, 0, L"512", L"No such transfer", NULL);
+	return;
+    }
+    if(transfer->dir == TRNSD_UP)
+    {
+	sq(sk, 0, L"512", L"Only applicable to downloads", NULL);
+	return;
+    }
+    resettransfer(transfer);
+    sq(sk, 0, L"200", L"Transfer reset", NULL);
 }
 
 static void cmd_notify(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
@@ -1344,6 +1364,7 @@ static struct command commands[] =
     {L"download", cmd_download},
     {L"lstrans", cmd_lstrans},
     {L"cancel", cmd_cancel},
+    {L"reset", cmd_reset},
     {L"notify", cmd_notify},
     {L"sendchat", cmd_sendchat},
     {L"search", cmd_search},
