@@ -3,7 +3,7 @@
 
 #include <wchar.h>
 
-#define DC_LATEST 1
+#define DC_LATEST 2
 
 struct dc_response
 {
