@@ -1518,6 +1518,11 @@ int pubhubxmlhandler(int op, char *buf, size_t *len)
 	}
 	break;
     case PHO_EOF:
+	if(ctxt == NULL)
+	{
+	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("A hub list could not be read from %s"), pubhubaddr);
+	    break;
+	}
 	xmlParseChunk(ctxt, NULL, 0, 1);
 	if(!ctxt->wellFormed)
 	{
