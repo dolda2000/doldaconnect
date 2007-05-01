@@ -3246,7 +3246,7 @@ static void updatehmlist(void)
 	    if(node->f.b.type == FILE_REG)
 	    {
 		addtobuf(buf, '|');
-		sprintf(numbuf, "%i", node->size);
+		sprintf(numbuf, "%zi", node->size);
 		bufcat(buf, numbuf, strlen(numbuf));
 	    }
 	    addtobuf(buf, 13);
@@ -3421,7 +3421,7 @@ static void updatexmllist(void)
 		lev++;
 		continue;
 	    } else {
-		fprintf(fs, "<File Name=\"%s\" Size=\"%i\"", namebuf, node->size);
+		fprintf(fs, "<File Name=\"%s\" Size=\"%zi\"", namebuf, node->size);
 		if(node->f.b.hastth)
 		{
 		    hashbuf = base32encode(node->hashtth, 24);
