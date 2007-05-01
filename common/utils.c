@@ -82,16 +82,16 @@ char *vsprintf2(char *format, va_list al)
     va_list al2;
     
     va_copy(al2, al);
-    ret = vsnprintf(NULL, 0, format, al);
-    va_end_(al2);
+    ret = vsnprintf(NULL, 0, format, al2);
+    va_end(al2);
     if((buf = malloc(ret + 1)) == NULL)
     {
 	LOGOOM(ret + 1);
 	return(NULL);
     }
     va_copy(al2, al);
-    vsnprintf(buf, ret + 1, format, al);
-    va_end_(al2);
+    vsnprintf(buf, ret + 1, format, al2);
+    va_end(al2);
     return(buf);
 }
 
@@ -118,7 +118,7 @@ wchar_t *vswprintf2(wchar_t *format, va_list al)
     {
 	va_copy(al2, al);
 	ret = vswprintf(buf, bufsize, format, al2);
-	va_end_(al2);
+	va_end(al2);
 	if(ret >= 0)
 	    break;
 	buf = srealloc(buf, sizeof(wchar_t) * (bufsize *= 2));
