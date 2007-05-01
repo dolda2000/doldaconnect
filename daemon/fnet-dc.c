@@ -727,7 +727,7 @@ static void requestfile(struct dcpeer *peer)
 	    freedcpeer(peer);
 	    return;
 	}
-	qstrf(peer->sk, "$UGetBlock %i %i %s|", peer->transfer->curpos, peer->transfer->size - peer->transfer->curpos, buf);
+	qstrf(peer->sk, "$UGetBlock %zi %zi %s|", peer->transfer->curpos, peer->transfer->size - peer->transfer->curpos, buf);
     } else {
 	/* Use DCCHARSET for $Get paths until further researched... */
 	if((buf = icswcstombs(peer->transfer->path, DCCHARSET, NULL)) == NULL)
@@ -736,7 +736,7 @@ static void requestfile(struct dcpeer *peer)
 	    freedcpeer(peer);
 	    return;
 	}
-	qstrf(peer->sk, "$Get %s$%i|", buf, peer->transfer->curpos + 1);
+	qstrf(peer->sk, "$Get %s$%zi|", buf, peer->transfer->curpos + 1);
     }
 }
 
@@ -1230,10 +1230,10 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		if(node->f.b.hastth)
 		{
 		    buf2 = base32encode(node->hashtth, 24);
-		    qstrf(dsk, "%s%s\005%i%sTTH:%.39s%s", prefix, buf, node->size, infix, buf2, postfix);
+		    qstrf(dsk, "%s%s\005%zi%sTTH:%.39s%s", prefix, buf, node->size, infix, buf2, postfix);
 		    free(buf2);
 		} else {
-		    qstrf(dsk, "%s%s\005%i%s%s%s", prefix, buf, node->size, infix, hub->nativename, postfix);
+		    qstrf(dsk, "%s%s\005%zi%s%s%s", prefix, buf, node->size, infix, hub->nativename, postfix);
 		}
 		free(buf);
 	    }
@@ -1860,7 +1860,7 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
     lesk = wrapsock(fd);
     transferprepul(peer->transfer, sb.st_size, offset, -1, lesk);
     putsock(lesk);
-    qstrf(sk, "$FileLength %i|", peer->transfer->size);
+    qstrf(sk, "$FileLength %zi|", peer->transfer->size);
 }
 
 static void cmd_send(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
