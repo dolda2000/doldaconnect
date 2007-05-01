@@ -113,12 +113,12 @@ end
 					:sw expand: TRUE fill: TRUE
 						:treeview name: srchres var: y rules: TRUE searchcol: 3 sig(row-activated): cb_main_srchres_activate sig(popup-menu): cb_main_srpopup sig(button-release-event): cb_main_srpopup
 							:tvcol title: "#" sortcol: 7 resizable: FALSE
-								$textrend func: hidezerofunc funcdata: "(gpointer)7"
+								$textrend func: hidezerofunc funcdata: "GINT_TO_POINTER(7)"
 							end
 							$tvcol title: "Peer name" text: 2 sortcol: 2 resizable: TRUE
 							$tvcol title: "File name" text: 3 sortcol: 3 resizable: TRUE expander: y
 							:tvcol title: "Size" sortcol: 4 resizable: TRUE
-								$textrend func: transnicebytefunc funcdata: "(gpointer)4"
+								$textrend func: transnicebytefunc funcdata: "GINT_TO_POINTER(4)"
 							end
 							$tvcol title: "Slots" text: 5 sortcol: 5 resizable: TRUE
 							:tvcol title: "Known speed" sortcol: 8 resizable: TRUE
@@ -141,15 +141,15 @@ end
 							end
 							$tvcol title: "File Name" text: 5
 							:tvcol title: "Size"
-								$textrend func: transnicebytefunc funcdata: "(gpointer)6"
+								$textrend func: transnicebytefunc funcdata: "GINT_TO_POINTER(6)"
 							end
 							:tvcol title: "Position"
 #ifdef ENABLE_GTK2PBAR
 								$custrend newfunc: custom_cell_renderer_progress_new attr(percentage): 9
 #else
-								$textrend func: percentagefunc funcdata: "(gpointer)9" expand: FALSE
+								$textrend func: percentagefunc funcdata: "GINT_TO_POINTER(9)" expand: FALSE
 #endif
-								$textrend func: transnicebytefunc funcdata: "(gpointer)7"
+								$textrend func: transnicebytefunc funcdata: "GINT_TO_POINTER(7)"
 							end
 							:tvcol title: "Speed"
 								$textrend func: transspeedinfo
@@ -171,15 +171,15 @@ end
 							end
 							$tvcol title: "File Name" text: 5
 							:tvcol title: "Size"
-								$textrend func: transnicebytefunc funcdata: "(gpointer)6"
+								$textrend func: transnicebytefunc funcdata: "GINT_TO_POINTER(6)"
 							end
 							:tvcol title: "Position"
 #ifdef ENABLE_GTK2PBAR
 								$custrend newfunc: custom_cell_renderer_progress_new attr(percentage): 9
 #else
-								$textrend func: percentagefunc funcdata: "(gpointer)9" expand: FALSE
+								$textrend func: percentagefunc funcdata: "GINT_TO_POINTER(9)" expand: FALSE
 #endif
-								$textrend func: transnicebytefunc funcdata: "(gpointer)7"
+								$textrend func: transnicebytefunc funcdata: "GINT_TO_POINTER(7)"
 							end
 							:tvcol title: "Speed"
 								$textrend func: transspeedinfo
