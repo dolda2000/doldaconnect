@@ -73,7 +73,7 @@ extern int swprintf (wchar_t *__restrict __s, size_t __n,
 
 char *vsprintf2(char *format, va_list al);
 char *sprintf2(char *format, ...)
-#if defined(__GNUC__) && 0
+#if defined(__GNUC__)
     __attribute__ ((format (printf, 1, 2)))
 #endif
 ;
