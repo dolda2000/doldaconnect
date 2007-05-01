@@ -79,14 +79,19 @@ char *vsprintf2(char *format, va_list al)
 {
     int ret;
     char *buf;
+    va_list al2;
     
+    va_copy(al2, al);
     ret = vsnprintf(NULL, 0, format, al);
+    va_end_(al2);
     if((buf = malloc(ret + 1)) == NULL)
     {
 	LOGOOM(ret + 1);
 	return(NULL);
     }
+    va_copy(al2, al);
     vsnprintf(buf, ret + 1, format, al);
+    va_end_(al2);
     return(buf);
 }
 
@@ -106,10 +111,18 @@ wchar_t *vswprintf2(wchar_t *format, va_list al)
     int ret;
     wchar_t *buf;
     size_t bufsize;
+    va_list al2;
     
     buf = smalloc(sizeof(wchar_t) * (bufsize = 1024));
-    while((ret = vswprintf(buf, bufsize, format, al)) < 0)
+    while(1)
+    {
+	va_copy(al2, al);
+	ret = vswprintf(buf, bufsize, format, al2);
+	va_end_(al2);
+	if(ret >= 0)
+	    break;
 	buf = srealloc(buf, sizeof(wchar_t) * (bufsize *= 2));
+    }
     if(bufsize > ret + 1)
 	buf = srealloc(buf, sizeof(wchar_t) * (ret + 1));
     return(buf);
