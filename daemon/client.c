@@ -366,7 +366,7 @@ static void writehashcache(int now)
     for(hc = hashcache; hc != NULL; hc = hc->next)
     {
 	buf = base64encode(hc->tth, 24);
-	fprintf(stream, "%lli %lli %li tth %s\n", hc->dev, (long long)hc->inode, hc->mtime, buf);
+	fprintf(stream, "%lli %lli %li tth %s\n", (long long)hc->dev, (long long)hc->inode, hc->mtime, buf);
 	free(buf);
     }
     fclose(stream);
@@ -499,7 +499,7 @@ static int hashfile(char *path)
 	}
 	synctigertree(&tth);
 	restigertree(&tth, digest);
-	ret = snprintf(buf, sizeof(buf), "%lli %lli %li %s\n", sb.st_dev, (long long)sb.st_ino, sb.st_mtime, base64encode(digest, 24));
+	ret = snprintf(buf, sizeof(buf), "%lli %lli %li %s\n", (long long)sb.st_dev, (long long)sb.st_ino, sb.st_mtime, base64encode(digest, 24));
 	write(1, buf, ret);
 	exit(0);
     }
