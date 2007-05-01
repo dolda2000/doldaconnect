@@ -666,7 +666,7 @@ int forkfilter(struct transfer *transfer)
     {
 	argv = NULL;
 	argvsize = argvdata = 0;
-	buf = sprintf2("%i", transfer->size);
+	buf = sprintf2("%zi", transfer->size);
 	addtobuf(argv, filtername);
 	addtobuf(argv, filename);
 	addtobuf(argv, buf);
