@@ -1,0 +1,33 @@
+		       Gaim Plugin Installation
+
+Because of  how Gaim works,  special care is required  when installing
+the Dolda Connect chat plugin for  Gaim. The basic problem is the same
+as with  the GNOME applet,  in that the  set of directories  that Gaim
+searches  for plugins usually  does not  include the  directories into
+which Dolda Connect is installed.
+
+However, the Gaim situation is  even worse than that with GNOME, since
+Gaim cannot be configured to search additional directories. Therefore,
+the plugin  file must  be installed into  one of the  directories that
+Gaim does look in.
+
+As of version 2.0.0-beta6 of Gaim, Gaim searches only two directories:
+The   `lib/gaim'  directory  in   its  installation   prefix  (usually
+`/usr/lib/gaim'), and the $HOME/.gaim/plugins directory.
+
+Therefore, there are only two things which can be done:
+
+1. Install Dolda Connect in /usr. As mentioned in INSTALL.applet, this
+is ugly and not recommended, but it does work and is easy.
+
+2. You   must  either   copy,   move,  link   or   symlink  the   file
+libdolcon-gaim.so   which  Dolda   Connect  typically   installs  into
+/usr/local/lib/gaim    into    either    ${gaim-prefix}/lib/gaim    or
+$HOME/.gaim/plugins. For  example, you can run  the following command,
+which will work for most cases:
+ln -s /usr/local/lib/gaim/libdolcon-gaim.so $HOME/.gaim/plugins
+
+
+
+This document  was last updated 2007-05-02, reflecting  release 0.4 of
+Dolda Connect.

@@ -1,0 +1,76 @@
+		      GNOME Applet Installation
+
+Because of how  GNOME works, special care is  required when installing
+the transfer monitor  applet. The problem lies in  the fact that GNOME
+only looks for applets in  certain directories, which usually does not
+/usr/local, whither Dolda Connect installs by default.
+
+A  GNOME applet  is a  CORBA server,  which must  be found  by GNOME's
+Bonobo activation  daemon.  By  default, the Bonobo  activation daemon
+looks in lib/bonobo/servers inside  its own installation prefix. Since
+GNOME   is   usually   installed    in   /usr,   that   would   become
+/usr/lib/bonobo/servers on most systems,  but it needs not necessarily
+be, and some systems have GNOME installed in /opt.
+
+Since the default  prefix for autoconf programs such  as Dolda Connect
+is /usr/local, the server  description file installed by Dolda Connect
+will not be found by the  Bonobo activation daemon. There are a number
+of ways to fix this:
+
+1. Install Dolda Connect  in /usr.  This is ugly  and not recommended,
+since /usr  is normally  reserved for programs  shipped by  the system
+maintainers. It  does work, though,  and it is  easy. To do  that, run
+./configure with a `--prefix=/usr' argument.
+
+2. Move the  applet files  only to /usr  after normal  installation in
+/usr/local. This,  too, is ugly and  not recommended, but  it might be
+considered slightly less ugly than #1, since the bulk of Dolda Connect
+still     resides    in    /usr/local.      To    do     that,    move
+/usr/local/libexec/dolcon-trans-applet     to     /usr/libexec,    and
+/usr/local/lib/bonobo/servers/Dolcon_Transferapplet_Factory.server  to
+/usr/lib/bonobo/servers. Then, edit the  latter file and replace every
+instance of /usr/local with /usr.
+
+3. Add /usr/local to your  system's GNOME prefixes.  Doing so involves
+setting    the   environment    variable   GNOME2_PATH    to   include
+/usr/local. How  to do that differs  from system to system,  and it is
+not possible  for this  document to contain  information on how  to do
+that on  any given system.  It is probably  by far the  best solution,
+however.
+
+4. Add /usr/local  to your user  profile's GNOME prefixes.   As above,
+this  involves setting GNOME2_PATH  to include  /usr/local, but  it is
+quite easy to do so  in your own ~/.profile or ~/.bash_profile instead
+of editing the system-wide configuration.  It is also the best idea if
+you have  installed Dolda  Connect in your  own home  directory rather
+than in /usr/local. Again, though,  the exact steps to do this differs
+from system  to system and  also depend on  what shell you use.  It is
+extra noteworthy,  however, that Ubuntu  users may have  rather severe
+problems with this [1].
+
+Remember,  always  after changing  the  system  of  user profile  with
+regards to environment  variables, you would need to  log out and back
+in again to get the changes  in all processes. It is of note, however,
+that the Bonobo activation daemon sometimes linger, and therefore does
+not get  restarted when logging back  in again. If  this happens, just
+kill  it (with  `killall  bonobo-activation-server'), and  it will  be
+restarted from a process having the correct environment.
+
+		       Additional applet notes
+
+The applet is mostly working, but it still does have a few things that
+remain to be implemented. First  of all, it only handles password-less
+authentication,  so a  setup  using  PAM will  not  work. Unix  socket
+authentication,    `authless'    authentication    and   Kerberos    V
+authentication all work, however.  Last, there is no preference dialog
+to set  which Dolda Connect server to  connect to. If you  run a local
+server using  Unix sockets, it will  not be a  problem. Otherwise, you
+need to use the DCSERVER  environment variable to specify which server
+to connect to.
+
+[1] See <https://bugs.launchpad.net/ubuntu/+bug/66004> for details.
+
+
+
+This document  was last updated 2007-05-02, reflecting  release 0.4 of
+Dolda Connect.
