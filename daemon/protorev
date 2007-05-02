@@ -1,0 +1,6 @@
+Protocol revisions:
+
+Rev.	Changes
+----------------------------------------------------------------------
+1	Initial revisioned protocol
+2	Added `reset' command
