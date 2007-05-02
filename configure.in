@@ -212,6 +212,7 @@ clients/gaim/Makefile
 include/Makefile
 include/doldaconnect/Makefile
 doc/Makefile
+doc/man/Makefile
 po/Makefile.in
 config/Makefile
 contrib/Makefile
