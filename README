@@ -48,21 +48,22 @@ tree:
  * A chat logger written in Scheme.
  * A hub manager written in Scheme.
 
-The GNOME applet and Gaim plugin are somewhat experimental. The applet
-seems to be working well, but the installation have some quirks (since
-GNOME does  not normally look in  /usr/local, care must  be taken with
-the installation  prefix). The  Gaim plugin seems  to be  leaking some
-memory.
+The GNOME applet and Gaim  plugin are somewhat experimental. Both work
+fairly  well, but they  do require  special care  during installation,
+since neither GNOME  nor Gaim usually look for  applets/plugins in the
+directories  where Dolda Connect  gets installed  by default.  See the
+files doc/INSTALL.applet and doc/INSTALL.gaim for further details.
 
 			     Installation
 
-See the INSTALL file.
+See the doc/INSTALL file.
 
 			    Documentation
 
-Documentation is still  spotty at best. For any  information not found
-in  the README or  INSTALL files  (or the  source code,  if you  are a
-programmer), contact the author.
+Documentation is still rather weak,  but it is getting better. Besides
+the README and  INSTALL* files, there are now  manpages for the daemon
+and its  config file. For any  information still not  found, please do
+not hesitate to contact the author.
 
 			       Credits
 
@@ -72,5 +73,5 @@ through  the e-mail address  <fredrik@dolda2000.com>. His  homepage is
 
 
 
-This documented was last updated 2007-04-11, reflecting release 0.3 of
+This document  was last updated 2007-05-02, reflecting  release 0.4 of
 Dolda Connect.
