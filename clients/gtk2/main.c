@@ -135,6 +135,7 @@ void cb_main_srhash_activate(GtkWidget *widget, gpointer data);
 void cb_main_srcopy_activate(GtkWidget *widget, gpointer data);
 void cb_main_trhash_activate(GtkWidget *widget, gpointer data);
 void cb_main_trcopy_activate(GtkWidget *widget, gpointer data);
+void cb_main_trreset_activate(GtkWidget *widget, gpointer data);
 void cb_main_trcancel_activate(GtkWidget *widget, gpointer data);
 gboolean cb_main_srpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
 gboolean cb_main_trpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
@@ -2306,6 +2307,33 @@ void cb_main_trcopy_activate(GtkWidget *widget, gpointer data)
     g_free(hash);
 }
 
+void cb_main_trreset_activate(GtkWidget *widget, gpointer data)
+{
+    GtkTreeSelection *sel;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    int id, tag;
+    struct dc_response *resp;
+    
+    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(main_downloads));
+    if(gtk_tree_selection_get_selected(sel, &model, &iter))
+    {
+	gtk_tree_model_get(model, &iter, 0, &id, -1);
+	tag = dc_queuecmd(NULL, NULL, L"reset", L"%i", id, NULL);
+	if((resp = dc_gettaggedrespsync(tag)) != NULL)
+	{
+	    if(resp->code == 502)
+		msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("You do not have permission to do that"));
+	    else if(resp->code != 200)
+		msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("An error occurred while trying to reset (%i)"), resp->code);
+	    dc_freeresp(resp);
+	}
+	handleresps();
+    } else {
+	return;
+    }
+}
+
 void cb_main_trcancel_activate(GtkWidget *widget, gpointer data)
 {
     GtkTreeSelection *sel;
@@ -2314,8 +2342,6 @@ void cb_main_trcancel_activate(GtkWidget *widget, gpointer data)
     int id, tag;
     struct dc_response *resp;
     
-    if(nextsrch != -1)
-	return;
     sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(main_downloads));
     if(gtk_tree_selection_get_selected(sel, &model, &iter))
     {

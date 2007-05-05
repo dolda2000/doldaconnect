@@ -12,6 +12,7 @@ end
 :menu name: trpopup var: y
 	$menuitem name: trhash label: "Search for this hash" sig: activate var: y
 	$menuitem name: trcopy label: "Copy this hash to clipboard" sig: activate var: y
+	$menuitem name: trreset label: "Reset transfer" sig: activate
 	$menuitem name: trcancel label: "Cancel transfer" sig: activate
 end
 :wnd name: wnd title: "Dolda Connect" var: y sig(delete_event):initdeath
