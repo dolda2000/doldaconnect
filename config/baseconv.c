@@ -14,6 +14,11 @@ int main(int argc, char **argv)
     char *(*decfn)(char *, size_t *);
     char *(*encfn)(char *, size_t);
     
+    if(argc < 3) {
+	fprintf(stderr, "usage: baseconv [4568] [4568]\n");
+	fprintf(stderr, "\tenter data on stdin\n");
+	exit(1);
+    }
     data = 0;
     if(!strcmp(argv[1], "4")) {
 	decfn = hexdecode;
