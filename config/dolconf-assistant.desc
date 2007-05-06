@@ -5,7 +5,7 @@
 		$lbl wrap: y label: "This assistent will guide you through the steps minimally required for setting up Dolda Connect as a normal Direct Connect client.\\nIf you wish to set up the more advanced features of Dolda Connect, please either use the more complete setup form of this program, which will be available after this assistant is complete, or edit the configuration file (~/.doldacond.conf) manually."
 	end
 	:vbox title: "Published info" var: y name: page1
-		$lbl label: "Please enter how you wish to present yourself to the network:"
+		$lbl label: "Please enter how you wish to present yourself to other users:"
 		:table rows: 2 cols: 2 fill: TRUE
 			$mlbl label: "_Screen name" mwidget: nick tx: 0 ty: 0
 			$text name: nick var: y expand: y fill: y sig: changed tx: 1 ty: 0
