@@ -1,5 +1,9 @@
 bin_PROGRAMS=locktouch tthsum dolconf
+if baseconv
+bin_PROGRAMS+=baseconv
+else
 noinst_PROGRAMS=baseconv
+endif
 libexec_PROGRAMS=speedrec
 
 speedrec_SOURCES=speedrec.c

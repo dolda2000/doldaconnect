@@ -130,6 +130,10 @@ if test "$with_guile" = yes; then
 	guile_msg=Yes
 fi
 
+# Check whether to install baseconv
+AC_ARG_ENABLE(baseconv, [  --enable-baseconv       Install the baseconv utility])
+AM_CONDITIONAL(baseconv, test "$enable_baseconv" = yes)
+
 # Kerberos check
 krb_msg=No
 AH_TEMPLATE(HAVE_KRB5, [define to compile support for Kerberos 5 (not GSS-API) authentication])
