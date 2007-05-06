@@ -46,11 +46,36 @@ struct cfvar {
     char *rname;
     char *val;
     struct validation *vld;
+    GtkWidget **astw, **cfww;
 };
 
 char *cfname;
 GtkWindow *rootwnd = NULL;
 GtkListStore *shares;
+int state;
+int ignoreclose = 0;
+
+void astcancel(GtkWidget *widget, gpointer uudata);
+void astupdate(GtkWidget *widget, GtkWidget *page, gpointer uudata);
+void cb_ast_wnd_apply(GtkWidget *widget, gpointer uudata);
+void cb_ast_nick_changed(GtkWidget *widget, gpointer uudata);
+void cb_ast_shareadd_clicked(GtkWidget *widget, gpointer uudata);
+void cb_ast_sharerem_clicked(GtkWidget *widget, gpointer uudata);
+void cb_ast_checkports(GtkWidget *widget, gpointer uudata);
+void cb_ast_mode_nat_toggled(GtkWidget *widget, gpointer uudata);
+void cb_cfw_mode_act_toggled(GtkWidget *widget, gpointer uudata);
+void cb_cfw_orport_toggled(GtkWidget *widget, gpointer uudata);
+void cb_cfw_oraddr_toggled(GtkWidget *widget, gpointer uudata);
+void cb_cfw_uinet_toggled(GtkWidget *widget, gpointer uudata);
+void cb_cfw_save_clicked(GtkWidget *widget, gpointer uudata);
+void cb_cfw_quit_clicked(GtkWidget *widget, gpointer uudata);
+void cb_cfw_shareadd_clicked(GtkWidget *widget, gpointer uudata);
+void cb_cfw_sharerem_clicked(GtkWidget *widget, gpointer uudata);
+
+#define _(text) gettext(text)
+
+#include "dolconf-assistant.gtk"
+#include "dolconf-wnd.gtk"
 
 int v_nonempty(const char *val)
 {
@@ -97,6 +122,7 @@ int v_ipv4(const char *val)
     return(inet_aton(val, &buf) != 0);
 }
 
+#undef _
 #define _(text) text
 
 struct validation nonempty = {
@@ -130,33 +156,23 @@ struct validation *vldxlate[] = {
 };
 
 struct cfvar config[] = {
-    {"cli.defnick", _("Nickname"), "", &dcstring},
+    {"cli.defnick", _("Screen name"), "", &dcstring, &ast_nick, &cfw_nick},
     {"net.mode", NULL, "0", &natural},
-    {"net.visibleipv4", "IP address", "0.0.0.0", &ipv4},
+    {"net.visibleipv4", "IP address", "0.0.0.0", &ipv4, NULL, &cfw_extip},
     {"ui.onlylocal", NULL, "0", &natural},
     {"ui.port", NULL, "-1", &integer},
     {"auth.authless", NULL, "0", &natural},
     {"transfer.slots", _("Upload slots"), "6", &natural},
-    {"dc.speedstring", _("Connection speed"), "DSL", &dcstring},
-    {"dc.desc", _("Share description"), "", NULL},
-    {"dc.tcpport", _("Direct Connect TCP port"), "0", &natural},
-    {"dc.udpport", _("Direct Connect UDP port"), "0", &natural},
+    {"dc.speedstring", _("Connection speed"), "DSL", &dcstring, NULL, &cfw_cntype},
+    {"dc.email", _("E-mail address"), "spam@spam.net", &dcstring, NULL, &cfw_mail},
+    {"dc.desc", _("Share description"), "", NULL, &ast_desc, &cfw_desc},
+    {"dc.tcpport", _("Direct Connect TCP port"), "0", &natural, NULL, &cfw_tcpport},
+    {"dc.udpport", _("Direct Connect UDP port"), "0", &natural, NULL, &cfw_udpport},
     {NULL}
 };
 
 #undef _
 #define _(text) gettext(text)
-
-void astcancel(GtkWidget *widget, gpointer uudata);
-void astupdate(GtkWidget *widget, GtkWidget *page, gpointer uudata);
-void cb_ast_wnd_apply(GtkWidget *widget, gpointer uudata);
-void cb_ast_nick_changed(GtkWidget *widget, gpointer uudata);
-void cb_ast_shareadd_clicked(GtkWidget *widget, gpointer uudata);
-void cb_ast_sharerem_clicked(GtkWidget *widget, gpointer uudata);
-void cb_ast_checkports(GtkWidget *widget, gpointer uudata);
-void cb_ast_mode_nat_toggled(GtkWidget *widget, gpointer uudata);
-
-#include "dolconf-assistant.gtk"
 
 struct cfvar *findcfvar(char *name)
 {
@@ -226,7 +242,7 @@ char *getword(char **p)
     }
     if(p2 == NULL)
 	p2 = *p + strlen(*p);
-    len = p2 - *p;
+    len = p2 - *p - ((*p2 == '\"')?1:0);
     buf = smalloc(len + 1);
     memcpy(buf, *p, len);
     buf[len] = 0;
@@ -389,20 +405,36 @@ void writeconfig(void)
     fclose(cf);
 }
 
-void astcancel(GtkWidget *widget, gpointer uudata)
+void fillcfw(void)
 {
-    gtk_main_quit();
+    struct cfvar *var;
+    
+    for(var = config; var->name != NULL; var++) {
+	if(var->cfww != NULL)
+	    gtk_entry_set_text(GTK_ENTRY(*(var->cfww)), var->val);
+    }
+    if(atoi(findcfvar("dc.tcpport")->val) || atoi(findcfvar("dc.udpport")->val))
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cfw_orport), TRUE);
+    else
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cfw_orport), FALSE);
+    if(strcmp(findcfvar("net.visibleipv4")->val, "0.0.0.0"))
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cfw_oraddr), TRUE);
+    else
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cfw_oraddr), FALSE);
+    if(strcmp(findcfvar("ui.port")->val, "-1")) {
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cfw_uinet), TRUE);
+	if(strcmp(findcfvar("auth.authless")->val, "1"))
+	    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cfw_authless), FALSE);
+	else
+	    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cfw_authless), TRUE);
+    } else {
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cfw_uinet), FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(cfw_authless), FALSE);
+    }
 }
 
-#define bufcats(buf, str) bufcat(buf, str, strlen(str))
-
-void astupdate(GtkWidget *widget, GtkWidget *page, gpointer uudata)
+void ast2conf(void)
 {
-    char *s, *buf;
-    size_t sdata, ssize;
-    struct cfvar *var;
-    GtkTreeIter iter;
-    
     setcfvar("cli.defnick", gtk_entry_get_text(GTK_ENTRY(ast_nick)));
     setcfvar("dc.desc", gtk_entry_get_text(GTK_ENTRY(ast_desc)));
     if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ast_mode_psv))) {
@@ -419,6 +451,60 @@ void astupdate(GtkWidget *widget, GtkWidget *page, gpointer uudata)
 	    setcfvar("dc.udpport", "0");
 	}
     }
+}
+
+void cfw2conf(void)
+{
+    struct cfvar *var;
+    
+    for(var = config; var->name != NULL; var++) {
+	if(var->cfww != NULL) {
+	    free(var->val);
+	    var->val = sstrdup(gtk_entry_get_text(GTK_ENTRY(*(var->cfww))));
+	}
+    }
+    if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(cfw_mode_act))) {
+	setcfvar("net.mode", "0");
+	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(cfw_orport))) {
+	    setcfvar("dc.tcpport", "0");
+	    setcfvar("dc.udpport", "0");
+	}
+	if(!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(cfw_oraddr))) {
+	    setcfvar("net.visibleipv4", "0.0.0.0");
+	}
+    } else {
+	setcfvar("net.mode", "1");
+    }
+    if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(cfw_uinet))) {
+	setcfvar("ui.port", "1500");
+	if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(cfw_authless)))
+	    setcfvar("auth.authless", "1");
+	else
+	    setcfvar("auth.authless", "0");
+    } else {
+	setcfvar("ui.port", "-1");
+	setcfvar("auth.authless", "0");
+    }
+}
+
+void astcancel(GtkWidget *widget, gpointer uudata)
+{
+    if(ignoreclose)
+	return;
+    gtk_main_quit();
+    state = -1;
+}
+
+#define bufcats(buf, str) bufcat(buf, str, strlen(str))
+
+void astupdate(GtkWidget *widget, GtkWidget *page, gpointer uudata)
+{
+    char *s, *buf;
+    size_t sdata, ssize;
+    struct cfvar *var;
+    GtkTreeIter iter;
+    
+    ast2conf();
     s = NULL;
     sdata = ssize = 0;
     for(var = config; var->name != NULL; var++) {
@@ -448,6 +534,13 @@ void cb_ast_wnd_apply(GtkWidget *widget, gpointer uudata)
 {
     writeconfig();
     gtk_main_quit();
+    if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ast_action_dolcon)))
+	state = 2;
+    else if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ast_action_exit)))
+	state = -1;
+    else
+	state = 0;
+    ignoreclose = 1;
 }
 
 void cb_ast_nick_changed(GtkWidget *widget, gpointer uudata)
@@ -476,9 +569,9 @@ int hasshare(int col, char *name)
     return(0);
 }
 
-void cb_ast_shareadd_clicked(GtkWidget *widget, gpointer uudata)
+int shareadd(void)
 {
-    int i;
+    int i, ret;
     GSList *fns, *next;
     char *fn, *sn, *p;
     GtkTreeIter iter;
@@ -491,8 +584,9 @@ void cb_ast_shareadd_clicked(GtkWidget *widget, gpointer uudata)
     resp = gtk_dialog_run(GTK_DIALOG(chd));
     if(resp != GTK_RESPONSE_ACCEPT) {
 	gtk_widget_destroy(chd);
-	return;
+	return(0);
     }
+    ret = 0;
     fns = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(chd));
     gtk_widget_destroy(chd);
     while(fns != NULL) {
@@ -514,13 +608,25 @@ void cb_ast_shareadd_clicked(GtkWidget *widget, gpointer uudata)
 	    gtk_list_store_append(shares, &iter);
 	    gtk_list_store_set(shares, &iter, 0, sn, 1, fn, -1);
 	    free(sn);
-	    gtk_assistant_set_page_complete(GTK_ASSISTANT(ast_wnd), ast_page2, TRUE);
+	    ret = 1;
 	}
 	g_free(fn);
 	next = fns->next;
 	g_slist_free_1(fns);
 	fns = next;
     }
+    return(ret);
+}
+
+void cb_ast_shareadd_clicked(GtkWidget *widget, gpointer uudata)
+{
+    if(shareadd())
+	gtk_assistant_set_page_complete(GTK_ASSISTANT(ast_wnd), ast_page2, TRUE);
+}
+
+void cb_cfw_shareadd_clicked(GtkWidget *widget, gpointer uudata)
+{
+    shareadd();
 }
 
 void cb_ast_sharerem_clicked(GtkWidget *widget, gpointer uudata)
@@ -533,11 +639,21 @@ void cb_ast_sharerem_clicked(GtkWidget *widget, gpointer uudata)
 	gtk_assistant_set_page_complete(GTK_ASSISTANT(ast_wnd), ast_page2, FALSE);
 }
 
+void cb_cfw_sharerem_clicked(GtkWidget *widget, gpointer uudata)
+{
+    GtkTreeIter iter;
+    
+    if(gtk_tree_selection_get_selected(gtk_tree_view_get_selection(GTK_TREE_VIEW(cfw_sharelist)), NULL, &iter))
+	gtk_list_store_remove(shares, &iter);
+}
+
 void cb_ast_checkports(GtkWidget *widget, gpointer uudata)
 {
     gtk_assistant_set_page_complete(GTK_ASSISTANT(ast_wnd), ast_page3,
 				    v_natural(gtk_entry_get_text(GTK_ENTRY(ast_tcpport))) &&
+				    (atoi(gtk_entry_get_text(GTK_ENTRY(ast_tcpport))) >= 1024) &&
 				    v_natural(gtk_entry_get_text(GTK_ENTRY(ast_udpport))) &&
+				    (atoi(gtk_entry_get_text(GTK_ENTRY(ast_udpport))) >= 1024) &&
 				    v_ipv4(gtk_entry_get_text(GTK_ENTRY(ast_extip))));
 }
 
@@ -552,9 +668,54 @@ void cb_ast_mode_nat_toggled(GtkWidget *widget, gpointer uudata)
     }
 }
 
+void cb_cfw_mode_act_toggled(GtkWidget *widget, gpointer uudata)
+{
+    gtk_widget_set_sensitive(GTK_WIDGET(cfw_natbox), gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+}
+
+void cb_cfw_orport_toggled(GtkWidget *widget, gpointer uudata)
+{
+    gtk_widget_set_sensitive(GTK_WIDGET(cfw_portbox), gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+}
+
+void cb_cfw_oraddr_toggled(GtkWidget *widget, gpointer uudata)
+{
+    gtk_widget_set_sensitive(GTK_WIDGET(cfw_addrbox), gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+}
+
+void cb_cfw_uinet_toggled(GtkWidget *widget, gpointer uudata)
+{
+    gtk_widget_set_sensitive(GTK_WIDGET(cfw_uibox), gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+}
+
+void cb_cfw_save_clicked(GtkWidget *widget, gpointer uudata)
+{
+    struct cfvar *cv;
+    
+    for(cv = config; cv->name != NULL; cv++) {
+	if((cv->vld != NULL) && !cv->vld->check(cv->val)) {
+	    if(cv->rname) {
+		msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, cv->vld->invmsg, cv->rname);
+	    } else {
+		msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Internal error (Auto-generated variable %s has an invalid value \"%s\")"), cv->name, cv->val);
+	    }
+	    return;
+	}
+    }
+    cfw2conf();
+    writeconfig();
+}
+
+void cb_cfw_quit_clicked(GtkWidget *widget, gpointer uudata)
+{
+    gtk_main_quit();
+    state = -1;
+}
+
 int main(int argc, char **argv)
 {
     struct passwd *pwd;
+    int i;
     
     setlocale(LC_ALL, "");
     bindtextdomain(PACKAGE, LOCALEDIR);
@@ -563,8 +724,10 @@ int main(int argc, char **argv)
     
     gtk_init(&argc, &argv);
     create_ast_wnd();
+    create_cfw_wnd();
     shares = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(ast_sharelist), GTK_TREE_MODEL(shares));
+    gtk_tree_view_set_model(GTK_TREE_VIEW(cfw_sharelist), GTK_TREE_MODEL(shares));
     
     cfname = NULL;
     if(getenv("HOME") != NULL) {
@@ -580,15 +743,44 @@ int main(int argc, char **argv)
     
     if(access(cfname, F_OK)) {
 	if(msgbox(GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("It appears that you have not run this setup program before. Would you like to run the first-time setup assistant?")) == GTK_RESPONSE_YES) {
-	    gtk_window_set_default_size(GTK_WINDOW(ast_wnd), 500, 350);
-	    gtk_widget_show(ast_wnd);
+	    state = 1;
+	} else {
+	    state = 0;
 	}
     } else {
+	state = 0;
 	if(readconfig() == 1) {
 	    if(msgbox(GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("The configuration file appears to have been edited outside the control of this program. If you continue using this program, all settings not handled by it will be lost. Do you wish to continue?")) == GTK_RESPONSE_NO)
 		exit(1);
 	}
     }
-    gtk_main();
+    while(state != -1) {
+	if(state == 0) {
+	    gtk_window_set_default_size(GTK_WINDOW(cfw_wnd), 500, 350);
+	    gtk_widget_show(cfw_wnd);
+	    fillcfw();
+	    rootwnd = GTK_WINDOW(cfw_wnd);
+	    gtk_main();
+	    gtk_widget_hide(cfw_wnd);
+	    rootwnd = NULL;
+	} else if(state == 1) {
+	    gtk_window_set_default_size(GTK_WINDOW(ast_wnd), 500, 350);
+	    gtk_widget_show(ast_wnd);
+	    rootwnd = GTK_WINDOW(ast_wnd);
+	    gtk_main();
+	    gtk_widget_hide(ast_wnd);
+	    ignoreclose = 0;
+	    rootwnd = NULL;
+	} else if(state == 2) {
+	    for(i = 3; i < FD_SETSIZE; i++)
+		close(i);
+	    execlp("dolcon", "dolcon", NULL);
+	    perror("dolcon");
+	    exit(127);
+	} else {
+	    msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Internal error (Unknown state)"));
+	    abort();
+	}
+    }
     return(0);
 }

@@ -4,8 +4,8 @@
 	:align title: Introduction ptype: INTRO cmpl: TRUE xs: 0 ys: 0 xa: 0 ya: 0
 		$lbl wrap: y label: "This assistent will guide you through the steps minimally required for setting up Dolda Connect as a normal Direct Connect client.\\nIf you wish to set up the more advanced features of Dolda Connect, please either use the more complete setup form of this program, which will be available after this assistant is complete, or edit the configuration file (~/.doldacond.conf) manually."
 	end
-	:vbox title: "Personal info" var: y name: page1
-		$lbl label: "Please enter your personal information:"
+	:vbox title: "Published info" var: y name: page1
+		$lbl label: "Please enter how you wish to present yourself to the network:"
 		:table rows: 2 cols: 2 fill: TRUE
 			$mlbl label: "_Screen name" mwidget: nick tx: 0 ty: 0
 			$text name: nick var: y expand: y fill: y sig: changed tx: 1 ty: 0
@@ -44,7 +44,7 @@
 				$text name: extip var: y fill: y expand: y sig(changed): cb_ast_checkports
 			end
 		end
-		$lbl markup: "<i>Specify a port when this computer is behind a NAT router or similar. You will also need to configure your NAT router to forward that port to this computer, and specify what external IP address to use.</i>" wrap: y align: "0:0.5" wpad: "20:0"
+		$lbl markup: "<i>Specify a port when this computer is behind a NAT router or another device blocking incoming connections. You will also need to configure your NAT router to forward that port to this computer, and specify what external IP address to use. Note also that the ports need to be above 1024.</i>" wrap: y align: "0:0.5" wpad: "20:0"
 		$radio label: "Passi_ve mode" var: y name: mode_psv group: mode_act
 		$lbl markup: "<i>Passive mode can be used as a last resort if you truly cannot use active mode. It is highly likely that using passive mode will lead to impaired performance.</i>" wrap: y align: "0:0.5" wpad: "20:0"
 	end
@@ -53,5 +53,9 @@
 		:sw fill: TRUE expand: TRUE
 			$textview name: summary var: y editable: FALSE
 		end
+		$lbl label: "What do you want to do after confirming?"
+		$radio label: "_Run Dolda Connect normally" var: y name: action_dolcon
+		$radio label: "_Exit this configuration program" var: y name: action_exit group: action_dolcon
+		$radio label: "_Open the complete configuration form" var: y name: action_wnd group: action_dolcon
 	end
 end

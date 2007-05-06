@@ -3,23 +3,50 @@
 :wnd name: wnd title: "Dolda Connect configurator" var: y sig(delete_event): astcancel
 	:vbox
 		:notebook pos: LEFT fill: y expand: y
-			:table rows: 2 cols: 2 nblabel: "_Personal info"
+			:table rows: 4 cols: 2 nblabel: "_Published info"
 				$mlbl label: "Screen _name" mwidget: nick tx: 0 ty: 0
 				$text name: nick var: y expandx: y fillx: y tx: 1 ty: 0
 				$mlbl label: "_Description" mwidget: desc tx: 0 ty: 1
 				$text name: desc var: y expandx: y fillx: y tx: 1 ty: 1
+				$mlbl label: "_Connection type" mwidget: cntype tx: 0 ty: 2
+				$text name: cntype var: y expandx: y fillx: y tx: 1 ty: 2
+				$mlbl label: "_E-mail address" mwidget: mail tx: 0 ty: 3
+				$text name: mail var: y expandx: y fillx: y tx: 1 ty: 3
 			end
-			:vbox nblabel: "S_hared directories" var: y name: page2
-				:vbox expand: TRUE fill: TRUE
-					:sw expand: TRUE fill: TRUE
-						:treeview name: sharelist var: y
-							$tvcol title: Path text: 1 sortcol: 1
-						end
+			:vbox nblabel: "S_hared directories"
+				:sw expand: TRUE fill: TRUE
+					:treeview name: sharelist var: y
+						$tvcol title: Path text: 1 sortcol: 1
 					end
-					:hbox
-						$sbtn name: shareadd stock: ADD sig: clicked
-						$sbtn name: sharerem stock: REMOVE sig: clicked
+				end
+				:hbox
+					$sbtn name: shareadd stock: ADD sig: clicked
+					$sbtn name: sharerem stock: REMOVE sig: clicked
+				end
+			end
+			:vbox nblabel: "Net_work"
+				$radio label: "_Active mode" var: y name: mode_act sig: toggled
+				:vbox var: y name: natbox
+					$chk name: orport var: y label: "Spe_cify ports" sig: toggled
+					:hbox spacing: 10 var: y name: portbox sensitive: FALSE
+						$mlbl label: "_TCP port:" mwidget: tcpport
+						$text name: tcpport var: y fill: y expand: y
+						$mlbl label: "_UDP port:" mwidget: udpport
+						$text name: udpport var: y fill: y expand: y
 					end
+					$chk name: oraddr var: y label: "_Override IP address" sig: toggled
+					:hbox spacing: 10 var: y name: addrbox sensitive: FALSE
+						$mlbl label: "_IP address:" mwidget: extip
+						$text name: extip var: y fill: y expand: y
+					end
+				end
+				$radio label: "Passi_ve mode" var: y name: mode_psv group: mode_act
+			end
+			:vbox nblabel: "_Remoting"
+				$chk label: "_Allow user interfaces to connect remotely" var: y name: uinet sig: toggled
+				:vbox var: y name: uibox sensitive: FALSE
+					$chk label: "_Trust connections without a password" var: y name: authless
+					$lbl markup: "<i>Important: The above option is a security hole. It allows you to connect without a password, but it also allows everyone else to do the same, so you should absolutely not use it unless you are sure that everyone who can connect to your computer is trusted.</i>" wrap: y
 				end
 			end
 		end
