@@ -132,7 +132,7 @@ fi
 
 # Check whether to install baseconv
 AC_ARG_ENABLE(baseconv, [  --enable-baseconv       Install the baseconv utility])
-AM_CONDITIONAL(baseconv, test "$enable_baseconv" = yes)
+AM_CONDITIONAL(BASECONV, test "$enable_baseconv" = yes)
 
 # Kerberos check
 krb_msg=No

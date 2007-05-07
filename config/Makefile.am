@@ -1,5 +1,5 @@
 bin_PROGRAMS=locktouch tthsum dolconf
-if baseconv
+if BASECONV
 bin_PROGRAMS+=baseconv
 else
 noinst_PROGRAMS=baseconv
