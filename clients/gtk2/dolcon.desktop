@@ -1,0 +1,8 @@
+[Desktop Entry]
+Encoding=UTF-8
+Categories=Network
+Type=Application
+Terminal=false
+Icon=hellodolda.png
+Exec=dolcon
+Name=Dolda Connect
