@@ -1338,6 +1338,16 @@ static void cmd_uptime(struct socket *sk, struct uidata *data, int argc, wchar_t
     sq(sk, 0, L"200", L"%i", time(NULL) - starttime, NULL);
 }
 
+static void cmd_hup(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
+{
+    extern volatile int reinit;
+    
+    havepriv(PERM_ADMIN);
+    flog(LOG_NOTICE, "UI HUP request from %ls", data->username);
+    reinit = 1;
+    sq(sk, 0, L"200", L"Will reinit", NULL);
+}
+
 #undef haveargs
 #undef havepriv
 
@@ -1378,6 +1388,7 @@ static struct command commands[] =
     {L"register", cmd_register},
     {L"sendmsg", cmd_sendmsg},
     {L"uptime", cmd_uptime},
+    {L"hup", cmd_hup},
     {NULL, NULL}
 };
 
