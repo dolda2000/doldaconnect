@@ -324,7 +324,7 @@ static int haspriv(struct uidata *data, int perm)
 
 /* Useful macros for the command functions: */
 #define haveargs(n) do { if(argc < n) { sq(sk, 0, L"501", L"Wrong number of arguments", NULL); return; } } while(0)
-#define havepriv(p) do { if((data->userinfo == NULL) || ((data->userinfo->perms & (p)) != (p))) { sq(sk, 0, L"502", L"Unauthorized request", L"needed", L"%x", (p), L"had", L"%x", data->userinfo->perms, NULL); return; } } while(0)
+#define havepriv(p) do { if((data->userinfo == NULL) || ((data->userinfo->perms & (p)) != (p))) { sq(sk, 0, L"502", L"Unauthorized request", L"needed", L"%x", (p), NULL); return; } } while(0)
 
 static void cmd_connect(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
 {
