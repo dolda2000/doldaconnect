@@ -1096,30 +1096,39 @@ static struct addrinfo *resolvhost(char *host)
     return(NULL);
 }
 
-static struct addrinfo *defaulthost(void)
+static struct addrinfo *getlocalai(void)
 {
     struct addrinfo *ret;
     struct passwd *pwd;
+    char *tmp;
+
+    ret = NULL;
+    if((getuid() != 0) && ((pwd = getpwuid(getuid())) != NULL))
+    {
+	tmp = sprintf2("/tmp/doldacond-%s", pwd->pw_name);
+	ret = unixgai(SOCK_STREAM, tmp);
+	free(tmp);
+    }
+    ret = gaicat(ret, unixgai(SOCK_STREAM, "/var/run/doldacond.sock"));
+    return(ret);
+}
+
+static struct addrinfo *defaulthost(void)
+{
+    struct addrinfo *ret;
     char *tmp;
     char dn[1024];
     
     if(((tmp = getenv("DCSERVER")) != NULL) && *tmp)
 	return(resolvhost(tmp));
-    ret = NULL;
-    if((getuid() != 0) && ((pwd = getpwuid(getuid())) != NULL))
-    {
-	tmp = sprintf2("/tmp/doldacond-%s", pwd->pw_name);
-	ret = gaicat(ret, unixgai(SOCK_STREAM, tmp));
-	free(tmp);
-    }
-    ret = gaicat(ret, unixgai(SOCK_STREAM, "/var/run/doldacond.sock"));
+    ret = getlocalai();
     ret = gaicat(ret, resolvtcp("localhost", 1500));
     if(!getdomainname(dn, sizeof(dn)) && *dn && strcmp(dn, "(none)"))
 	ret = gaicat(ret, resolvsrv(dn));
     return(ret);
 }
 
-int dc_connect(char *host)
+static int dc_connectai(struct addrinfo *hosts)
 {
     struct qcmd *qcmd;
     int errnobak;
@@ -1129,12 +1138,7 @@ int dc_connect(char *host)
     state = -1;
     if(hostlist != NULL)
 	freeaddrinfo(hostlist);
-    if(!host || !*host)
-	hostlist = defaulthost();
-    else
-	hostlist = resolvhost(host);
-    if(hostlist == NULL)
-	return(-1);
+    hostlist = hosts;
     for(curhost = hostlist; curhost != NULL; curhost = curhost->ai_next)
     {
 	if((fd = socket(curhost->ai_family, curhost->ai_socktype, curhost->ai_protocol)) < 0)
@@ -1164,6 +1168,33 @@ int dc_connect(char *host)
     qcmd = makeqcmd(NULL);
     resetreader = 1;
     return(fd);
+}
+
+int dc_connect(char *host)
+{
+    struct addrinfo *ai;
+    int ret;
+    
+    if(!host || !*host)
+	ai = defaulthost();
+    else
+	ai = resolvhost(host);
+    if(ai == NULL)
+	return(-1);
+    if((ret = dc_connectai(ai)) != 0)
+	freeaddrinfo(ai);
+    return(ret);
+}
+
+int dc_connectlocal(void)
+{
+    struct addrinfo *ai;
+    int ret;
+    
+    ai = getlocalai();
+    if((ret = dc_connectai(ai)) != 0)
+	freeaddrinfo(ai);
+    return(ret);
 }
 
 struct dc_intresp *dc_interpret(struct dc_response *resp)

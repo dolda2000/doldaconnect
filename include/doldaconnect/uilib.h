@@ -51,6 +51,7 @@ int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...);
 int dc_handleread(void);
 int dc_handlewrite(void);
 int dc_connect(char *host);
+int dc_connectlocal(void);
 struct dc_intresp *dc_interpret(struct dc_response *resp);
 void dc_freeires(struct dc_intresp *ires);
 int dc_checkprotocol(struct dc_response *resp, int revision);
