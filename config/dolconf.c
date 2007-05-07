@@ -731,6 +731,7 @@ int main(int argc, char **argv)
 	    break;
 	case 'w':
 	    state = 0;
+	    break;
 	case 'h':
 	default:
 	    fprintf((c == 'h')?stdout:stderr, "usage: dolconf [-haw]\n");
