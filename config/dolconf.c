@@ -25,6 +25,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <gtk/gtk.h>
+#include <gdk/gdkkeysyms.h>
 #include <locale.h>
 #include <libintl.h>
 #include <pwd.h>
@@ -52,7 +53,7 @@ struct cfvar {
 char *cfname;
 GtkWindow *rootwnd = NULL;
 GtkListStore *shares;
-int state;
+int state, dirty = 1;
 int ignoreclose = 0;
 
 void astcancel(GtkWidget *widget, gpointer uudata);
@@ -67,8 +68,8 @@ void cb_cfw_mode_act_toggled(GtkWidget *widget, gpointer uudata);
 void cb_cfw_orport_toggled(GtkWidget *widget, gpointer uudata);
 void cb_cfw_oraddr_toggled(GtkWidget *widget, gpointer uudata);
 void cb_cfw_uinet_toggled(GtkWidget *widget, gpointer uudata);
-void cb_cfw_save_clicked(GtkWidget *widget, gpointer uudata);
-void cb_cfw_quit_clicked(GtkWidget *widget, gpointer uudata);
+void cb_cfw_save_activate(GtkWidget *widget, gpointer uudata);
+void cb_cfw_quit_activate(GtkWidget *widget, gpointer uudata);
 void cb_cfw_shareadd_clicked(GtkWidget *widget, gpointer uudata);
 void cb_cfw_sharerem_clicked(GtkWidget *widget, gpointer uudata);
 
@@ -190,8 +191,11 @@ void setcfvar(char *name, const char *val)
     struct cfvar *v;
     
     v = findcfvar(name);
+    if(!strcmp(v->val, val))
+	return;
     free(v->val);
     v->val = sstrdup(val);
+    dirty = 1;
 }
 
 int msgbox(int type, int buttons, char *format, ...)
@@ -353,6 +357,7 @@ int readconfig(void)
     if(val != NULL)
 	free(val);
     fclose(cf);
+    dirty = 0;
     return(rv);
 }
 
@@ -403,6 +408,7 @@ void writeconfig(void)
 	} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(shares), &iter));
     }
     fclose(cf);
+    dirty = 0;
 }
 
 void fillcfw(void)
@@ -456,11 +462,16 @@ void ast2conf(void)
 void cfw2conf(void)
 {
     struct cfvar *var;
+    const char *val;
     
     for(var = config; var->name != NULL; var++) {
 	if(var->cfww != NULL) {
+	    val = gtk_entry_get_text(GTK_ENTRY(*(var->cfww)));
+	    if(!strcmp(var->val, val))
+		continue;
 	    free(var->val);
-	    var->val = sstrdup(gtk_entry_get_text(GTK_ENTRY(*(var->cfww))));
+	    var->val = sstrdup(val);
+	    dirty = 1;
 	}
     }
     if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(cfw_mode_act))) {
@@ -688,7 +699,7 @@ void cb_cfw_uinet_toggled(GtkWidget *widget, gpointer uudata)
     gtk_widget_set_sensitive(GTK_WIDGET(cfw_uibox), gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 }
 
-void cb_cfw_save_clicked(GtkWidget *widget, gpointer uudata)
+void cb_cfw_save_activate(GtkWidget *widget, gpointer uudata)
 {
     struct cfvar *cv;
     
@@ -706,7 +717,7 @@ void cb_cfw_save_clicked(GtkWidget *widget, gpointer uudata)
     writeconfig();
 }
 
-void cb_cfw_quit_clicked(GtkWidget *widget, gpointer uudata)
+void cb_cfw_quit_activate(GtkWidget *widget, gpointer uudata)
 {
     gtk_main_quit();
     state = -1;
@@ -758,11 +769,15 @@ int main(int argc, char **argv)
     }
     
     ex = !access(cfname, F_OK);
-    if(!ex && (state == -1)) {
-	if(msgbox(GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("It appears that you have not run this setup program before. Would you like to run the first-time setup assistant?")) == GTK_RESPONSE_YES)
-	    state = 1;
-	else
+    if(state == -1) {
+	if(!ex) {
+	    if(msgbox(GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("It appears that you have not run this setup program before. Would you like to run the first-time setup assistant?")) == GTK_RESPONSE_YES)
+		state = 1;
+	    else
+		state = 0;
+	} else {
 	    state = 0;
+	}
     }
     
     if(ex && (state == 0)) {
