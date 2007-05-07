@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2007-05-06 22:16+0200\n"
+"POT-Creation-Date: 2007-05-07 04:24+0200\n"
 "PO-Revision-Date: 2007-05-06 22:34+0200\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -44,7 +44,7 @@ msgstr "%s (rapporterades kl. %s)"
 msgid "Disconnected"
 msgstr "Frånkopplad"
 
-#: clients/gtk2/main.c:799 config/dolconf.c:740
+#: clients/gtk2/main.c:799 config/dolconf.c:756
 msgid "Could not get your home directory!"
 msgstr "Kunde inte hitta din hemkatalog!"
 
@@ -596,7 +596,7 @@ msgid "Internal error (Auto-generated variable %s has an invalid value \"%s\")"
 msgstr ""
 "Internt fel (Autogenererade variabeln %s har det ogiltiga värdet \"%s\")"
 
-#: config/dolconf.c:745
+#: config/dolconf.c:762
 msgid ""
 "It appears that you have not run this setup program before. Would you like "
 "to run the first-time setup assistant?"
@@ -604,7 +604,7 @@ msgstr ""
 "Du tycks inte ha kört det här inställningsprogrammet tidigare. Vill du köra "
 "förstagångs-assistenten?"
 
-#: config/dolconf.c:753
+#: config/dolconf.c:770
 msgid ""
 "The configuration file appears to have been edited outside the control of "
 "this program. If you continue using this program, all settings not handled "
@@ -614,7 +614,7 @@ msgstr ""
 "kontroll. Om du fortsätter använda det här programmet, kommer inställningar "
 "som det inte hanterar förloras. Vill du fortsätta?"
 
-#: config/dolconf.c:781
+#: config/dolconf.c:799
 msgid "Internal error (Unknown state)"
 msgstr "Internt fel (Okänt läge)"
 
@@ -674,7 +674,9 @@ msgstr "_Aktivt läge"
 msgid ""
 "<i>Active mode is the best choice when this computer is connected directly "
 "to the internet.</i>"
-msgstr "<i>Aktivt läge är det bästa valet när den här datorn är ansluten direkt till internet.</i>"
+msgstr ""
+"<i>Aktivt läge är det bästa valet när den här datorn är ansluten direkt till "
+"internet.</i>"
 
 #: config/dolconf-assistant.gtk:151
 msgid "Active with specified _port"
@@ -698,7 +700,12 @@ msgid ""
 "device blocking incoming connections. You will also need to configure your "
 "NAT router to forward that port to this computer, and specify what external "
 "IP address to use. Note also that the ports need to be above 1024.</i>"
-msgstr "<i>Ange en port när den här datorn är bakom en NAT-router eller någon annan enhet som blockerar anslutningar utifrån. Du behöver också ställa in din NAT-router så att den vidarebefordrar den porten till den här datorn, och ange vilken extern IP-adress som ska användas. Notera även att portarna behöver vara 1024 eller högre.</i>"
+msgstr ""
+"<i>Ange en port när den här datorn är bakom en NAT-router eller någon annan "
+"enhet som blockerar anslutningar utifrån. Du behöver också ställa in din NAT-"
+"router så att den vidarebefordrar den porten till den här datorn, och ange "
+"vilken extern IP-adress som ska användas. Notera även att portarna behöver "
+"vara 1024 eller högre.</i>"
 
 #: config/dolconf-assistant.gtk:218 config/dolconf-wnd.gtk:193
 msgid "Passi_ve mode"
@@ -709,7 +716,10 @@ msgid ""
 "<i>Passive mode can be used as a last resort if you truly cannot use active "
 "mode. It is highly likely that using passive mode will lead to impaired "
 "performance.</i>"
-msgstr "<i>Passivt läge kan användas som en sista utväg om du verkligen inte kan använda aktivt läge. Det är högst troligt att användandet av passivt läge kommer leda till nedsatt prestanda."
+msgstr ""
+"<i>Passivt läge kan användas som en sista utväg om du verkligen inte kan "
+"använda aktivt läge. Det är högst troligt att användandet av passivt läge "
+"kommer leda till nedsatt prestanda."
 
 #: config/dolconf-assistant.gtk:232
 msgid "Network"
@@ -785,7 +795,11 @@ msgid ""
 "without a password, but it also allows everyone else to do the same, so you "
 "should absolutely not use it unless you are sure that everyone who can "
 "connect to your computer is trusted.</i>"
-msgstr "<i>Viktigt: Den ovanstående inställningen är ett säkerhetshål. Den låter dig ansluta utan ett lösenord, men låter även vem som helst att göra detsamma, så du bör absolut inte använda den om du inte är säker på att du kan lita på alla som kan ansluta till din dator.</i>"
+msgstr ""
+"<i>Viktigt: Den ovanstående inställningen är ett säkerhetshål. Den låter dig "
+"ansluta utan ett lösenord, men låter även vem som helst att göra detsamma, "
+"så du bör absolut inte använda den om du inte är säker på att du kan lita på "
+"alla som kan ansluta till din dator.</i>"
 
 #: config/dolconf-wnd.gtk:227
 msgid "_Remoting"
