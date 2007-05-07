@@ -498,6 +498,23 @@ void cfw2conf(void)
     }
 }
 
+struct cfvar *cfwvalid(void)
+{
+    struct cfvar *cv;
+    
+    for(cv = config; cv->name != NULL; cv++) {
+	if((cv->vld != NULL) && !cv->vld->check(cv->val)) {
+	    if(cv->rname) {
+		return(cv);
+	    } else {
+		msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Internal error (Auto-generated variable %s has an invalid value \"%s\")"), cv->name, cv->val);
+		abort();
+	    }
+	}
+    }
+    return(NULL);
+}
+
 void astcancel(GtkWidget *widget, gpointer uudata)
 {
     if(ignoreclose)
@@ -703,15 +720,9 @@ void cb_cfw_save_activate(GtkWidget *widget, gpointer uudata)
 {
     struct cfvar *cv;
     
-    for(cv = config; cv->name != NULL; cv++) {
-	if((cv->vld != NULL) && !cv->vld->check(cv->val)) {
-	    if(cv->rname) {
-		msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, cv->vld->invmsg, cv->rname);
-	    } else {
-		msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Internal error (Auto-generated variable %s has an invalid value \"%s\")"), cv->name, cv->val);
-	    }
-	    return;
-	}
+    if((cv = cfwvalid()) != NULL) {
+	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, cv->vld->invmsg, cv->rname);
+	return;
     }
     cfw2conf();
     writeconfig();
@@ -719,6 +730,12 @@ void cb_cfw_save_activate(GtkWidget *widget, gpointer uudata)
 
 void cb_cfw_quit_activate(GtkWidget *widget, gpointer uudata)
 {
+    
+    cfw2conf();
+    if(dirty) {
+	if(msgbox(GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("There are unsaved settings. Do you wish to discard the changes and exit anyway?")) == GTK_RESPONSE_NO)
+	    return;
+    }
     gtk_main_quit();
     state = -1;
 }
