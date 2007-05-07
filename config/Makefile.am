@@ -1,4 +1,7 @@
-bin_PROGRAMS=locktouch tthsum dolconf
+bin_PROGRAMS=locktouch tthsum
+if DOLCONF
+bin_PROGRAMS+=dolconf
+endif
 if BASECONV
 bin_PROGRAMS+=baseconv
 else
