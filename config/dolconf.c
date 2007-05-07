@@ -1,6 +1,6 @@
 /*
  *  Dolda Connect - Modular multiuser Direct Connect-style client
- *  Copyright (C) 2007 Fredrik Tolf (fredrik@dolda2000.com)
+ *  Copyright (C) 2007 Fredrik Tolf <fredrik@dolda2000.com>
  *  
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -714,8 +714,8 @@ void cb_cfw_quit_clicked(GtkWidget *widget, gpointer uudata)
 
 int main(int argc, char **argv)
 {
+    int i, c, ex;
     struct passwd *pwd;
-    int i;
     
     setlocale(LC_ALL, "");
     bindtextdomain(PACKAGE, LOCALEDIR);
@@ -723,6 +723,21 @@ int main(int argc, char **argv)
     prepstatic();
     
     gtk_init(&argc, &argv);
+    state = -1;
+    while((c = getopt(argc, argv, "haw")) != -1) {
+	switch(c) {
+	case 'a':
+	    state = 1;
+	    break;
+	case 'w':
+	    state = 0;
+	case 'h':
+	default:
+	    fprintf((c == 'h')?stdout:stderr, "usage: dolconf [-haw]\n");
+	    break;
+	}
+    }
+    
     create_ast_wnd();
     create_cfw_wnd();
     shares = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
@@ -741,19 +756,21 @@ int main(int argc, char **argv)
 	exit(1);
     }
     
-    if(access(cfname, F_OK)) {
-	if(msgbox(GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("It appears that you have not run this setup program before. Would you like to run the first-time setup assistant?")) == GTK_RESPONSE_YES) {
+    ex = !access(cfname, F_OK);
+    if(!ex && (state == -1)) {
+	if(msgbox(GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("It appears that you have not run this setup program before. Would you like to run the first-time setup assistant?")) == GTK_RESPONSE_YES)
 	    state = 1;
-	} else {
+	else
 	    state = 0;
-	}
-    } else {
-	state = 0;
+    }
+    
+    if(ex && (state == 0)) {
 	if(readconfig() == 1) {
 	    if(msgbox(GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("The configuration file appears to have been edited outside the control of this program. If you continue using this program, all settings not handled by it will be lost. Do you wish to continue?")) == GTK_RESPONSE_NO)
 		exit(1);
 	}
     }
+    
     while(state != -1) {
 	if(state == 0) {
 	    gtk_window_set_default_size(GTK_WINDOW(cfw_wnd), 500, 350);
