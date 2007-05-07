@@ -730,7 +730,6 @@ void cb_cfw_save_activate(GtkWidget *widget, gpointer uudata)
 
 void cb_cfw_quit_activate(GtkWidget *widget, gpointer uudata)
 {
-    
     cfw2conf();
     if(dirty) {
 	if(msgbox(GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("There are unsaved settings. Do you wish to discard the changes and exit anyway?")) == GTK_RESPONSE_NO)
