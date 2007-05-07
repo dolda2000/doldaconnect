@@ -126,6 +126,9 @@
 502
 517
 518
+:hup
+200
+502
 : ; Nameless notification
 600 i i s s s	; FN chat
 601 i i		; FN state change
