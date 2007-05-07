@@ -16,6 +16,6 @@
 	</oaf_attribute>
 	<oaf_attribute name="name" type="string" value="Doldaconnect Transfer Viewer" />
 	<oaf_attribute name="description" type="string" value="Easily grasp the current status of your Doldaconnect transfers" />
-	<oaf_attribute name="panel:icon" type="string" value="hellodolda.jpg" />
+	<oaf_attribute name="panel:icon" type="string" value="hellodolda.png" />
     </oaf_server>
 </oaf_info>
