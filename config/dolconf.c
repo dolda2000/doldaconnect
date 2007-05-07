@@ -734,7 +734,7 @@ int main(int argc, char **argv)
 	case 'h':
 	default:
 	    fprintf((c == 'h')?stdout:stderr, "usage: dolconf [-haw]\n");
-	    break;
+	    exit((c == 'h')?0:1);
 	}
     }
     
