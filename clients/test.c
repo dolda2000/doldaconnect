@@ -12,11 +12,9 @@ void authcallback(int err, wchar_t *reason, void *data)
 
 int main(int argc, char **argv)
 {
-    int i;
     struct pollfd pfd;
     int fd, done;
     struct dc_response *resp;
-    struct dc_intresp *ires;
     
     dc_init();
     fd = dc_connect(NULL);
