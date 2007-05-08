@@ -27,7 +27,7 @@ dolconf_LDFLAGS=	$(shell pkg-config --libs gtk+-2.0) \
 dolconf_CPPFLAGS=	$(shell pkg-config --cflags gtk+-2.0) \
 			$(shell pkg-config --cflags libxml-2.0) \
 			-DLOCALEDIR=\"$(localedir)\"
-dolconf_LDADD=		$(top_srcdir)/common/libcommon.a
+dolconf_LDADD=		$(top_srcdir)/common/libcommon.a $(top_srcdir)/lib/libdcui.la
 
 %.gtk: %.desc $(top_srcdir)/common/makegdesc
 	$(top_srcdir)/common/makegdesc $< >$@

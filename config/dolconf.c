@@ -31,6 +31,8 @@
 #include <pwd.h>
 #include <stdarg.h>
 #include <arpa/inet.h>
+#include <doldaconnect/uilib.h>
+#include <doldaconnect/uimisc.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -69,6 +71,7 @@ void cb_cfw_orport_toggled(GtkWidget *widget, gpointer uudata);
 void cb_cfw_oraddr_toggled(GtkWidget *widget, gpointer uudata);
 void cb_cfw_uinet_toggled(GtkWidget *widget, gpointer uudata);
 void cb_cfw_save_activate(GtkWidget *widget, gpointer uudata);
+void cb_cfw_hup_activate(GtkWidget *widget, gpointer uudata);
 void cb_cfw_quit_activate(GtkWidget *widget, gpointer uudata);
 void cb_cfw_shareadd_clicked(GtkWidget *widget, gpointer uudata);
 void cb_cfw_sharerem_clicked(GtkWidget *widget, gpointer uudata);
@@ -716,6 +719,29 @@ void cb_cfw_uinet_toggled(GtkWidget *widget, gpointer uudata)
     gtk_widget_set_sensitive(GTK_WIDGET(cfw_uibox), gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 }
 
+void cb_cfw_hup_activate(GtkWidget *widget, gpointer uudata)
+{
+    int tag;
+    struct dc_response *resp;
+    
+    if(dc_connectsync2(dc_srv_local, DC_LATEST) < 0) {
+	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not connect to server"));
+	return;
+    }
+    if(dc_login(NULL, 1, dc_convnone, NULL) != DC_LOGIN_ERR_SUCCESS) {
+	dc_disconnect();
+	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not connect to server"));
+	return;
+    }
+    tag = dc_queuecmd(NULL, NULL, L"hup", NULL);
+    if((resp = dc_gettaggedrespsync(tag)) != NULL) {
+	if(resp->code != 200)
+	    msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not connect to server"));
+	dc_freeresp(resp);
+    }
+    dc_disconnect();
+}
+
 void cb_cfw_save_activate(GtkWidget *widget, gpointer uudata)
 {
     struct cfvar *cv;
@@ -748,6 +774,7 @@ int main(int argc, char **argv)
     bindtextdomain(PACKAGE, LOCALEDIR);
     textdomain(PACKAGE);
     prepstatic();
+    dc_init();
     
     gtk_init(&argc, &argv);
     state = -1;

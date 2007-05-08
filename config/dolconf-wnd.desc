@@ -7,6 +7,7 @@
 			:menuitem label: _Main
 				:menu
 					$smenuitem name: save stock: SAVE sig: activate
+					$menuitem name: hup label: "_Apply settings now" sig: activate accel: "CONTROL+A"
 					$smenuitem name: quit stock: QUIT sig: activate
 				end
 			end
