@@ -56,7 +56,7 @@ void flog(int priority, char *format, ...)
 	writev(2, iov, 2);
     }
     if(logtosyslog)
-	syslog(priority, "%s", b);
+	syslog(syslogfac | priority, "%s", b);
     free(b);
 }
 
