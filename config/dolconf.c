@@ -787,9 +787,14 @@ int main(int argc, char **argv)
 	    state = 0;
 	    break;
 	case 'h':
+	    printf("usage: dolconf [-haw]\n");
+	    printf("\t-h\tDisplay this help message\n");
+	    printf("\t-a\tGo directly to the assistant\n");
+	    printf("\t-w\tGo directly to the standard window\n");
+	    exit(0);
 	default:
-	    fprintf((c == 'h')?stdout:stderr, "usage: dolconf [-haw]\n");
-	    exit((c == 'h')?0:1);
+	    fprintf(stderr, "usage: dolconf [-haw]\n");
+	    exit(1);
 	}
     }
     
