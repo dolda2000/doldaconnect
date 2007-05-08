@@ -102,6 +102,7 @@ struct {
     int family;
     int sentcreds;
 } servinfo;
+char *dc_srv_local;
 
 static struct dc_response *makeresp(void)
 {
@@ -258,6 +259,7 @@ int dc_init(void)
 {
     if((ichandle = iconv_open("wchar_t", "utf-8")) == (iconv_t)-1)
 	return(-1);
+    dc_srv_local = sstrdup("");
     initcmds();
     return(0);
 }
@@ -1128,7 +1130,7 @@ static struct addrinfo *defaulthost(void)
     return(ret);
 }
 
-static int dc_connectai(struct addrinfo *hosts)
+static int dc_connectai(struct addrinfo *hosts, struct qcmd **cnctcmd)
 {
     struct qcmd *qcmd;
     int errnobak;
@@ -1144,6 +1146,8 @@ static int dc_connectai(struct addrinfo *hosts)
 	if((fd = socket(curhost->ai_family, curhost->ai_socktype, curhost->ai_protocol)) < 0)
 	{
 	    errnobak = errno;
+	    freeaddrinfo(hostlist);
+	    hostlist = NULL;
 	    errno = errnobak;
 	    return(-1);
 	}
@@ -1165,35 +1169,78 @@ static int dc_connectai(struct addrinfo *hosts)
 	    break;
 	}
     }
-    qcmd = makeqcmd(NULL);
-    resetreader = 1;
+    if(state != -1)
+    {
+	qcmd = makeqcmd(NULL);
+	if(cnctcmd != NULL)
+	    *cnctcmd = qcmd;
+	resetreader = 1;
+    } else {
+	free(hostlist);
+	hostlist = NULL;
+    }
     return(fd);
 }
 
-int dc_connect(char *host)
+static int dc_connect2(char *host, struct qcmd **cnctcmd)
 {
     struct addrinfo *ai;
+    struct qcmd *qcmd;
     int ret;
     
-    if(!host || !*host)
+    if(host == dc_srv_local)
+	ai = getlocalai();
+    else if(!host || !*host)
 	ai = defaulthost();
     else
 	ai = resolvhost(host);
     if(ai == NULL)
 	return(-1);
-    if((ret = dc_connectai(ai)) != 0)
-	freeaddrinfo(ai);
+    ret = dc_connectai(ai, &qcmd);
+    if((ret >= 0) && (cnctcmd != NULL))
+	*cnctcmd = qcmd;
     return(ret);
 }
 
-int dc_connectlocal(void)
+int dc_connect(char *host)
 {
-    struct addrinfo *ai;
+    return(dc_connect2(host, NULL));
+}
+
+int dc_connectsync(char *host, struct dc_response **respbuf)
+{
     int ret;
+    struct qcmd *cc;
+    struct dc_response *resp;
     
-    ai = getlocalai();
-    if((ret = dc_connectai(ai)) != 0)
-	freeaddrinfo(ai);
+    if((ret = dc_connect2(host, &cc)) < 0)
+	return(-1);
+    resp = dc_gettaggedrespsync(cc->tag);
+    if(resp == NULL) {
+	dc_disconnect();
+	return(-1);
+    }
+    if(respbuf == NULL)
+	dc_freeresp(resp);
+    else
+	*respbuf = resp;
+    return(ret);
+}
+
+int dc_connectsync2(char *host, int rev)
+{
+    int ret;
+    struct dc_response *resp;
+    
+    if((ret = dc_connectsync(host, &resp)) < 0)
+	return(-1);
+    if(dc_checkprotocol(resp, rev))
+    {
+	dc_freeresp(resp);
+	dc_disconnect();
+	return(-1);
+    }
+    dc_freeresp(resp);
     return(ret);
 }
 
@@ -1278,7 +1325,7 @@ int dc_checkprotocol(struct dc_response *resp, int revision)
     if((ires = dc_interpret(resp)) == NULL)
 	return(-1);
     low = ires->argv[0].val.num;
-    high = ires->argv[0].val.num;
+    high = ires->argv[1].val.num;
     dc_freeires(ires);
     if((revision < low) || (revision > high))
 	return(-1);
@@ -1288,4 +1335,9 @@ int dc_checkprotocol(struct dc_response *resp, int revision)
 const char *dc_gethostname(void)
 {
     return(servinfo.hostname);
+}
+
+int dc_getfd(void)
+{
+    return(fd);
 }

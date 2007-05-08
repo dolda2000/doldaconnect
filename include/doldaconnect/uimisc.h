@@ -102,7 +102,10 @@ struct dc_transfer
     void *udata;
 };
 
+int dc_convtty(int type, wchar_t *text, char **resp, void *data);
+int dc_convnone(int type, wchar_t *text, char **resp, void *data);
 void dc_loginasync(char *username, int useauthless, int (*conv)(int, wchar_t *, char **, void *), void (*callback)(int, wchar_t *, void *), void *udata);
+int dc_login(char *username, int useauthless, int (*conv)(int, wchar_t *, char **, void *), wchar_t **reason);
 struct dc_fnetnode *dc_findfnetnode(int id);
 void dc_getfnlistasync(void (*callback)(int, void *), void *udata);
 void dc_uimisc_handlenotify(struct dc_response *resp);

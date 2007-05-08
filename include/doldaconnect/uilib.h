@@ -38,6 +38,8 @@ struct dc_intresp
     } *argv;
 };
 
+char *dc_srv_local;
+
 int dc_init(void);
 void dc_cleanup(void);
 void dc_disconnect(void);
@@ -51,10 +53,12 @@ int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...);
 int dc_handleread(void);
 int dc_handlewrite(void);
 int dc_connect(char *host);
-int dc_connectlocal(void);
+int dc_connectsync(char *host, struct dc_response **respbuf);
+int dc_connectsync2(char *host, int rev);
 struct dc_intresp *dc_interpret(struct dc_response *resp);
 void dc_freeires(struct dc_intresp *ires);
 int dc_checkprotocol(struct dc_response *resp, int revision);
 const char *dc_gethostname(void);
+int dc_getfd(void);
 
 #endif

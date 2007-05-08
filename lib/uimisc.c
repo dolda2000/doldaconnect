@@ -28,6 +28,7 @@
 #include <pwd.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/poll.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -61,6 +62,13 @@ struct logindata
     void *data;
     void *mechdata;
     struct authmech *mech;
+};
+
+struct synclogindata
+{
+    int aborted;
+    int err;
+    wchar_t *reason;
 };
 
 struct gencbdata
@@ -436,7 +444,7 @@ static struct authmech authmechs[] =
     }
 };
 
-static int builtinconv(int type, wchar_t *text, char **resp, void *data)
+int dc_convtty(int type, wchar_t *text, char **resp, void *data)
 {
     char *buf, *pass;
     
@@ -450,6 +458,11 @@ static int builtinconv(int type, wchar_t *text, char **resp, void *data)
 	memset(pass, 0, strlen(pass));
 	return(0);
     }
+    return(1);
+}
+
+int dc_convnone(int type, wchar_t *text, char **resp, void *data)
+{
     return(1);
 }
 
@@ -537,7 +550,7 @@ void dc_loginasync(char *username, int useauthless, int (*conv)(int, wchar_t *, 
     
     data = smalloc(sizeof(*data));
     if(conv == NULL)
-	conv = builtinconv;
+	conv = dc_convtty;
     data->conv = conv;
     data->mech = NULL;
     data->data = udata;
@@ -553,6 +566,58 @@ void dc_loginasync(char *username, int useauthless, int (*conv)(int, wchar_t *, 
 	data->freeusername = 1;
     }
     dc_queuecmd(logincallback, data, L"lsauth", NULL);
+}
+
+static void synclogincb(int err, wchar_t *reason, struct synclogindata *data)
+{
+    if(data->aborted)
+    {
+	free(data);
+	return;
+    }
+    data->err = err;
+    if(reason == NULL)
+	data->reason = NULL;
+    else
+	data->reason = swcsdup(reason);
+}
+
+int dc_login(char *username, int useauthless, int (*conv)(int, wchar_t *, char **, void *), wchar_t **reason)
+{
+    int ret, abort;
+    struct synclogindata *dbuf;
+    struct pollfd pfd;
+    
+    dbuf = smalloc(sizeof(*dbuf));
+    memset(dbuf, 0, sizeof(*dbuf));
+    dbuf->err = -1;
+    dc_loginasync(username, useauthless, conv, (void (*)(int, wchar_t *, void *))synclogincb, dbuf);
+    while(dbuf->err == -1)
+    {
+	pfd.fd = dc_getfd();
+	pfd.events = POLLIN;
+	if(dc_wantwrite())
+	    pfd.events |= POLLOUT;
+	abort = 0;
+	if(poll(&pfd, 1, -1) < 0)
+	    abort = 1;
+	if(!abort && (pfd.revents & POLLIN) && dc_handleread())
+	    abort = 1;
+	if(!abort && (pfd.revents & POLLOUT) && dc_handlewrite())
+	    abort = 1;
+	if(abort)
+	{
+	    dbuf->aborted = 1;
+	    return(-1);
+	}
+    }
+    if(reason != NULL)
+	*reason = dbuf->reason;
+    else if(dbuf->reason != NULL)
+	free(dbuf->reason);
+    ret = dbuf->err;
+    free(dbuf);
+    return(ret);
 }
 
 static struct dc_fnetpeerdatum *finddatum(struct dc_fnetnode *fn, wchar_t *id)
