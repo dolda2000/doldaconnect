@@ -103,7 +103,7 @@ static struct timer *hashwritetimer = NULL;
  * job. */
 static pid_t hashjob = -1;
 struct sharecache *shareroot = NULL;
-static time_t lastscan = 0;
+static struct timer *scantimer = NULL;
 unsigned long long sharesize = 0;
 GCBCHAIN(sharechangecb, unsigned long long);
 
@@ -973,6 +973,18 @@ int doscan(int quantum)
     return(1);
 }
 
+static void rescancb(int cancelled, void *uudata)
+{
+    scantimer = NULL;
+    if(!cancelled)
+    {
+	if(scanqueue == NULL)
+	    scanshares();
+	else if(confgetint("cli", "rescandelay") > 0)
+	    scantimer = timercallback(ntime() + confgetint("cli", "rescandelay"), (void (*)(int, void *))rescancb, NULL);
+    }
+}
+
 void scanshares(void)
 {
     struct sharepoint *cur;
@@ -1003,6 +1015,10 @@ void scanshares(void)
 	}
 	queuescan(node);
     }
+    if(scantimer != NULL)
+	canceltimer(scantimer);
+    if(confgetint("cli", "rescandelay") > 0)
+	scantimer = timercallback(ntime() + confgetint("cli", "rescandelay"), (void (*)(int, void *))rescancb, NULL);
 }
 
 static void preinit(int hup)
@@ -1020,6 +1036,15 @@ static void preinit(int hup)
     }
 }
 
+static int rsdelayupdate(struct configvar *var, void *uudata)
+{
+    if(scantimer != NULL)
+	canceltimer(scantimer);
+    if(confgetint("cli", "rescandelay") > 0)
+	scantimer = timercallback(ntime() + var->val.num, (void (*)(int, void *))rescancb, NULL);
+    return(0);
+}
+
 static int init(int hup)
 {
     struct sharepoint *cur, *next;
@@ -1033,7 +1058,10 @@ static int init(int hup)
     }
     scanshares();
     if(!hup)
+    {
 	while(doscan(100));
+	CBREG(confgetvar("cli", "rescandelay"), conf_update, rsdelayupdate, NULL, NULL);
+    }
     return(0);
 }
 
