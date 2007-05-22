@@ -74,6 +74,15 @@ static struct configvar myvars[] =
     /** The filename to use for the hash cache (see the FILES section
      * for more information). */
     {CONF_VAR_STRING, "hashcache", {.str = L"dc-hashcache"}},
+    /** Writes of the hash cache and file lists are delayed for an
+     * amount of time, in order to minimize the time spent on I/O wait
+     * while hashing many small files. This variable sets the amount
+     * of time, in seconds. */
+    {CONF_VAR_INT, "hashwritedelay", {.num = 300}},
+    /** The amount of time, in seconds, to wait before automatically
+     * rescanning the shared directories for changes. Set to zero (the
+     * default) to disable automatic rescanning. */
+    {CONF_VAR_INT, "rescandelay", {.num = 0}},
     {CONF_VAR_END}
 };
 
@@ -94,6 +103,7 @@ static struct timer *hashwritetimer = NULL;
  * job. */
 static pid_t hashjob = -1;
 struct sharecache *shareroot = NULL;
+static time_t lastscan = 0;
 unsigned long long sharesize = 0;
 GCBCHAIN(sharechangecb, unsigned long long);
 
@@ -347,7 +357,7 @@ static void writehashcache(int now)
     if(!now)
     {
 	if(hashwritetimer == NULL)
-	    hashwritetimer = timercallback(ntime() + 300, (void (*)(int, void *))hashtimercb, NULL);
+	    hashwritetimer = timercallback(ntime() + confgetint("cli", "hashwritedelay"), (void (*)(int, void *))hashtimercb, NULL);
 	return;
     }
     if(hashwritetimer != NULL)

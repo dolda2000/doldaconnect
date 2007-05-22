@@ -3531,7 +3531,7 @@ static void updatelists(int now)
     if(!now)
     {
 	if(listwritetimer == NULL)
-	    listwritetimer = timercallback(ntime() + 300, listtimercb, NULL);
+	    listwritetimer = timercallback(ntime() + confgetint("cli", "hashwritedelay"), listtimercb, NULL);
 	return;
     }
     if(listwritetimer != NULL)
