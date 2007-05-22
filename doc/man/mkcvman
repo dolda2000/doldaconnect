@@ -4,10 +4,14 @@ for $filename (@ARGV) {
     open(SRC, $filename) || die "$filename: $!";
     $state = 0;
     delete @tvars{keys %tvars};
+    $module = "";
     while(<SRC>) {
 	chomp;
-	if(/struct configvar/ && /\[\]/) {
+	if(($state == 0) && /struct configvar/ && /\[\]/) {
 	    $state = 1;
+	}
+	if(($state == 0) && /struct module/ && /=/) {
+	    $state = 3;
 	}
 	if(($state == 1) && /^\s*\/\*\*/) {
 	    $curdoc = "";
@@ -47,13 +51,24 @@ for $filename (@ARGV) {
 	    }
 	    $curdoc .= $_;
 	}
+	if(($state == 3) && /\.name\s*=\s*\"([^\"]+)\"/) {
+	    $module = $1;
+	}
+	if(($state == 3) && /\s*\};$/) {
+	    $state = 0;
+	}
     }
     close SRC;
-    $module = $filename;
-    $module =~ s/^.*\///;
-    $module =~ s/\..*$//;
-    for $var (keys %tvars) {
-	$vars{"$module.$var"} = $tvars{$var};
+    #$module = $filename;
+    #$module =~ s/^.*\///;
+    #$module =~ s/\..*$//;
+    if($module eq "") {
+	print STDERR "$filename is not a module\n";
+    } else {
+	print STDERR ("$filename is module $module and has " . scalar(keys %tvars) . " variables\n");
+	for $var (keys %tvars) {
+	    $vars{"$module.$var"} = $tvars{$var};
+	}
     }
 }
 
