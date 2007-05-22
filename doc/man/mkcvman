@@ -71,6 +71,7 @@ for $filename (@ARGV) {
 	}
     }
 }
+print STDERR ("total number of variables: " . scalar(keys %vars) . "\n");
 
 $types{"BOOL"} = "boolean";
 $types{"INT"} = "integer";
