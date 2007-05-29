@@ -1238,6 +1238,7 @@ int dc_connectsync2(char *host, int rev)
     {
 	dc_freeresp(resp);
 	dc_disconnect();
+	errno = EPROTONOSUPPORT;
 	return(-1);
     }
     dc_freeresp(resp);

@@ -18,7 +18,7 @@ AC_CHECK_LIB(z, deflate, , AC_MSG_ERROR([*** must have zlib]))
 AC_CHECK_LIB(bz2, BZ2_bzWriteOpen, , AC_MSG_ERROR([*** must have bzlib]))
 AC_CHECK_LIB(gdbm, gdbm_open, , AC_MSG_ERROR([*** must have gdbm]))
 
-clients=
+clients=tty
 extlibs=
 experimental=no
 
@@ -238,6 +238,7 @@ lib/guile/Makefile
 lib/guile/dolcon/Makefile
 clients/Makefile
 clients/gtk2/Makefile
+clients/tty/Makefile
 clients/gnome-trans-applet/Makefile
 clients/gaim/Makefile
 include/Makefile
