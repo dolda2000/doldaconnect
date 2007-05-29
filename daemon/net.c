@@ -1083,7 +1083,7 @@ static void resolvecb(pid_t pid, int status, struct resolvedata *data)
     {
 	if((ret = read(data->fd, buf, sizeof(buf))) != 4)
 	{
-	    errno = ENONET;
+	    errno = ENOENT;
 	    data->callback(NULL, 0, data->data);
 	} else {
 	    ipv4 = (struct sockaddr_in *)&data->addr;
@@ -1091,7 +1091,7 @@ static void resolvecb(pid_t pid, int status, struct resolvedata *data)
 	    data->callback((struct sockaddr *)ipv4, sizeof(*ipv4), data->data);
 	}
     } else {
-	errno = ENONET;
+	errno = ENOENT;
 	data->callback(NULL, 0, data->data);
     }
     close(data->fd);
