@@ -1,3 +1,14 @@
 #! /bin/sh
 
-autopoint && aclocal$AUTOMAKE_VERSION -I m4 && autoheader$AUTOCONF_VERSION && libtoolize --copy --force && automake$AUTOMAKE_VERSION --add-missing --copy && autoconf$AUTOCONF_VERSION
+echo autopoint
+autopoint || exit 1
+echo aclocal
+aclocal$AUTOMAKE_VERSION -I m4 || exit 1
+echo autoheader
+autoheader$AUTOCONF_VERSION || exit 1
+echo libtoolize
+libtoolize --copy --force || exit 1
+echo automake
+automake$AUTOMAKE_VERSION --add-missing --copy || exit 1
+echo autoconf
+autoconf$AUTOCONF_VERSION || exit 1
