@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2007-05-07 04:24+0200\n"
-"PO-Revision-Date: 2007-05-06 22:34+0200\n"
+"POT-Creation-Date: 2007-05-29 17:13+0200\n"
+"PO-Revision-Date: 2007-05-30 00:18+0200\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -44,7 +44,7 @@ msgstr "%s (rapporterades kl. %s)"
 msgid "Disconnected"
 msgstr "Frånkopplad"
 
-#: clients/gtk2/main.c:799 config/dolconf.c:756
+#: clients/gtk2/main.c:799 config/dolconf.c:815
 msgid "Could not get your home directory!"
 msgstr "Kunde inte hitta din hemkatalog!"
 
@@ -289,7 +289,7 @@ msgstr "Återställ överföringen"
 msgid "Cancel transfer"
 msgstr "Avbryt överföringen"
 
-#: clients/gtk2/mainwnd.gtk:95
+#: clients/gtk2/mainwnd.gtk:95 config/dolconf-wnd.gtk:38
 msgid "_Main"
 msgstr "Huvud_meny"
 
@@ -515,88 +515,98 @@ msgstr "Ingen överföring vald"
 msgid "Initializing"
 msgstr "Förbereder"
 
-#: config/dolconf.c:130
+#: config/dolconf.c:134
 #, c-format
 msgid "%s must not be empty"
 msgstr "Fältet \"%s\" får inte vara tomt"
 
-#: config/dolconf.c:135
+#: config/dolconf.c:139
 #, c-format
 msgid "%s must not contain spaces, `|' or `$'"
 msgstr "Fältet \"%s\" får inte innehålla mellanrum, '|' eller '$'"
 
-#: config/dolconf.c:140
+#: config/dolconf.c:144
 #, c-format
 msgid "%s must be a natural number"
 msgstr "Fältet \"%s\" måste vara ett naturligt tal"
 
-#: config/dolconf.c:145
+#: config/dolconf.c:149
 #, c-format
 msgid "%s must be an integer"
 msgstr "Fältet \"%s\" måste vara ett heltal"
 
-#: config/dolconf.c:150
+#: config/dolconf.c:154
 #, c-format
 msgid "%s must be an IP address"
 msgstr "Fältet \"%s\" måste vara en IP-adress"
 
-#: config/dolconf.c:159
+#: config/dolconf.c:163
 msgid "Screen name"
 msgstr "Användarnamn"
 
-#: config/dolconf.c:165
+#: config/dolconf.c:169
 msgid "Upload slots"
 msgstr "Uppladdningskanaler"
 
-#: config/dolconf.c:166
+#: config/dolconf.c:170
 msgid "Connection speed"
 msgstr "Anslutningshastighet"
 
-#: config/dolconf.c:167
+#: config/dolconf.c:171
 msgid "E-mail address"
 msgstr "E-post-adress:"
 
-#: config/dolconf.c:168
+#: config/dolconf.c:172
 msgid "Share description"
 msgstr "Beskrivning"
 
-#: config/dolconf.c:169
+#: config/dolconf.c:173
 msgid "Direct Connect TCP port"
 msgstr "TCP-port för Direct Connect"
 
-#: config/dolconf.c:170
+#: config/dolconf.c:174
 msgid "Direct Connect UDP port"
 msgstr "UDP-port för Direct Connect"
 
-#: config/dolconf.c:208
+#: config/dolconf.c:215
 msgid "Dolda Connect configurator"
 msgstr "Dolda Connect-konfigurerare"
 
-#: config/dolconf.c:307
+#: config/dolconf.c:314
 #, c-format
 msgid "Could not open the configuration file for reading: %s"
 msgstr "Kunde inte läsa konfigurationsfilen: %s"
 
-#: config/dolconf.c:367
+#: config/dolconf.c:375
 #, c-format
 msgid "Could not open the configuration file for writing: %s"
 msgstr "Kunde inte skriva till konfigurationsfilen: %s"
 
-#: config/dolconf.c:520
-msgid "Shares:\n"
-msgstr "Utdelningar:\n"
-
-#: config/dolconf.c:581 config/dolconf-assistant.gtk:128
-msgid "Shared directories"
-msgstr "Delade kataloger"
-
-#: config/dolconf.c:700
+#: config/dolconf.c:513
 #, c-format
 msgid "Internal error (Auto-generated variable %s has an invalid value \"%s\")"
 msgstr ""
 "Internt fel (Autogenererade variabeln %s har det ogiltiga värdet \"%s\")"
 
-#: config/dolconf.c:762
+#: config/dolconf.c:551
+msgid "Shares:\n"
+msgstr "Utdelningar:\n"
+
+#: config/dolconf.c:612 config/dolconf-assistant.gtk:128
+msgid "Shared directories"
+msgstr "Delade kataloger"
+
+#: config/dolconf.c:728 config/dolconf.c:733 config/dolconf.c:739
+msgid "Could not connect to server"
+msgstr "Kunde inte ansluta till servern"
+
+#: config/dolconf.c:761
+msgid ""
+"There are unsaved changes. Do you wish to discard the changes and exit "
+"anyway?"
+msgstr "Vissa ändringar har inte ännu sparats. Vill du låta bli att spara dem och avsluta i alla fall?"
+
+#: config/dolconf.c:822
 msgid ""
 "It appears that you have not run this setup program before. Would you like "
 "to run the first-time setup assistant?"
@@ -604,7 +614,7 @@ msgstr ""
 "Du tycks inte ha kört det här inställningsprogrammet tidigare. Vill du köra "
 "förstagångs-assistenten?"
 
-#: config/dolconf.c:770
+#: config/dolconf.c:833
 msgid ""
 "The configuration file appears to have been edited outside the control of "
 "this program. If you continue using this program, all settings not handled "
@@ -614,7 +624,7 @@ msgstr ""
 "kontroll. Om du fortsätter använda det här programmet, kommer inställningar "
 "som det inte hanterar förloras. Vill du fortsätta?"
 
-#: config/dolconf.c:799
+#: config/dolconf.c:862
 msgid "Internal error (Unknown state)"
 msgstr "Internt fel (Okänt läge)"
 
@@ -646,7 +656,7 @@ msgstr "Ange hur du vill presentera dig själv för andra användare:"
 msgid "_Screen name"
 msgstr "_Användarnamn"
 
-#: config/dolconf-assistant.gtk:66 config/dolconf-wnd.gtk:48
+#: config/dolconf-assistant.gtk:66 config/dolconf-wnd.gtk:82
 msgid "_Description"
 msgstr "_Beskrivning"
 
@@ -658,7 +668,7 @@ msgstr "Publicerad info"
 msgid "Please choose the directories that you wish to share:"
 msgstr "Välj de kataloger du vill dela ut:"
 
-#: config/dolconf-assistant.gtk:99 config/dolconf-wnd.gtk:92
+#: config/dolconf-assistant.gtk:99 config/dolconf-wnd.gtk:126
 msgid "Path"
 msgstr "Sökväg"
 
@@ -666,7 +676,7 @@ msgstr "Sökväg"
 msgid "Please choose the network mode to use"
 msgstr "Välj det nätverksläge som ska användas:"
 
-#: config/dolconf-assistant.gtk:138 config/dolconf-wnd.gtk:122
+#: config/dolconf-assistant.gtk:138 config/dolconf-wnd.gtk:156
 msgid "_Active mode"
 msgstr "_Aktivt läge"
 
@@ -682,15 +692,15 @@ msgstr ""
 msgid "Active with specified _port"
 msgstr "Aktivt läge med specifik _port"
 
-#: config/dolconf-assistant.gtk:163 config/dolconf-wnd.gtk:141
+#: config/dolconf-assistant.gtk:163 config/dolconf-wnd.gtk:175
 msgid "_TCP port:"
 msgstr "_TCP-port:"
 
-#: config/dolconf-assistant.gtk:174 config/dolconf-wnd.gtk:151
+#: config/dolconf-assistant.gtk:174 config/dolconf-wnd.gtk:185
 msgid "_UDP port:"
 msgstr "_UDP-port:"
 
-#: config/dolconf-assistant.gtk:192 config/dolconf-wnd.gtk:176
+#: config/dolconf-assistant.gtk:192 config/dolconf-wnd.gtk:210
 msgid "_IP address:"
 msgstr "_IP-adress:"
 
@@ -707,7 +717,7 @@ msgstr ""
 "vilken extern IP-adress som ska användas. Notera även att portarna behöver "
 "vara 1024 eller högre.</i>"
 
-#: config/dolconf-assistant.gtk:218 config/dolconf-wnd.gtk:193
+#: config/dolconf-assistant.gtk:218 config/dolconf-wnd.gtk:227
 msgid "Passi_ve mode"
 msgstr "Passi_vt läge"
 
@@ -749,47 +759,51 @@ msgstr "_Öppna det kompletta inställningsformuläret"
 msgid "Confirmation"
 msgstr "Bekräftelse"
 
-#: config/dolconf-wnd.gtk:38
+#: config/dolconf-wnd.gtk:48
+msgid "_Apply settings now"
+msgstr "_Verkställ inställningar nu"
+
+#: config/dolconf-wnd.gtk:72
 msgid "Screen _name"
 msgstr "_Användarnamn"
 
-#: config/dolconf-wnd.gtk:58
+#: config/dolconf-wnd.gtk:92
 msgid "_Connection type"
 msgstr "Anslutningstyp"
 
-#: config/dolconf-wnd.gtk:68
+#: config/dolconf-wnd.gtk:102
 msgid "_E-mail address"
 msgstr "_E-post-adress"
 
-#: config/dolconf-wnd.gtk:82
+#: config/dolconf-wnd.gtk:116
 msgid "_Published info"
 msgstr "_Publicerad info"
 
-#: config/dolconf-wnd.gtk:117
+#: config/dolconf-wnd.gtk:151
 msgid "S_hared directories"
 msgstr "_Delade kataloger"
 
-#: config/dolconf-wnd.gtk:131
+#: config/dolconf-wnd.gtk:165
 msgid "Spe_cify ports"
 msgstr "Spe_cificera portar"
 
-#: config/dolconf-wnd.gtk:166
+#: config/dolconf-wnd.gtk:200
 msgid "_Override IP address"
 msgstr "Ange IP-adress"
 
-#: config/dolconf-wnd.gtk:198
+#: config/dolconf-wnd.gtk:232
 msgid "Net_work"
 msgstr "N_ätverk"
 
-#: config/dolconf-wnd.gtk:203
+#: config/dolconf-wnd.gtk:237
 msgid "_Allow user interfaces to connect remotely"
 msgstr "_Tillåt användargränssnitt att ansluta från andra datorer"
 
-#: config/dolconf-wnd.gtk:213
+#: config/dolconf-wnd.gtk:247
 msgid "_Trust connections without a password"
 msgstr "_Lita på anslutningar utan lösenord"
 
-#: config/dolconf-wnd.gtk:219
+#: config/dolconf-wnd.gtk:253
 msgid ""
 "<i>Important: The above option is a security hole. It allows you to connect "
 "without a password, but it also allows everyone else to do the same, so you "
@@ -801,10 +815,6 @@ msgstr ""
 "så du bör absolut inte använda den om du inte är säker på att du kan lita på "
 "alla som kan ansluta till din dator.</i>"
 
-#: config/dolconf-wnd.gtk:227
+#: config/dolconf-wnd.gtk:261
 msgid "_Remoting"
 msgstr "Fj_ärranvändning"
-
-#: config/dolconf-wnd.gtk:235
-msgid "_Save settings"
-msgstr "_Spara inställningar"
