@@ -441,11 +441,7 @@ int wcsexists(wchar_t *h, wchar_t *n)
 #ifndef HAVE_WCSCASECMP
 int wcscasecmp(const wchar_t *s1, const wchar_t *s2)
 {
-    while(towlower(*s1) == towlower(*s2))
-    {
-	if(*s1 == L'\0')
-	    return(0);
-    }
+    for(; (towlower(*s1) == towlower(*s2)) && (*s1 != L'\0'); s1++, s2++);
     return(towlower(*s1) - towlower(*s2));
 }
 #endif
