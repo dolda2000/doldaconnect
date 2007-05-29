@@ -24,7 +24,6 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <alloca.h>
 #include <wctype.h>
 #include <time.h>
 #include <errno.h>
