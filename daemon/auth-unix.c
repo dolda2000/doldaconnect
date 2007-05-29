@@ -64,7 +64,7 @@ static int unixauth(struct authhandle *auth, struct socket *sk, char *passdata)
     if((pwd = getpwnam(data->username)) == NULL)
 	return(AUTH_ERR);
     if(sk->ucred.uid == -1) {
-	errno = EBADE;
+	errno = EOPNOTSUPP; /* Bleh */
 	return(AUTH_ERR);
     }
     if(pwd->pw_uid == sk->ucred.uid) {
