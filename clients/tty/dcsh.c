@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <sys/poll.h>
+#include <errno.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
