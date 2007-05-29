@@ -63,12 +63,12 @@ static int unixauth(struct authhandle *auth, struct socket *sk, char *passdata)
     data = auth->mechdata;
     if((pwd = getpwnam(data->username)) == NULL)
 	return(AUTH_ERR);
-    if(sk->ucred.pid == 0) {
+    if(sk->ucred.uid == -1) {
 	errno = EBADE;
 	return(AUTH_ERR);
     }
     if(pwd->pw_uid == sk->ucred.uid) {
-	flog(LOG_INFO, "process %i successfully authenticated as %s with Unix credentials (uid=%i, gid=%i)", sk->ucred.pid, data->username, sk->ucred.uid, sk->ucred.gid);
+	flog(LOG_INFO, "successful authentication as %s with Unix credentials (uid=%i, gid=%i)", data->username, sk->ucred.uid, sk->ucred.gid);
 	return(AUTH_SUCCESS);
     }
     auth->text = swcsdup(L"Unix credentials do not match supplied user name");
@@ -77,7 +77,7 @@ static int unixauth(struct authhandle *auth, struct socket *sk, char *passdata)
 
 static int available(struct socket *sk)
 {
-    return((sk->family == PF_UNIX) && (sk->ucred.pid != 0));
+    return((sk->family == PF_UNIX) && (sk->ucred.uid != -1));
 }
 
 static struct authmech mechdesc = {

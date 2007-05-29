@@ -183,7 +183,8 @@ static struct socket *newsock(int type)
     new->close = 0;
     new->remote = NULL;
     new->remotelen = 0;
-    memset(&new->ucred, 0, sizeof(new->ucred));
+    new->ucred.uid = -1;
+    new->ucred.gid = -1;
     switch(type)
     {
     case SOCK_STREAM:
@@ -350,18 +351,21 @@ void *sockgetinbuf(struct socket *sk, size_t *size)
 static void recvcmsg(struct socket *sk, struct msghdr *msg)
 {
     struct cmsghdr *cmsg;
-    struct ucred *cred;
     
     for(cmsg = CMSG_FIRSTHDR(msg); cmsg != NULL; cmsg = CMSG_NXTHDR(msg, cmsg))
     {
+#if UNIX_AUTH_STYLE == 1
 	if((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SCM_CREDENTIALS))
 	{
-	    if(sk->ucred.pid == 0)
+	    struct ucred *cred;
+	    if(sk->ucred.uid == -1)
 	    {
 		cred = (struct ucred *)CMSG_DATA(cmsg);
-		memcpy(&sk->ucred, cred, sizeof(*cred));
+		sk->ucred.uid = cred->uid;
+		sk->ucred.gid = cred->gid;
 	    }
 	}
+#endif
     }
 }
 
@@ -819,8 +823,17 @@ static void acceptunix(struct socket *sk)
     int buf;
     
     buf = 1;
+#if UNIX_AUTH_STYLE == 1
     if(setsockopt(sk->fd, SOL_SOCKET, SO_PASSCRED, &buf, sizeof(buf)) < 0)
 	flog(LOG_WARNING, "could not enable SO_PASSCRED on Unix socket %i: %s", sk->fd, strerror(errno));
+#elif UNIX_AUTH_STYLE == 2
+    if(getpeereid(sk->fd, &sk->ucred.uid, &sk->ucred.gid) < 0)
+    {
+	flog(LOG_WARNING, "could not get peer creds on Unix socket %i: %s", sk->fd, strerror(errno));
+	sk->ucred.uid = -1;
+	sk->ucred.gid = -1;
+    }
+#endif
 }
 
 int pollsocks(int timeout)

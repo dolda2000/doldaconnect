@@ -55,7 +55,11 @@ struct socket
     int close;
     struct sockaddr *remote;
     socklen_t remotelen;
-    struct ucred ucred;
+    struct
+    {
+	uid_t uid;
+	gid_t gid;
+    } ucred;
     union
     {
 	struct

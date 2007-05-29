@@ -762,6 +762,7 @@ int dc_handleread(void)
     return(0);
 }
 
+#if UNIX_AUTH_STYLE == 1
 static void mkcreds(struct msghdr *msg)
 {
     struct ucred *ucred;
@@ -780,6 +781,7 @@ static void mkcreds(struct msghdr *msg)
     ucred->gid = getgid();
     msg->msg_controllen = cmsg->cmsg_len;
 }
+#endif
 
 int dc_handlewrite(void)
 {
@@ -798,11 +800,13 @@ int dc_handlewrite(void)
 	    msg.msg_iovlen = 1;
 	    bufvec.iov_base = queue->buf;
 	    bufvec.iov_len = queue->buflen;
+#if UNIX_AUTH_STYLE == 1
 	    if((servinfo.family == PF_UNIX) && !servinfo.sentcreds)
 	    {
 		mkcreds(&msg);
 		servinfo.sentcreds = 1;
 	    }
+#endif
 	    ret = sendmsg(fd, &msg, MSG_NOSIGNAL | MSG_DONTWAIT);
 	    if(ret < 0)
 	    {
