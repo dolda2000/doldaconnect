@@ -1435,7 +1435,7 @@ static void notifappendv(struct notif *notif, va_list args)
 	    notif->argv[ca].d.n = va_arg(args, int);
 	    break;
 	case NOTIF_STR:
-	    notif->argv[ca].d.s = wcsdup(va_arg(args, wchar_t *));
+	    notif->argv[ca].d.s = swcsdup(va_arg(args, wchar_t *));
 	    break;
 	case NOTIF_FLOAT:
 	    notif->argv[ca].d.d = va_arg(args, double);
