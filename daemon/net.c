@@ -1019,7 +1019,7 @@ int socksettos(struct socket *sk, int tos)
 	    flog(LOG_WARNING, "attempted to set unknown TOS value %i to IPv4 sock", tos);
 	    return(-1);
 	}
-	if(setsockopt(sk->fd, SOL_IP, IP_TOS, &buf, sizeof(buf)) < 0)
+	if(setsockopt(sk->fd, IPPROTO_IP, IP_TOS, &buf, sizeof(buf)) < 0)
 	{
 	    flog(LOG_WARNING, "could not set sock TOS to %i: %s", tos, strerror(errno));
 	    return(-1);
