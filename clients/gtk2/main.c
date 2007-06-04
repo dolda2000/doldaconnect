@@ -1085,7 +1085,7 @@ void handleresps(void)
 		dcdisconnected();
 	    } else {
 		tosbuf = 0x10; /* Minimum delay */
-		setsockopt(dcfd, SOL_IP, IP_TOS, &tosbuf, sizeof(tosbuf));
+		setsockopt(dcfd, IPPROTO_IP, IP_TOS, &tosbuf, sizeof(tosbuf));
 		updatesbar(_("Connected"));
 		dc_loginasync(connectas, 1, loginconv, logincallback, NULL);
 	    }
