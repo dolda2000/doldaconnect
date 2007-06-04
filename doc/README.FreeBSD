@@ -1,0 +1,49 @@
+			    FreeBSD notes
+
+The build tree  for Dolda Connect is not very  portable at the moment,
+but work is under way to fix that. For now, at least the daemon should
+be possible to  build on FreeBSD (though the ability to  run it is not
+guaranteed ;),  but even that requires some  special care. Eventually,
+all this should be fixed.
+
+			  For SVN/GIT users
+
+First of  all, if you have  gotten this copy of  Dolda Connect through
+Subversion  or git,  you would  normally need  to run  the `bootstrap'
+script to create the `configure'  script. However, it does not work in
+FreeBSD, since the  FreeBSD configuration of aclocal is  a bit broken.
+Instead, you will need to run the following commands manually:
+
+$ autopoint
+$ aclocal -I m4 -I /usr/local/share/aclocal
+$ autoheader
+$ libtoolize --copy --force
+$ automake --add-missing --copy
+$ autoconf
+
+Note, also, that FreeBSD  does not install version-number free aliases
+of these commands, so the appropriate versions must be added, which is
+easily done with the help of tab completion.
+
+Of course,  none of the  above is required  for the tarball  copies of
+Dolda Connect, which already have these steps completed for you.
+
+			     For everyone
+
+When compiling  Dolda Connect, there are also  some caveats. FreeBSD's
+libc does  not have an  implementation of the iconv(3)  functions, and
+Dolda Connect's  `configure' script cannot  detect that automatically,
+yet.
+
+Also,  Dolda Connect  uses  a lot  of  libraries that  are located  in
+/usr/local/lib, but by  default, the FreeBSD linker does  not look for
+libraries there.
+
+Therefore, the  linker must be passed  the arguments `-L/usr/local/lib
+-liconv' to  compile Dolda Connect. The  easiest way to do  that is to
+pass it via the `configure' script, like this:
+
+$ ./configure other_args... "LDFLAGS=-L/usr/local/lib -liconv"
+
+You may or may not also want  to pass `CFLAGS=-g' as well, to ease any
+debugging.
