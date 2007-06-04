@@ -37,7 +37,7 @@ struct wcspair {
 #define LOGOOM(size) flog(LOG_CRIT, "%s (%s:%i): out of memory (alloc %zi)", __FUNCTION__, __FILE__, __LINE__, (size))
 #define smalloc(size) ({void *__result__; ((__result__ = malloc(size)) == NULL)?({LOGOOM((ssize_t)(size)); abort(); (void *)0;}):__result__;})
 #define srealloc(ptr, size) ({void *__result__; ((__result__ = realloc((ptr), (size))) == NULL)?({LOGOOM((ssize_t)(size)); abort(); (void *)0;}):__result__;})
-#define swcsdup(wcs) ((wchar_t *)wcscpy(smalloc(sizeof(wchar_t) * (wcslen(wcs) + 1)), (wcs)))
+#define swcsdup(wcs) ({wchar_t *__eval__; __eval__ = (wcs); (wchar_t *)wcscpy(smalloc(sizeof(wchar_t) * (wcslen(__eval__) + 1)), __eval__);})
 #define sstrdup(str) ((char *)strcpy(smalloc(strlen(str) + 1), (str)))
 #else
 #define LOGOOM(size)
