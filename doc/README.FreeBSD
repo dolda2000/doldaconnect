@@ -43,7 +43,24 @@ Therefore, the  linker must be passed  the arguments `-L/usr/local/lib
 -liconv' to  compile Dolda Connect. The  easiest way to do  that is to
 pass it via the `configure' script, like this:
 
-$ ./configure other_args... "LDFLAGS=-L/usr/local/lib -liconv"
+$ ./configure other-args... "LDFLAGS=-L/usr/local/lib -liconv"
 
 You may or may not also want  to pass `CFLAGS=-g' as well, to ease any
 debugging.
+
+			 Currently known bugs
+
+This  is a  list of  currently  known bugs  that are  specific to  the
+FreeBSD build of Dolda Connect.
+
+ * Many components are not able to build with FreeBSD's `make'
+   command. Until that is fixed, please use gmake instead.
+ * doldacond only listens to IPv6, since the ::ffff:0:0/96 stack
+   escape prefix is enabled on Linux by default. On FreeBSD it is
+   not enabled by default, however, so doldacond only accepts IPv6
+   connections unless either compiled without IPv6 support, or the
+   sysctl net.inet6.ip6.v6only is set to 0.
+ * Some other components do not build at all, since they use
+   Linux-specific things of various kinds.
+ * PAM authentication in doldacond does not work, for as of yet
+   unknown reasons.
