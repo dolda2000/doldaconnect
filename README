@@ -63,7 +63,8 @@ See the doc/INSTALL file.
 Documentation is still rather weak,  but it is getting better. Besides
 the README and  INSTALL* files, there are now  manpages for the daemon
 and its  config file. For any  information still not  found, please do
-not hesitate to contact the author.
+not hesitate  to contact the  author. Any further  documentation aside
+from this README file is located in the `doc' directory.
 
 			       Credits
 
