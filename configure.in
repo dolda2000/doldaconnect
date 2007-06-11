@@ -3,6 +3,8 @@ AM_INIT_AUTOMAKE([doldaconnect], [0.4])
 AM_CONFIG_HEADER(config.h)
 
 AC_PROG_CC
+AC_PROG_CC_C_O
+AM_PROG_CC_C_O
 AC_PROG_INSTALL
 
 AM_GNU_GETTEXT_VERSION(0.12.1)
@@ -38,12 +40,14 @@ if test "$HAS_GTK2" != no; then
 			AC_MSG_RESULT(no)
         		HAS_GTK2=no
         	fi
+		GTK2_LDADD="`pkg-config --libs gtk+-2.0`"
+		GTK2_CFLAGS="`pkg-config --cflags gtk+-2.0`"
 		if test "$HAS_GTK2" != no; then
-	                AC_CHECK_LIB(gtk-x11-2.0, gtk_init, [HAS_GTK2=yes], [HAS_GTK2=no], `pkg-config --libs gtk+-2.0`)
+	                AC_CHECK_LIB(gtk-x11-2.0, gtk_init, [HAS_GTK2=yes], [HAS_GTK2=no], "$GTK2_LDADD")
 		fi
         	if test "$HAS_GTK2" = yes; then
         		cpp_bak="$CPPFLAGS"
-        		CPPFLAGS="$CPPFLAGS `pkg-config --cflags gtk+-2.0`"
+        		CPPFLAGS="$CPPFLAGS $GTK2_CFLAGS"
         		AC_CHECK_HEADER(gtk/gtk.h, [], [HAS_GTK2=no])
         		CPPFLAGS="$cpp_bak"
         	fi
@@ -54,6 +58,7 @@ fi
 if test "$with_gtk2" = yes -a "$HAS_GTK2" = no; then
 	AC_MSG_ERROR([*** cannot find GTK2 on this system])
 fi
+AC_SUBST([GTK2_LDADD GTK2_CFLAGS])
 
 # libxml2 check
 AC_MSG_CHECKING([for libxml2 package information])
@@ -64,13 +69,16 @@ if test "$PKG_CONFIG" = yes; then
 		AC_MSG_RESULT(no)
 		HAS_LIBXML=no
 	fi
+	LIBXML_LDADD="`pkg-config --libs libxml-2.0`"
+	LIBXML_CFLAGS="`pkg-config --cflags libxml-2.0`"
 	if test "$HAS_LIBXML" != no; then
-		AC_CHECK_LIB(xml2, xmlReadFile, [HAS_LIBXML=yes], [HAS_LIBXML=no], `pkg-config --libs libxml-2.0`)
+		AC_CHECK_LIB(xml2, xmlReadFile, [HAS_LIBXML=yes], [HAS_LIBXML=no], "$LIBXML_LDADD")
 	fi
 else
 	AC_MSG_RESULT(no)
 	HAS_LIBXML=no
 fi
+AC_SUBST([LIBXML_LDADD LIBXML_CFLAGS])
 
 # libnotify check
 AC_MSG_CHECKING([for libnotify package information])
