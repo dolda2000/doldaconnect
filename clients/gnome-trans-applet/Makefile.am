@@ -18,5 +18,6 @@ server_DATA=Dolcon_Transferapplet_Factory.server
 
 EXTRA_DIST=Dolcon_Transferapplet_Factory.server.in
 
-%.server: %.server.in
+SUFFIXES=.server .server.in
+.server.in.server:
 	sed -e "s|\@LIBEXECDIR\@|$(libexecdir)|" $< > $@

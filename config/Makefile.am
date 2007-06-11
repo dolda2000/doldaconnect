@@ -29,7 +29,7 @@ dolconf_CPPFLAGS=	$(shell pkg-config --cflags gtk+-2.0) \
 			-DLOCALEDIR=\"$(localedir)\"
 dolconf_LDADD=		$(top_srcdir)/common/libcommon.a $(top_srcdir)/lib/libdcui.la
 
-%.gtk: %.desc $(top_srcdir)/common/makegdesc
+.desc.gtk: $(top_srcdir)/common/makegdesc
 	$(top_srcdir)/common/makegdesc $< >$@
 
 EXTRA_DIST=doldacond.conf dc-filter dc-filtercmd dolconf-assistant.desc dolconf-wnd.desc
