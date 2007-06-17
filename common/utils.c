@@ -475,41 +475,39 @@ char *hexencode(char *data, size_t datalen)
 
 char *hexdecode(char *data, size_t *len)
 {
-    char *buf, this;
+    char *buf, this, bit;
     size_t bufsize, bufdata;
     
     buf = NULL;
     bufsize = bufdata = 0;
-    for(; *data; data++)
+    for(bit = 4, this = 0; *data; data++)
     {
 	if((*data >= 'A') && (*data <= 'F'))
 	{
-	    this = (this & 0x0F) | ((*data - 'A' + 10) << 4);
+	    this |= (this & 0x0F) | ((*data - 'A' + 10) << bit);
+	} else if((*data >= 'a') && (*data <= 'f')) {
+	    this |= (this & 0x0F) | ((*data - 'a' + 10) << bit);
 	} else if((*data >= '0') && (*data <= '9')) {
-	    this = (this & 0x0F) | ((*data - '0') << 4);
+	    this |= (this & 0x0F) | ((*data - '0') << bit);
+	} else if(*data == '\n') {
+	    continue;
 	} else {
 	    if(buf != NULL)
 		free(buf);
 	    return(NULL);
 	}
-	data++;
-	if(!*data)
-	{
-	    if(buf != NULL)
-		free(buf);
-	    return(NULL);
-	}
-	if((*data >= 'A') && (*data <= 'F'))
-	{
-	    this = (this & 0xF0) | (*data - 'A' + 10);
-	} else if((*data >= '0') && (*data <= '9')) {
-	    this = (this & 0xF0) | (*data - '0');
+	if(bit == 4) {
+	    bit = 0;
 	} else {
-	    if(buf != NULL)
-		free(buf);
-	    return(NULL);
+	    bit = 4;
+	    addtobuf(buf, this);
+	    this = 0;
 	}
-	addtobuf(buf, this);
+    }
+    if(bit != 4) {
+	if(buf != NULL)
+	    free(buf);
+	return(NULL);
     }
     addtobuf(buf, 0);
     if(len != NULL)
