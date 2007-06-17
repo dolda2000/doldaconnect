@@ -135,10 +135,6 @@ attach \fBgdb\fP(1) (or your debugger of choice) to the running
 \fBdoldacond\fP process and set the hashjob variable to -1, which will
 force \fBdoldacond\fP to resume hashing. Don't do that while a hash
 job is actually running, though.
-.P
-Not really a bug in \fBdoldacond\fP itself, many PAM modules will
-reinitialize the syslog library and cause log messages from the daemon
-itself to arrive to a different facility than originally intended.
 .SH AUTHOR
 Fredrik Tolf <fredrik@dolda2000.com>
 .SH SEE ALSO
