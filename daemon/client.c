@@ -81,7 +81,9 @@ static struct configvar myvars[] =
     {CONF_VAR_INT, "hashwritedelay", {.num = 300}},
     /** The amount of time, in seconds, to wait before automatically
      * rescanning the shared directories for changes. Set to zero (the
-     * default) to disable automatic rescanning. */
+     * default) to disable automatic rescanning. (Broken shares are
+     * always rescanned upon detection, regardless of this
+     * setting.) */
     {CONF_VAR_INT, "rescandelay", {.num = 0}},
     {CONF_VAR_END}
 };
