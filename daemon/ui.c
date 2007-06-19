@@ -2234,13 +2234,17 @@ static int unixsockupdate(struct configvar *var, void *uudata)
 {
     struct socket *newsock;
     struct sockaddr_un *un;
+    mode_t ou;
     
     newsock = NULL;
+    ou = umask(0111);
     if(((un = makeunixname()) != NULL) && ((newsock = netcslistenlocal(SOCK_STREAM, (struct sockaddr *)un, sizeof(*un), uiaccept, NULL)) == NULL))
     {
+	umask(ou);
 	flog(LOG_WARNING, "could not create new Unix UI socket, reverting to old: %s", strerror(errno));
 	return(0);
     }
+    umask(ou);
     if(unixsocket != NULL)
     {
 	putsock(unixsocket);
@@ -2256,6 +2260,7 @@ static int init(int hup)
     struct sockaddr_un *un;
     struct passwd *pwd;
     wchar_t *wcsname;
+    mode_t ou;
     
     if(hup)
     {
@@ -2275,11 +2280,14 @@ static int init(int hup)
 	    return(1);
 	}
 	CBREG(confgetvar("ui", "port"), conf_update, tcpportupdate, NULL, NULL);
+	ou = umask(0111);
 	if(((un = makeunixname()) != NULL) && ((unixsocket = netcslistenlocal(SOCK_STREAM, (struct sockaddr *)un, sizeof(*un), uiaccept, NULL)) == NULL))
 	{
+	    umask(ou);
 	    flog(LOG_CRIT, "could not create Unix UI socket: %s", strerror(errno));
 	    return(1);
 	}
+	umask(ou);
 	CBREG(confgetvar("ui", "unixsock"), conf_update, unixsockupdate, NULL, NULL);
 	GCBREG(newfncb, newfnetnode, NULL);
 	GCBREG(newtransfercb, newtransfernotify, NULL);
