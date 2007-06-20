@@ -17,18 +17,19 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifdef _HTTP_H
+#ifndef _HTTP_H
 #define _HTTP_H
 
 struct hturlinfo {
     char *host;
     int port;
-    char *rest;
+    char *path;
+    char *query;
 };
 
 struct htconn {
     int fd;
-    struct char *outbuf, *inbuf;
+    char *outbuf, *inbuf;
     size_t outbufsize, outbufdata;
     size_t inbufsize, inbufdata;
     struct hturlinfo *url;

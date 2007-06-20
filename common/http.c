@@ -20,9 +20,43 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <utils.h>
+#include <http.h>
 
+struct hturlinfo *parseurl(char *url)
+{
+    char *p, *p2, *p3;
+    struct hturlinfo *ui;
+    
+    if(strncmp(url, "http://", 7))
+	return(NULL);
+    ui = memset(smalloc(sizeof(*ui)), 0, sizeof(*ui));
+    p = url + 7;
+    if((p2 = strchr(p, '/')) != NULL)
+	*(p2++) = 0;
+    if((p3 = strrchr(p, ':')) != NULL) {
+	*(p3++) = 0;
+	ui->port = atoi(p3);
+    }
+    ui->host = sstrdup(p);
+    if(p2 == NULL) {
+        ui->path = sstrdup("/");
+    } else {
+	p = p2;
+	if((p2 = strchr(p, '?')) != NULL)
+	    *(p2++) = 0;
+	ui->path = sstrdup(p);
+    }
+    if(p2 == NULL) {
+	ui->query = sstrdup("");
+    } else {
+	ui->query = sstrdup(p2);
+    }
+    return(ui);
+}
