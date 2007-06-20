@@ -448,8 +448,6 @@
     (if (not (assoc 'search-mode session))
 	(set! session (cons '(search-mode . normal) session)))
     (if (not (validate-session session)) (begin (display "Invalid session!\n" (current-error-port)) (exit 1)))
-    (if (not dc-server) (set! dc-server (getenv "DCSERVER")))
-    (if (not dc-server) (set! dc-server "localhost"))
     (catch 'system-error
 	   (lambda ()
 	     (dc-c&l #f dc-server #t))
