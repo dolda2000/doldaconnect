@@ -29,6 +29,14 @@
 #include <utils.h>
 #include <http.h>
 
+void freeurl(struct hturlinfo *ui)
+{
+    free(ui->host);
+    free(ui->path);
+    free(ui->query);
+    free(ui);
+}
+
 struct hturlinfo *parseurl(char *url)
 {
     char *p, *p2, *p3;
