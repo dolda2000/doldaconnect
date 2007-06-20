@@ -87,8 +87,6 @@
 	      )
 	)
       )
-    (if (not dc-server) (set! dc-server (getenv "DCSERVER")))
-    (if (not dc-server) (set! dc-server "localhost"))
     (if (not log-dir) (set! log-dir (string-append (getenv "HOME") "/dc/chatlog")))
 
     (dc-c&l #t dc-server #t)

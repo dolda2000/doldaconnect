@@ -74,9 +74,6 @@
 
 (define (hubmgr-main args)
   (let ((dc-server #f))
-    (if (not dc-server) (set! dc-server (getenv "DCSERVER")))
-    (if (not dc-server) (set! dc-server "localhost"))
-    
     (set! hublist (read-hl))
     (logf "read ~a hubs" (length hublist))
     (dc-c&l #t dc-server #t)
