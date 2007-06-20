@@ -104,6 +104,63 @@ struct {
 } servinfo;
 char *dc_srv_local;
 
+static void message(int bits, char *format, ...)
+{
+    static int hb = -1;
+    char *v;
+    va_list args;
+    
+    if(hb == -1)
+    {
+	hb = 0;
+	if((v = getenv("LIBDCUI_MSG")) != NULL)
+	    hb = strtol(v, NULL, 0) & 65535;
+    }
+    if(hb & bits)
+    {
+	va_start(args, format);
+	vfprintf(stderr, format, args);
+	va_end(args);
+    }
+}
+
+static char *formataddress(struct sockaddr *arg, socklen_t arglen)
+{
+    struct sockaddr_in *ipv4;
+#ifdef HAVE_IPV6
+    struct sockaddr_in6 *ipv6;
+#endif
+    static char *ret = NULL;
+    char buf[1024];
+    
+    if(ret != NULL)
+	free(ret);
+    ret = NULL;
+    switch(arg->sa_family)
+    {
+    case AF_UNIX:
+	ret = sprintf2("Unix socket (%s)", ((struct sockaddr_un *)arg)->sun_path);
+	break;
+    case AF_INET:
+	ipv4 = (struct sockaddr_in *)arg;
+	if(inet_ntop(AF_INET, &ipv4->sin_addr, buf, sizeof(buf)) == NULL)
+	    return(NULL);
+	ret = sprintf2("%s:%i", buf, (int)ntohs(ipv4->sin_port));
+	break;
+#ifdef HAVE_IPV6
+    case AF_INET6:
+	ipv6 = (struct sockaddr_in6 *)arg;
+	if(inet_ntop(AF_INET6, &ipv6->sin6_addr, buf, sizeof(buf)) == NULL)
+	    return(NULL);
+	ret = sprintf2("[%s]:%i", buf, (int)ntohs(ipv6->sin6_port));
+	break;
+#endif
+    default:
+	errno = EPFNOSUPPORT;
+	break;
+    }
+    return(ret);
+}
 static struct dc_response *makeresp(void)
 {
     struct dc_response *new;
@@ -520,7 +577,8 @@ int dc_handleread(void)
 	if(ret)
 	{
 	    int newfd;
-
+	    
+	    message(2, "could not connect to %s: %s\n", formataddress(curhost->ai_addr, curhost->ai_addrlen), strerror(ret));
 	    for(curhost = curhost->ai_next; curhost != NULL; curhost = curhost->ai_next)
 	    {
 		if((newfd = socket(curhost->ai_family, curhost->ai_socktype, curhost->ai_protocol)) < 0)
@@ -533,10 +591,12 @@ int dc_handleread(void)
 		dup2(newfd, fd);
 		close(newfd);
 		fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+		message(4, "connecting to %s\n", formataddress(curhost->ai_addr, curhost->ai_addrlen));
 		if(connect(fd, (struct sockaddr *)curhost->ai_addr, curhost->ai_addrlen))
 		{
 		    if(errno == EINPROGRESS)
 			return(0);
+		    message(2, "could not connect to %s: %s\n", formataddress(curhost->ai_addr, curhost->ai_addrlen), strerror(ret));
 		} else {
 		    break;
 		}
@@ -1055,6 +1115,7 @@ static struct addrinfo *resolvsrv(char *name)
     
     if(getsrvrr(name, &realname, &port))
 	return(NULL);
+    message(4, "SRV RR resolved: %s -> %s\n", name, realname);
     ret = resolvtcp(realname, port);
     free(realname);
     return(ret);
@@ -1125,8 +1186,10 @@ static struct addrinfo *defaulthost(void)
     char *tmp;
     char dn[1024];
     
-    if(((tmp = getenv("DCSERVER")) != NULL) && *tmp)
+    if(((tmp = getenv("DCSERVER")) != NULL) && *tmp) {
+	message(4, "using DCSERVER: %s\n", tmp);
 	return(resolvhost(tmp));
+    }
     ret = getlocalai();
     ret = gaicat(ret, resolvtcp("localhost", 1500));
     if(!getdomainname(dn, sizeof(dn)) && *dn && strcmp(dn, "(none)"))
@@ -1156,6 +1219,7 @@ static int dc_connectai(struct addrinfo *hosts, struct qcmd **cnctcmd)
 	    return(-1);
 	}
 	fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+	message(4, "connecting to %s\n", formataddress(curhost->ai_addr, curhost->ai_addrlen));
 	if(connect(fd, (struct sockaddr *)curhost->ai_addr, curhost->ai_addrlen))
 	{
 	    if(errno == EINPROGRESS)
@@ -1163,6 +1227,7 @@ static int dc_connectai(struct addrinfo *hosts, struct qcmd **cnctcmd)
 		state = 0;
 		break;
 	    }
+	    message(2, "could not connect to %s: %s\n", formataddress(curhost->ai_addr, curhost->ai_addrlen), strerror(errno));
 	    close(fd);
 	    fd = -1;
 	} else {
@@ -1192,12 +1257,16 @@ static int dc_connect2(char *host, struct qcmd **cnctcmd)
     struct qcmd *qcmd;
     int ret;
     
-    if(host == dc_srv_local)
+    if(host == dc_srv_local) {
+	message(4, "connect start: Unix\n");
 	ai = getlocalai();
-    else if(!host || !*host)
+    } else if(!host || !*host) {
+	message(4, "connect start: default\n");
 	ai = defaulthost();
-    else
+    } else {
+	message(4, "connect start: host %s\n", host);
 	ai = resolvhost(host);
+    }
     if(ai == NULL)
 	return(-1);
     ret = dc_connectai(ai, &qcmd);
