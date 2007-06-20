@@ -3,7 +3,7 @@ Version 0.4:
 	* Added a GUI configurator (called `dolconf')
 	* Many 64-bit cleanups -- works on amd64 now.
 	* More documentation
-	* Begun doing some porting to FreeBSD.
+	* Begun doing some porting to FreeBSD (read doc/README.FreeBSD).
 	* The usual slew of lesser fixes
 	
 Version 0.3.1:
