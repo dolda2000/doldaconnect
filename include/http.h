@@ -20,6 +20,8 @@
 #ifndef _HTTP_H
 #define _HTTP_H
 
+#include <netdb.h>
+
 struct hturlinfo {
     char *host;
     int port;
@@ -28,7 +30,9 @@ struct hturlinfo {
 };
 
 struct htconn {
+    int state;
     int fd;
+    struct addrinfo *ailist, *curai;
     char *outbuf, *inbuf;
     size_t outbufsize, outbufdata;
     size_t inbufsize, inbufdata;
@@ -39,5 +43,10 @@ struct htcookie {
     struct htcookie *next;
     char *name, *val;
 };
+
+struct hturlinfo *parseurl(char *url);
+void freeurl(struct hturlinfo *ui);
+struct htconn *htconnect(struct hturlinfo *ui);
+int htpollflags(struct htconn *hc);
 
 #endif

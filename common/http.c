@@ -22,12 +22,16 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/poll.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include <utils.h>
 #include <http.h>
+
+#define STATE_SYN 0
+#define STATE_TXREQ 1
 
 void freeurl(struct hturlinfo *ui)
 {
@@ -51,6 +55,8 @@ struct hturlinfo *parseurl(char *url)
     if((p3 = strrchr(p, ':')) != NULL) {
 	*(p3++) = 0;
 	ui->port = atoi(p3);
+    } else {
+	ui->port = 80;
     }
     ui->host = sstrdup(p);
     if(p2 == NULL) {
@@ -67,4 +73,95 @@ struct hturlinfo *parseurl(char *url)
 	ui->query = sstrdup(p2);
     }
     return(ui);
+}
+
+static struct hturlinfo *dupurl(struct hturlinfo *ui)
+{
+    struct hturlinfo *new;
+    
+    new = memset(smalloc(sizeof(*new)), 0, sizeof(*new));
+    new->host = sstrdup(ui->host);
+    new->port = ui->port;
+    new->path = sstrdup(ui->path);
+    new->query = sstrdup(ui->query);
+    return(new);
+}
+
+static struct addrinfo *resolvtcp(char *name, int port)
+{
+    struct addrinfo hint, *ret;
+    char tmp[32];
+    
+    memset(&hint, 0, sizeof(hint));
+    hint.ai_socktype = SOCK_STREAM;
+    hint.ai_flags = AI_NUMERICSERV | AI_CANONNAME;
+    snprintf(tmp, sizeof(tmp), "%i", port);
+    if(!getaddrinfo(name, tmp, &hint, &ret))
+	return(ret);
+    return(NULL);
+}
+
+void freehtconn(struct htconn *cn)
+{
+    if(cn->outbuf != NULL)
+	free(cn->outbuf);
+    if(cn->inbuf != NULL)
+	free(cn->inbuf);
+    freeurl(cn->url);
+    freeaddrinfo(cn->ailist);
+    if(cn->fd != -1)
+	close(cn->fd);
+    free(cn);
+}
+
+struct htconn *htconnect(struct hturlinfo *ui)
+{
+    struct htconn *cn;
+    
+    cn = memset(smalloc(sizeof(*cn)), 0, sizeof(*cn));
+    cn->fd = -1;
+    cn->url = dupurl(ui);
+    cn->ailist = resolvtcp(ui->host, ui->port);
+    return(cn);
+}
+
+int htpollflags(struct htconn *hc)
+{
+    int ret;
+    
+    ret = POLLIN;
+    if(hc->outbufdata > 0)
+	ret |= POLLOUT;
+    return(ret);
+}
+
+int htprocess(struct htconn *hc)
+{
+    int ret;
+    socklen_t optlen;
+    
+    if(hc->state == STATE_SYN) {
+	if(hc->fd != -1) {
+	    optlen = sizeof(ret);
+	    getsockopt(hc->fd, SOL_SOCKET, SO_ERROR, &ret, &optlen);
+	    if(ret) {
+		hc->fd = -1;
+	    } else {
+		hc->state = STATE_TXREQ;
+	    }
+	}
+	if(hc->fd == -1) {
+	    if(hc->curai == NULL)
+		hc->curai = hc->ailist;
+	    else
+		hc->curai = hc->curai->ai_next;
+	    if(hc->curai == NULL) {
+		/* Bleh! Linux and BSD don't share any good
+		 * errno for this. */
+		errno = ENOENT;
+		return(-1);
+	    }
+	}
+    }
+    return(0);
 }
