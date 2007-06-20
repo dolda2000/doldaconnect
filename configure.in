@@ -20,7 +20,6 @@ AC_CHECK_LIB(z, deflate, , AC_MSG_ERROR([*** must have zlib]))
 AC_CHECK_LIB(bz2, BZ2_bzWriteOpen, , AC_MSG_ERROR([*** must have bzlib]))
 AC_CHECK_LIB(gdbm, gdbm_open, , AC_MSG_ERROR([*** must have gdbm]))
 
-clients=tty
 extlibs=
 experimental=no
 
@@ -108,10 +107,10 @@ if test "$enable_gtk2ui" = yes; then
 		AC_MSG_ERROR([*** the GTK2 UI needs libxml2])
 	fi
 fi
-if test "$enable_gtk2ui" != no -a "$HAS_GTK2" = yes; then
-	clients="$clients gtk2"
+if test "$enable_gtk2ui" != no -a "$HAS_GTK2" = yes -a "$HAS_LIBXML" = yes; then
 	gtk2ui_msg=Yes
 fi
+AM_CONDITIONAL(CLI_GTK2, test "$gtk2ui_msg" = Yes)
 
 # Dolconf check
 dolconf_msg=No
@@ -120,11 +119,9 @@ if test "$enable_dolconf" = yes -a "$HAS_GTK2" = no; then
 	AC_MSG_ERROR([*** cannot build dolconf without GTK2])
 fi
 if test "$enable_dolconf" != no -a "$HAS_GTK2" = yes; then
-	AM_CONDITIONAL(DOLCONF, true)
 	dolconf_msg=Yes
-else
-	AM_CONDITIONAL(DOLCONF, false)
 fi
+AM_CONDITIONAL(DOLCONF, test "$dolconf_msg" = Yes)
 
 # Gtk progress bar check
 gtk2pbar_msg=No
@@ -145,8 +142,8 @@ AC_ARG_ENABLE(gnomeapplet, [  --enable-gnomeapplet    Enable GNOME transfer appl
 if test "$enable_gnomeapplet" = yes; then
 	experimental=yes
 	gnometrapplet_msg=Yes
-	clients="$clients gnome-trans-applet"
 fi
+AM_CONDITIONAL(CLI_GNOMEAPPLET, test "$gnometrapplet_msg" = Yes)
 
 # Gaim plugin check
 gaimplugin_msg=No
@@ -154,8 +151,8 @@ AC_ARG_ENABLE(gaimplugin, [  --enable-gaimplugin     Enable GNOME transfer apple
 if test "$enable_gaimplugin" = yes; then
 	experimental=yes
 	gaimplugin_msg=Yes
-	clients="$clients gaim"
 fi
+AM_CONDITIONAL(CLI_GAIM, test "$gaimplugin_msg" = Yes)
 
 # Guile check (XXX: Shouldn't have to be enabled manually)
 guile_msg=No
@@ -250,7 +247,7 @@ AC_TYPE_SIGNAL
 
 CPPFLAGS="-I\$(top_srcdir)/include $CPPFLAGS"
 
-AC_SUBST([clients extlibs])
+AC_SUBST([extlibs])
 AC_OUTPUT([
 Makefile
 autopackage/Makefile

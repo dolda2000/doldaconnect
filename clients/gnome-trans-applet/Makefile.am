@@ -1,4 +1,7 @@
+if CLI_GNOMEAPPLET
 libexec_PROGRAMS=dolcon-trans-applet
+server_DATA=Dolcon_Transferapplet_Factory.server
+endif
 
 dolcon_trans_applet_SOURCES=	dolcon-trans-applet.c \
 				conduit-pipe.c \
@@ -14,7 +17,6 @@ dolcon_trans_applet_CPPFLAGS=$(shell pkg-config --cflags libpanelapplet-2.0) -DL
 BUILT_SOURCES=Dolcon_Transferapplet_Factory.server
 
 serverdir=$(libdir)/bonobo/servers
-server_DATA=Dolcon_Transferapplet_Factory.server
 
 EXTRA_DIST=Dolcon_Transferapplet_Factory.server.in
 

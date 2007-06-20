@@ -1,4 +1,7 @@
+if CLI_GTK2
 bin_PROGRAMS=dolcon
+app_DATA=dolcon.desktop
+endif
 
 dolcon_SOURCES=	main.c \
 		progressbar.c \
@@ -22,4 +25,3 @@ dolcon_CPPFLAGS=@GTK2_CFLAGS@ @LIBXML_CFLAGS@ \
 mainwnd.desc: ../../config.h
 
 appdir=$(datadir)/applications
-app_DATA=dolcon.desktop

@@ -1,6 +1,8 @@
 plugindir = $(libdir)/gaim
 
+if CLI_GAIM
 plugin_LTLIBRARIES = libdolcon-gaim.la
+endif
 
 libdolcon_gaim_la_SOURCES = gaim-dolcon.c
 
