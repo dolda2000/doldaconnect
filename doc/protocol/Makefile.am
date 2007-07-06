@@ -20,4 +20,4 @@ commands.tex: cmd/*.tex
 
 clean-local:
 	rm -f protocol.aux protocol.log protocol.dvi commands.tex \
-	protocol.1st protocol.ps
+	protocol.1st protocol.ps protocol.out
