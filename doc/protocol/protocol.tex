@@ -226,7 +226,7 @@ table \ref{tab:perm}.
 \end{table}
 
 \subsection{Protocol revisions}
-
+\label{rev}
 Since Dolda Connect is developing, its command set may change
 occasionally. Sometimes new commands are added, sometimes commands
 change argument syntax, and sometimes commands are removed. In order
@@ -248,11 +248,16 @@ entirely to the new revision. Therefore, a client can check for a
 certain revision and be sure that everything it wants is supported by
 the daemon.
 
+At the time of this writing, the latest protocol revision is 2. Please
+see the file \texttt{doc/protorev} that comes with the Dolda Connect
+source tree for a full list of revisions and what changed between
+them.
+
 \subsection{List of commands}
 
 Follows does a (hopefully) exhaustive listing of all commands valid
 for a request. For each possible request, it includes the name of the
-command for the request, the permissions required, the syntax the
+command for the request, the permissions required, the syntax for the
 entire request line, and the possible responses.
 
 The syntax of the request and response lines is described in a format
@@ -281,6 +286,8 @@ considered a request, soliciting a response. Such a request obviously
 has no command name and no syntax, but needs a description
 nonetheless.
 
+\revision{1}
+
 \noperm
 
 \begin{responses}
@@ -288,6 +295,15 @@ nonetheless.
   The old response given by daemons not yet using the revisioned
   protocol. Clients receiving this response should consider it an
   error.
+  \response{201 LOREV HIREV}
+  Indicates that the connection is accepted. The \param{LOREV} and
+  \param{HIREV} parameters specify the range of supported protocol
+  revisions, as described in section \ref{rev}.
+  \response{502 REASON}
+  The connection is refused by the daemon and will be closed. The
+  \param{REASON} parameter states the reason for the refusal in
+  English\footnote{So it is probably not suitable for localized
+    programs}.
 \end{responses}
 
 \end{document}
