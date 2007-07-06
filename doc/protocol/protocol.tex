@@ -1,0 +1,69 @@
+\documentclass[twoside,a4paper,11pt]{article}
+
+\newcommand{\url}[1]{\texttt{<#1>}}
+\newcommand{\unix}{\textsc{Unix}}
+
+\title{Dolda Connect protocol}
+\author{Fredrik Tolf\\\texttt{<fredrik@dolda2000.com>}}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Dolda Connect consists partly of a daemon (a.k.a. server) that runs in
+the background and carries out all the actual work, and a number of
+client programs (a.k.a. user interfaces) that connect to the daemon in
+order to tell it what to do. In order for the daemon and the clients
+to be able to talk to each other, a protocol is needed. This document
+intends to document that protocol, so that third parties can write
+their own client programs.
+
+It is worthy of note that there exists a library, called
+\texttt{libdcui} that carries out much of the low level work of
+speaking the protocol, facilitating the creation of new client
+programs. In itself, \texttt{libdcui} is written in the C programming
+language and is intended to be used by other programs written in C,
+but there also exist wrapper libraries for both GNU Guile (the GNU
+project's Scheme interpreter) and for Python. The former is
+distributed with the main Dolda Connect source tree, while the latter
+is distributed separately (for technical reasons). To get a copy,
+please refer to Dolda Connect's homepage at
+\url{http://www.dolda2000.com}.
+
+\section{Transport format}
+The protocol can be spoken over any channel that features a
+byte-oriented, reliable virtual (or not) circuit. Usually, it is
+spoken over a TCP connection or a byte-oriented \unix\ socket. The
+usual port number for TCP connections is 1500, but any port could be
+used\footnote{However, port 1500 is what the \texttt{libdcui} library
+  uses if no port is explicitly stated, so it is probably to be
+  preferred}. What follows hereon is an informal description of the
+protocol.
+
+On top of the provided byte-oriented connection, the most basic level
+of the protocol is a stream of Unicode characters, encoded with
+UTF-8. The Unicode stream is then grouped in two levels: lines
+consisting of words (a.k.a. tokens). Lines are separated by CRLF
+sequences (\emph{not} just CR or LF), and words are separated by
+whitespace. Both whitespace and CRLFs can be quoted, however,
+overriding their normal interpretation of separators and allowing them
+to be parts of words. NUL characters are not allowed to be transferred
+at all, but all other Unicode codepoints are allowed.
+
+Lines transmitted from the daemon to the client are slightly
+different, however. They all start with a three-digit code, followed
+by either a space or a dash\footnote{Yes, this is inspired by FTP and
+  SMTP.}, followed by the normal sequence of words. The three-digit
+code identifies that type of line. Overall, the protocol is a
+lock-step protocol, where the clients sends one line that is
+interpreted as a request, and the daemon replies with one or more
+lines. In a multi-line response, all lines except the last have the
+three-digit code followed by a dash. The last line of a multi-line
+response and the only line of a single-line response have the
+three-digit code followed by a space. All lines of a multi-line
+response have the same three-digit code. The client is not allowed to
+send another request until the last line of the previous response has
+been received.
+
+\end{document}
