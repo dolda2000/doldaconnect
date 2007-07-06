@@ -1,5 +1,9 @@
 \documentclass[twoside,a4paper,11pt]{article}
 
+\usepackage[T1]{fontenc}
+\usepackage[utf8x]{inputenc}
+\usepackage{reqlist}
+
 \newcommand{\url}[1]{\texttt{<#1>}}
 \newcommand{\unix}{\textsc{Unix}}
 
@@ -32,14 +36,22 @@ please refer to Dolda Connect's homepage at
 \url{http://www.dolda2000.com}.
 
 \section{Transport format}
+Note: Everything covered in this section is handled by the
+\texttt{libdcui} library. Thus, if you read this because you just want
+to write a client, and are using the library (or any of the wrapper
+libraries), you can safely skip over this section. It may still be
+interesting to read in order to understand the semantics of the
+protocol, however.
+
 The protocol can be spoken over any channel that features a
 byte-oriented, reliable virtual (or not) circuit. Usually, it is
 spoken over a TCP connection or a byte-oriented \unix\ socket. The
 usual port number for TCP connections is 1500, but any port could be
 used\footnote{However, port 1500 is what the \texttt{libdcui} library
   uses if no port is explicitly stated, so it is probably to be
-  preferred}. What follows hereon is an informal description of the
-protocol.
+  preferred}.
+
+\subsection{Informal description}
 
 On top of the provided byte-oriented connection, the most basic level
 of the protocol is a stream of Unicode characters, encoded with
@@ -64,6 +76,218 @@ response and the only line of a single-line response have the
 three-digit code followed by a space. All lines of a multi-line
 response have the same three-digit code. The client is not allowed to
 send another request until the last line of the previous response has
-been received.
+been received. The exception is that the daemon might send (but only
+if the client has requested it to do so) sporadic lines of
+asynchronous notification messages. Notification message lines are
+distinguished by having their three-digit codes always begin with the
+digit 6. Otherwise, the first digit of the three-digit code indicates
+the overall success or failure of a request. Codes beginning with 2
+indicate the the request to which they belong succeeded. Codes
+beginning with 3 indicate that the request succeeded in itself, but
+that it is considered part of a sequence of commands, and that the
+sequence still requires additional interaction before considered
+successful. Codes beginning with 5 are indication of errors. The
+remaining two digits merely distinguish between different
+outcomes. Note that notification message lines may come at \emph{any}
+time, even in the middle of multiline responses (though not in the
+middle of another line). There are no multiline notifications.
+
+The act of connecting to the daemon is itself considered a request,
+solicitating a success or failure response, so it is the daemon that
+first transmits actual data. A failure response may be provoked by a
+client connecting from a prohibited source.
+
+Quoting of special characters in words may be done in two ways. First,
+the backslash character escapes any special interpretation of the
+character that comes after it, no matter where or what the following
+character is (it is not required even to be a special
+character). Thus, the only way to include a backslash in a word is to
+escape it with another backslash. Second, any interpretation of
+whitespace may be escaped using the citation mark character (only the
+ASCII one, U+0022 -- not any other Unicode quotes), by enclosing a
+string containing whitespace in citation marks. (Note that the citation
+marks need not necessarily be placed at the word boundaries, so the
+string ``\texttt{a"b c"d}'' is parsed as a single word ``\texttt{ab
+  cd}''.) Technically, this dual layer of quoting may seem like a
+liability when implementing the protocol, but it is quite convenient
+when talking directly to the daemon with a program such as
+\texttt{telnet}.
+
+\subsection{Formal description}
+
+Formally, the syntax of the protocol may be defined with the following
+BNF rules. Note that they all operate on Unicode characters, not bytes.
+
+\begin{tabular}{lcl}
+<session> & ::= & <SYN> <response> \\
+ & & | <session> <transaction> \\
+ & & | <session> <notification> \\
+<transaction> & ::= & <request> <response> \\
+<request> & ::= & <line> \\
+<response> & ::= & <resp-line-last> \\
+ & & | <resp-line-not-last> <response> \\
+ & & | <notification> <response> \\
+<resp-line-last> & ::= & <resp-code> <SPACE> <line> \\
+<resp-line-not-last> & ::= & <resp-code> <DASH> <line> \\
+<notification> & ::= & <notification-code> <SPACE> <line> \\
+<resp-code> & ::= & ``\texttt{2}'' <digit> <digit> \\
+ & & | ``\texttt{3}'' <digit> <digit> \\
+ & & | ``\texttt{5}'' <digit> <digit> \\
+<notification-code> & ::= & ``\texttt{6}'' <digit> <digit> \\
+<line> & ::= & <CRLF> \\
+ & & | <word> <ws> <line> \\
+<word> & ::= & <COMMON-CHAR> \\
+ & & | ``\texttt{$\backslash$}'' <CHAR> \\
+ & & | ``\texttt{"}'' <quoted-word> ``\texttt{"}'' \\
+ & & | <word> <word> \\
+<quoted-word> & ::= & ``'' \\
+ & & | <COMMON-CHAR> <quoted-word> \\
+ & & | <ws> <quoted-word> \\
+ & & | ``\texttt{$\backslash$}'' <CHAR> <quoted-word> \\
+<ws> & ::= & <1ws> | <1ws> <ws> \\
+<1ws> & ::= & <SPACE> | <TAB> \\
+<digit> & ::= & ``\texttt{0}'' |
+``\texttt{1}'' | ``\texttt{2}'' |
+``\texttt{3}'' | ``\texttt{4}'' \\
+& & | ``\texttt{5}'' | ``\texttt{6}'' |
+``\texttt{7}'' | ``\texttt{8}'' |
+``\texttt{9}''
+\end{tabular}
+
+As for the terminal symbols, <SPACE> is U+0020, <TAB> is U+0009,
+<CRLF> is the sequence of U+000D and U+000A, <DASH> is U+002D, <CHAR>
+is any Unicode character except U+0000, <COMMON-CHAR> is any
+Unicode character except U+0000, U+0009, U+000A, U+000D, U+0020,
+U+0022 and U+005C, and <SYN> is the out-of-band message that
+establishes the communication channel\footnote{This means that the
+  communication channel must support such a message. For example, raw
+  RS-232 would be hard to support.}. The following constraints also
+apply:
+\begin{itemize}
+\item <SYN> and <request> must be sent from the client to the daemon.
+\item <response> and <notification> must be sent from the daemon to
+  the client.
+\end{itemize}
+Note that the definition of <word> means that the only way to
+represent an empty word is by a pair of citation marks.
+
+In each request line, there should be at least one word, but it is not
+considered a syntax error if there is not. The first word in each
+request line is considered the name of the command to be carried out
+by the daemon. An empty line is a valid request as such, but since no
+matching command, it will provoke the same kind of error response as
+if a request with any other non-existing command were sent. Any
+remaining words on the line are considered arguments to the command.
+
+\section{Requests}
+For each arriving request, the daemon checks so that the request
+passes a number of tests before carrying it out. First, it matches the
+name of the command against the list of known commands to see if the
+request calls a valid command. If the command is not valid, the daemon
+sends a reponse with code 500. Then, it checks so that the request has
+the minimum required number of parameters for the given command. If it
+does not, it responds with a 501 code. Last, it checks so that the
+user account issuing the request has the necessary permissions to have
+the request carried out. If it does not, it responds with a 502
+code. After that, any responses are individual to the command in
+question. The intention of this section is to list them all.
+
+\subsection{Permissions}
+
+As for the permissions mentioned above, it is outside the scope of
+this document to describe the administration of
+permissions\footnote{Please see the \texttt{doldacond.conf(5)} man
+  page for more information on that topic.}, but some commands require
+certain permission, they need at least be specified. When a connection
+is established, it is associated with no permissions. At that point,
+only requests that do not require any permissions can be successfully
+issued. Normally, the first thing a client would do is to authenticate
+to the daemon. At the end of a successful authentication, the daemon
+associates the proper permissions with the connection over which
+authentication took place. The possible permissions are listed in
+table \ref{tab:perm}.
+
+\begin{table}
+  \begin{tabular}{rl}
+    Name & General description \\
+    \hline
+    \texttt{admin} & Required for all commands that administer the
+    daemon. \\
+    \texttt{fnetctl} & Required for all commands that alter the state of
+    connected hubs. \\
+    \texttt{trans} & Required for all commands that alter the state of
+    file transfers. \\
+    \texttt{transcu} & Required specifically for cancelling uploads. \\
+    \texttt{chat} & Required for exchanging chat messages. \\
+    \texttt{srch} & Required for issuing and querying searches. \\
+  \end{tabular}
+  \caption{The list of available permissions}
+  \label{tab:perm}
+\end{table}
+
+\subsection{Protocol revisions}
+
+Since Dolda Connect is developing, its command set may change
+occasionally. Sometimes new commands are added, sometimes commands
+change argument syntax, and sometimes commands are removed. In order
+for clients to be able to cleanly cope with such changes, the protocol
+is revisioned. When a client connects to the daemon, the daemon
+indicates in the first response it sends the range of protocol
+revisions it supports, and each command listed below specifies the
+revision number from which its current specification is valid. A
+client should should check the revision range from the daemon so that
+it includes the revision that incorporates all commands that it wishes
+to use.
+
+Whenever the protocol changes at all, it is given a new revision
+number. If the entire protocol is backwards compatible with the
+previous version, the revision range sent by the server is updated to
+extend forward to the new revision. If the protocol in any way is not
+compatible with the previous revision, the revision range is moved
+entirely to the new revision. Therefore, a client can check for a
+certain revision and be sure that everything it wants is supported by
+the daemon.
+
+\subsection{List of commands}
+
+Follows does a (hopefully) exhaustive listing of all commands valid
+for a request. For each possible request, it includes the name of the
+command for the request, the permissions required, the syntax the
+entire request line, and the possible responses.
+
+The syntax of the request and response lines is described in a format
+like that traditional of \unix\ man pages, with a number of terms,
+each corresponding to a word in the line. Each term in the syntax
+description is either a literal string, written in lower case; an
+argument, written in uppercase and meant to be replaced by some other
+text as described; an optional term, enclosed in brackets
+(``\texttt{[}'' and ``\texttt{]}''); or a list of alternatives,
+enclosed in braces (``\texttt{\{}'' and ``\texttt{\}}'') and separated
+by pipes (``\texttt{|}''). Possible repetition of a term is indicated
+by three dots (``\texttt{...}''), and, for the purpose of repition,
+terms may be groups with parentheses (``\texttt{(}'' and
+``\texttt{)}'').
+
+Two things should be noted regarding the responses. First, in the
+syntax description of responses, the response code is given as the
+first term, even though it is not actually considered a word. Second,
+more words may follow after the specified syntax, and should be
+discarded by a client. Many responses use that to include a human
+readable string to indicate the conclusion of the request.
+
+\subsubsection{Connection}
+As mentioned above, the act of connecting to the daemon is itself
+considered a request, soliciting a response. Such a request obviously
+has no command name and no syntax, but needs a description
+nonetheless.
+
+\noperm
+
+\begin{responses}
+  \response{200}
+  The old response given by daemons not yet using the revisioned
+  protocol. Clients receiving this response should consider it an
+  error.
+\end{responses}
 
 \end{document}
