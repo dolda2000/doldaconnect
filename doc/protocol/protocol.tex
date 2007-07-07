@@ -2,9 +2,10 @@
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8x]{inputenc}
+\usepackage[ps2pdf]{hyperref}
 \usepackage{reqlist}
 
-\newcommand{\url}[1]{\texttt{<#1>}}
+\newcommand{\urlink}[1]{\texttt{<#1>}}
 \newcommand{\unix}{\textsc{Unix}}
 
 \title{Dolda Connect protocol}
@@ -33,7 +34,7 @@ project's Scheme interpreter) and for Python. The former is
 distributed with the main Dolda Connect source tree, while the latter
 is distributed separately (for technical reasons). To get a copy,
 please refer to Dolda Connect's homepage at
-\url{http://www.dolda2000.com}.
+\urlink{http://www.dolda2000.com}.
 
 \section{Transport format}
 Note: Everything covered in this section is handled by the
@@ -305,5 +306,7 @@ nonetheless.
   English\footnote{So it is probably not suitable for localized
     programs}.
 \end{responses}
+
+\input{commands}
 
 \end{document}
