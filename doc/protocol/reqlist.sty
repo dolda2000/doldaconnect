@@ -1,4 +1,5 @@
-\newenvironment{reqspec}[1]{\subsubsection{\texttt{#1}}}{}
+\newenvironment{reqspec}[1]{\subsubsection{\texttt{#1}} \label{cmd:#1}}{}
+\newcommand{\reqref}[1]{\texttt{#1}}
 
 \newcommand{\syntax}[1]{Syntax: \texttt{#1}}
 
