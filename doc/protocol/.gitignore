@@ -1,4 +1,5 @@
 /commands.tex
+*.out
 *.aux
 *.dvi
 *.log
