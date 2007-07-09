@@ -4,6 +4,7 @@
 \usepackage[utf8x]{inputenc}
 \usepackage[ps2pdf]{hyperref}
 \usepackage{reqlist}
+\usepackage{longtable}
 
 \newcommand{\urlink}[1]{\texttt{<#1>}}
 \newcommand{\unix}{\textsc{Unix}}
@@ -121,7 +122,7 @@ when talking directly to the daemon with a program such as
 Formally, the syntax of the protocol may be defined with the following
 BNF rules. Note that they all operate on Unicode characters, not bytes.
 
-\begin{tabular}{lcl}
+\begin{longtable}{lcl}
 <session> & ::= & <SYN> <response> \\
  & & | <session> <transaction> \\
  & & | <session> <notification> \\
@@ -155,7 +156,7 @@ BNF rules. Note that they all operate on Unicode characters, not bytes.
 & & | ``\texttt{5}'' | ``\texttt{6}'' |
 ``\texttt{7}'' | ``\texttt{8}'' |
 ``\texttt{9}''
-\end{tabular}
+\end{longtable}
 
 As for the terminal symbols, <SPACE> is U+0020, <TAB> is U+0009,
 <CRLF> is the sequence of U+000D and U+000A, <DASH> is U+002D, <CHAR>
