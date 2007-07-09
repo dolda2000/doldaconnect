@@ -1,0 +1,20 @@
+\syntax{lsauth}
+
+\begin{reqdesc}
+  Return the available methods of authentication.
+\end{reqdesc}
+
+\revision{1}
+\noperm
+
+\begin{responses}
+  \response{200 MECH}
+  One of these lines is returned for every supported authentication
+  mechanism. The \param{MECH} parameter is the name of one supported
+  authentication mechanism.
+  \response{201}
+  A 201 response indicates that the daemon supports no authentication
+  mechanism. Since it is impossible to do anything meaningfully
+  without authenticating, this should never happen, but it could still
+  happen e.g. in the case of a configuration error.
+\end{responses}

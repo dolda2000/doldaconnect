@@ -1,0 +1,17 @@
+\syntax{quit}
+
+\begin{reqdesc}
+Instruct the daemon to close the connection to the client. This
+request is not actually necessary, as it is just fine for the client
+to close the connection from its side instead, but it is at least
+convenient when talking to the daemon with a program such as
+\texttt{telnet}.
+\end{reqdesc}
+
+\revision{1}
+\noperm
+
+\begin{responses}
+  \response{200}
+  The daemon will close the connection at its earliest convenience.
+\end{responses}

@@ -1,0 +1,57 @@
+\syntax{login MECH USERNAME}
+
+\begin{reqdesc}
+  Begin an authentication process. The \param{MECH} parameter should
+  match one of the authentication mechanisms returned by the
+  \reqref{lsauth} request. The \param{USERNAME} parameter is the name
+  of the user account to authenticate against.
+
+  Depending on the authentication mechanism, the authentication
+  process may either succeed immediately, or require further
+  information, which should be passed in subsequent \reqref{pass}
+  requests.
+\end{reqdesc}
+
+\revision{1}
+\noperm
+
+\begin{responses}
+  \response{200}
+  The authentication succeeded, and the communication channel is now
+  considered logged in by the daemon.
+  \response{300 DATA}
+  The authentication process needs more data. The \param{DATA}
+  parameter contains data specific to the mechanism being carried
+  out. The client should process it appropriately and send the
+  response data in a \reqref{pass} request.
+  \response{301 PROMPT}
+  The authentication process needs data from the user,
+  interactively. The \param{PROMPT} parameter should be presented to
+  the user, and a string of text should be requested from the user
+  without echoing it on the screen (probably a password prompt).
+  \response{302 PROMPT}
+  Like 301, but the data should be echoed on the screen.
+  \response{303 INFO}
+  The authentication mechanism wishes to present data to the user. The
+  \param{INFO} parameter is a string that should be displayed to the
+  user.
+  \response{304 INFO}
+  Like 303, but \param{INFO} should be considered an error.
+  \response{503}
+  This communication channel is already logged in, and therefore
+  cannot start an authentication process.
+  \response{504}
+  The \param{USERNAME} parameter was invalid, as it could not be
+  converted to the local character set of the system running the
+  daemon.
+  \response{505}
+  A system error of some kind occurred that prevented authentication
+  from proceeding. The daemon administrator should consult the logs to
+  find the cause of the error.
+  \response{506}
+  The authentication failed. Probable reasons include incorrect
+  passwords, expired Kerberos tickets, etc.
+  \response{508}
+  The mechanism specified in the \param{MECH} parameter is not
+  supported by the daemon.
+\end{responses}

@@ -1,0 +1,47 @@
+\syntax{cnct FNET HOSTNAME [(KEY VALUE)...]}
+
+\begin{reqdesc}
+  Instructs the daemon to connect to a hub. The \param{FNET} parameter
+  is the name of the protocol that the hub will be running, and the
+  \param{HOSTNAME} parameter is the network name of the
+  hub. Currently, the only supported value for \param{FNET} is
+  \texttt{dc}, indicating the Direct Connect
+  protocol. \param{HOSTNAME} may be either an IPv4 address or a
+  symbolic hostname, followed by a colon and the port number to
+  connect to. Zero or more key-value pairs may be supplied as well,
+  setting certain parameters of the protocol operation. Currently
+  supported keys are:
+  
+  \begin{itemize}
+  \item \texttt{nick}: The nickname to use when speaking to the hub,
+    instead of the daemon's default nickname.
+  \item \texttt{password}: The password to supply if the hub asks for
+    one.
+  \item \texttt{charset}: For Direct Connect hubs, the character
+    encoding to use instead of the default CP1252.
+  \end{itemize}
+\end{reqdesc}
+
+\revision{1}
+\perm{fnetctl}
+
+\begin{responses}
+  \response{200 ID}
+  The daemon has created a node for the hub and will be attempting to
+  connect to it. The \param{ID} parameter is the unique numeric ID for
+  the new node.
+  \response{504}
+  The \param{HOSTNAME} parameter could not be converted to the local
+  character set on the system running the daemon, so no connection
+  attempt could be made.
+  \response{509}
+  The \param{HOSTNAME} parameter was invalid and could not be parsed
+  by the daemon.
+  \response{511}
+  The daemon does not support the protocol named by the \param{FNET}
+  parameter.
+  \response{515}
+  The daemon administrator has set a quota restricting the maximum
+  number of connected hubs, and a new connection attempt would violate
+  that quota.
+\end{responses}

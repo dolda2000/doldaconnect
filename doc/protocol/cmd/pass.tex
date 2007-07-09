@@ -1,0 +1,18 @@
+\syntax{pass DATA}
+
+\begin{reqdesc}
+  Pass additional data to the current authentication process. The
+  \param{DATA} paremeter is the data to be passed, and it is specific
+  to each authentication mechanism.
+\end{reqdesc}
+
+\revision{1}
+\noperm
+
+\begin{responses}
+  \response{507}
+  No authentication process is currently active, so no data was
+  expected.
+\end{responses}
+Otherwise, all responses to the \reqref{login} command are valid for
+the \texttt{pass} command as well, except the 503 error.
