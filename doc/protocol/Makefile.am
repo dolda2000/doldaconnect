@@ -1,4 +1,4 @@
-EXTRA_DIST = cmd protocol.tex
+EXTRA_DIST = cmd protocol.tex reqlist.sty
 
 .dvi.ps:
 	dvips -o $@ $<
