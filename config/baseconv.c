@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 		if(linelen + buflen > 60) {
 		    fwrite(encbuf, 1, 60 - linelen, stdout);
 		    fwrite("\n", 1, 1, stdout);
-		    buflen -= 60 - linelen;
+		    memmove(encbuf, encbuf + 60 - linelen, buflen -= 60 - linelen);
 		}
 		fwrite(encbuf, 1, buflen, stdout);
 		linelen += buflen;
