@@ -184,7 +184,40 @@ matching command, it will provoke the same kind of error response as
 if a request with any other non-existing command were sent. Any
 remaining words on the line are considered arguments to the command.
 
+\section{Data model}
+
+The main purpose of the protocol is to communicate the current state
+of the daemon to the client and keep it synchronized. Therefore, in
+order to understand the actions of the individual requests, an
+understanding of the data structures that define the current state is
+fundamental. The intent of this section is document those structures
+in a top-down approach.
+
+\subsection{Filesharing network}
+\label{fnet}
+At the heart of the Dolda Connect daemon lies the abstraction of a
+file sharing network, often abbreviated ``filenet'' or ``fnet''. To
+the daemon, a filenet is a software module that speaks a certain
+filesharing protocol, such as the Direct Connect protocol. A client
+program will never interact directly with any filenet module, but it
+is often important to know that there are several filenet
+modules\footnote{Actually, at the time of this writing, that is false,
+  as only the Direct Connect protocol is implemented. However, the
+  protocol still requires it explicitly stated at several occasions,
+  and it is nonetheless important to keep in mind that there
+  \emph{could} be several filenet modules. Also, work is under way to
+  implement ADC, the ``official'' successor to the Direct Connect
+  protocol.}. The only detail visible to clients about a filenet is
+its name. The currently implemented filenet modules are listed in
+section \ref{fnets}, along with important information about each.
+
+\subsection{Filenet node}
+\label{fnetnode}
+The filenet node, often abbreviated ``fnetnode'', corresponds closely
+to the Direct Connect concept of a ``hub''.
+
 \section{Requests}
+
 For each arriving request, the daemon checks so that the request
 passes a number of tests before carrying it out. First, it matches the
 name of the command against the list of known commands to see if the
@@ -312,5 +345,8 @@ nonetheless.
 \end{responses}
 
 \input{commands}
+
+\section{Filesharing networks}
+\label{fnets}
 
 \end{document}
