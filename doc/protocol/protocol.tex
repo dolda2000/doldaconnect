@@ -214,7 +214,104 @@ section \ref{fnets}, along with important information about each.
 \subsection{Filenet node}
 \label{fnetnode}
 The filenet node, often abbreviated ``fnetnode'', corresponds closely
-to the Direct Connect concept of a ``hub''.
+to the Direct Connect concept of a ``hub''. In world outside of Dolda
+Connect abstractions, it is a server running software that other users
+connect to and communicate through. A fnetnode always belongs to a
+filenet, and its substructure consists of its ID number, name,
+connection state, persistent ID and user list.
+
+When a fnetnode is created, it is assigned an ID number, which is used
+to refer to it in subsequent requests. The ID number is guaranteed to
+be unique so long as the Dolda Connect daemon runs. The persistent ID,
+in contrast, is intended to be unique for as long as the server lives
+(but it is not perfect). The ``name'' of the fnetnode is the name that
+the server states. Note that the name cannot be used as a persistent
+ID at all, since server owners frequently change the name. Hopefully,
+the name means something to the end user.
+
+The connection state can take four values, referred to as
+\texttt{syn}, \texttt{hs}, \texttt{est} and \texttt{dead}, and a
+fnetnode proceeds along that order during its lifetime. It begins in
+the \texttt{syn} state, and remains there while the Dolda Connect
+daemon attempts to establish a network connection to it. When the
+network connection is established, it enters the \texttt{hs} state,
+where it remains while the initial protocol handshake is being carried
+out. It then enters the \texttt{est} state, where it remains for as
+long as it is connected. It only enters the \texttt{dead} state when
+the network connection between Dolda Connect and the server is
+severed. In essence, the fnetnode is usable while in the \texttt{est}
+state.
+
+The user list is the list of other users connected to the same
+server. It consists of a set of attribute definitions and a list of
+users objects.
+
+\subsubsection{User objects}
+A user object represents a single user connected to a file-sharing
+server. Its substructure comprises an ID, a screen name and a number
+of key-value mappings.
+
+The namespace of a user ID is the filenet which its owning fnetnode
+belongs to. The intention is that there should be a one-to-one mapping
+between (filenet, user ID) pairs and real humans. However, that ideal
+situation does not always hold true. First, real humans may choose to
+allocate several IDs for themselves (one reason to do so would be
+privacy). Second, lesser protocols, such as the Direct Connect
+protocol, cannot guarantee that a single ID cannot map to more than
+one real human. Strictly, a single ID can only be guaranteed to map to
+one real human within the scope of a fnetnode.
+
+The screen name of a user is the name that the user has chosen to be
+displayed for others to identify. It may change arbitrarily over the
+lifetime of a user ID. It is probably more human readable than the
+user ID\footnote{Although, the Direct Connect protocol implementation
+  uses a user's screen name as the user ID.}.
+
+The key-value mappings represent arbitrary attributes that are
+associated with a user object. Exactly what attributes are available
+differ between different filenets and fnetnodes.
+
+\subsubsection{Attribute definitions}
+The attributes associated with a user object have a key, a value, and
+a value domain (or datatype, if you will). In order to save network
+bandwidth when transferring a user list, the value domain for
+attributes is not transferred along with the user list. Instead, a
+list of possible keys and their value domains is requested
+separately. The value domains defined as of this writing are integers,
+long integers and strings. The difference between
+an integer and a long integer is that the former must fit in a 32-bit
+variable\footnote{Yes, long integers are an ugly hack to
+  facilitate C implementations.}.
+
+As mentioned above, the available attributes will differ between
+different filenets and fnetnodes, but there are a number of standard
+ones, which are listed in table \ref{tab:std-attrs}. Note that being
+standard does not mean that they will always be present -- only that
+they will have the same meaning anywhere they actually are present.
+
+\begin{table}
+  \begin{longtable}{ll|p{3in}}
+    Name & Domain & Description \\
+    \hline
+    \texttt{descr} & String &
+    A description entered by the user to
+    describe herself, or, more probably, the files she is sharing.
+    \\
+    \texttt{email} & String &
+    The user's email address. Few users will
+    probably fill this in honestly, but it is defined nonetheless.
+    \\
+    \texttt{share} & Longint &
+    The total number of bytes the user is sharing.
+  \end{longtable}
+  \caption{The standard user attributes}
+  \label{tab:std-attrs}
+\end{table}
+
+\subsection{Transfer}
+\label{transfer}
+Obviously, the main purpose of the daemon is to actually transfer
+files.
 
 \section{Requests}
 
@@ -235,15 +332,15 @@ question. The intention of this section is to list them all.
 As for the permissions mentioned above, it is outside the scope of
 this document to describe the administration of
 permissions\footnote{Please see the \texttt{doldacond.conf(5)} man
-  page for more information on that topic.}, but some commands require
-certain permission, they need at least be specified. When a connection
-is established, it is associated with no permissions. At that point,
-only requests that do not require any permissions can be successfully
-issued. Normally, the first thing a client would do is to authenticate
-to the daemon. At the end of a successful authentication, the daemon
-associates the proper permissions with the connection over which
-authentication took place. The possible permissions are listed in
-table \ref{tab:perm}.
+  page for more information on that topic.}, but as some commands
+require certain permission, they need at least be specified. When a
+connection is established, it is associated with no permissions. At
+that point, only requests that do not require any permissions can be
+successfully issued. Normally, the first thing a client would do is to
+authenticate to the daemon. At the end of a successful authentication,
+the daemon associates the proper permissions with the connection over
+which authentication took place. The possible permissions are listed
+in table \ref{tab:perm}.
 
 \begin{table}
   \begin{tabular}{rl}
