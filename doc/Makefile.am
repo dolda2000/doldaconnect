@@ -1,3 +1,3 @@
 SUBDIRS=man
 
-EXTRA_DIST =	INSTALL protorev INSTALL.gaim INSTALL.applet
+EXTRA_DIST =	INSTALL protorev INSTALL.gaim INSTALL.applet TODO

@@ -1,0 +1,26 @@
+			     Items to do
+
+User-visible features:
+ * Implement ADC
+ * Implement fetching and displaying of file lists (requires rather
+   heavy protocol changes)
+
+Protocol-visible features:
+ * Implement full support for TTHL
+
+Enhancements:
+ * Implement native HTTP library instead of calling out to wget in
+   dolcon (initial work in the `httplib' Git branch)
+ * Alternatively, find some good external HTTP library (Curl seems to
+   be hard to use with Gtk)
+
+Documentation:
+ * Document the protocol (initial work in the `protodoc' Git branch)
+ * Document the API.
+
+Code cleanups:
+ * Clean up the clients/gtk2/main.c file and split it into multiple
+   files
+ * Clean up local variables in the library.
+
+Other: See output of "grep -r XXX ."
