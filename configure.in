@@ -267,6 +267,8 @@ doc/Makefile
 doc/man/Makefile
 po/Makefile.in
 config/Makefile
+config/cmd/Makefile
+config/util/Makefile
 contrib/Makefile
 autopackage/dolcon.apspec
 autopackage/dcuilib.apspec
