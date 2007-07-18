@@ -3,7 +3,7 @@ bin_PROGRAMS=dolcon
 app_DATA=dolcon.desktop
 endif
 
-dolcon_SOURCES=	main.c \
+dolcon_SOURCES=	dolcon.c \
 		progressbar.c \
 		progressbar.h
 
