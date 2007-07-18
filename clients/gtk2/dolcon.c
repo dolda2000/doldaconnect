@@ -110,59 +110,17 @@ struct srchsize *srchsizes = NULL;
 struct knownspeed *knownspeeds = NULL;
 int numsizes = 0, numspeeds = 0, ksqueryseq = -1, ksquerytag = -1, lsrestag = -1;
 
-gboolean initdeath(GtkWidget *, gpointer);
-void cb_main_connmenu_activate(GtkWidget *widget, gpointer data);
-void cb_main_dconnmenu_activate(GtkWidget *widget, gpointer data);
-void cb_main_prefmenu_activate(GtkWidget *widget, gpointer data);
-void cb_main_lsres_activate(GtkWidget *widget, gpointer data);
-void cb_main_sdmenu_activate(GtkWidget *widget, gpointer data);
-void cb_inpdialog_entry_activate(GtkWidget *widget, gpointer data);
-void cb_main_fnaddr_activate(GtkWidget *widget, gpointer data);
-void cb_main_pubhubfilter_activate(GtkWidget *widget, gpointer data);
-void cb_main_dcnctbtn_clicked(GtkWidget *widget, gpointer data);
-void cb_main_phublist_cchange(GtkWidget *widget, gpointer data);
-void cb_main_phublist_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *col, gpointer data);
-void cb_main_chatnodes_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *col, gpointer data);
-void cb_main_srchres_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *col, gpointer data);
-void cb_main_chatstr_activate(GtkWidget *widget, gpointer data);
-void cb_main_simplesrch_changed(GtkWidget *widget, gpointer data);
-void cb_main_realsrch_changed(GtkWidget *widget, gpointer data);
-void cb_main_srchbtn_clicked(GtkWidget *widget, gpointer data);
-void cb_main_srchcanbtn_clicked(GtkWidget *widget, gpointer data);
-gboolean cb_main_trlist_keypress(GtkWidget *widget, GdkEventKey *event, gpointer data);
-void cb_main_filternoslots_toggled(GtkToggleButton *widget, gpointer data);
-void cb_main_srhash_activate(GtkWidget *widget, gpointer data);
-void cb_main_srcopy_activate(GtkWidget *widget, gpointer data);
-void cb_main_trhash_activate(GtkWidget *widget, gpointer data);
-void cb_main_trcopy_activate(GtkWidget *widget, gpointer data);
-void cb_main_trreset_activate(GtkWidget *widget, gpointer data);
-void cb_main_trcancel_activate(GtkWidget *widget, gpointer data);
-gboolean cb_main_srpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
-gboolean cb_main_trpopup(GtkWidget *widget, GdkEventButton *event, gpointer data);
-void cb_reslist_reload_clicked(GtkWidget *widget, gpointer data);
-void cb_reslist_delete_clicked(GtkWidget *widget, gpointer data);
-void cb_reslist_search_clicked(GtkWidget *widget, gpointer data);
-void cb_reslist_list_cchange(GtkWidget *widget, gpointer data);
-void cb_reslist_list_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewColumn *col, gpointer data);
-gboolean cb_reslist_list_keypress(GtkWidget *widget, GdkEventKey *event, gpointer data);
 void dcfdcallback(gpointer data, gint source, GdkInputCondition condition);
 void srchstatupdate(void);
-void transnicebytefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
-void transnicebytefunc2(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
-void transspeedinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
-void transerrorinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
-void percentagefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
-void hidezerofunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
-void speedtimefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data);
 
 #define DCCHARSET "windows-1252"
 
 #define _(text) gettext(text)
 
-#include "mainwnd.gtk"
-#include "inpdialog.gtk"
-#include "pref.gtk"
-#include "reslist.gtk"
+#include "mainwnd.gtkh"
+#include "inpdialog.gtkh"
+#include "pref.gtkh"
+#include "reslist.gtkh"
 
 void updatewrite(void)
 {
@@ -2684,3 +2642,8 @@ int main(int argc, char **argv)
     gtk_main();
     return(0);
 }
+
+#include "mainwnd.gtk"
+#include "inpdialog.gtk"
+#include "pref.gtk"
+#include "reslist.gtk"

@@ -23,6 +23,8 @@ dolconf_CPPFLAGS=	@GTK2_CFLAGS@ \
 dolconf_LDADD=		$(top_srcdir)/common/libcommon.a $(top_srcdir)/lib/libdcui.la
 
 .desc.gtk: $(top_srcdir)/common/makegdesc
-	$(top_srcdir)/common/makegdesc $< >$@
+	target="$@"; \
+	basename="$${target%.gtk}"; \
+	$(top_srcdir)/common/makegdesc -h "$${basename}.gtkh" $< >$@
 
 EXTRA_DIST=dolconf-assistant.desc dolconf-wnd.desc

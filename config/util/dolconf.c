@@ -58,28 +58,10 @@ GtkListStore *shares;
 int state, dirty = 1;
 int ignoreclose = 0;
 
-void astcancel(GtkWidget *widget, gpointer uudata);
-void astupdate(GtkWidget *widget, GtkWidget *page, gpointer uudata);
-void cb_ast_wnd_apply(GtkWidget *widget, gpointer uudata);
-void cb_ast_nick_changed(GtkWidget *widget, gpointer uudata);
-void cb_ast_shareadd_clicked(GtkWidget *widget, gpointer uudata);
-void cb_ast_sharerem_clicked(GtkWidget *widget, gpointer uudata);
-void cb_ast_checkports(GtkWidget *widget, gpointer uudata);
-void cb_ast_mode_nat_toggled(GtkWidget *widget, gpointer uudata);
-void cb_cfw_mode_act_toggled(GtkWidget *widget, gpointer uudata);
-void cb_cfw_orport_toggled(GtkWidget *widget, gpointer uudata);
-void cb_cfw_oraddr_toggled(GtkWidget *widget, gpointer uudata);
-void cb_cfw_uinet_toggled(GtkWidget *widget, gpointer uudata);
-void cb_cfw_save_activate(GtkWidget *widget, gpointer uudata);
-void cb_cfw_hup_activate(GtkWidget *widget, gpointer uudata);
-void cb_cfw_quit_activate(GtkWidget *widget, gpointer uudata);
-void cb_cfw_shareadd_clicked(GtkWidget *widget, gpointer uudata);
-void cb_cfw_sharerem_clicked(GtkWidget *widget, gpointer uudata);
-
 #define _(text) gettext(text)
 
-#include "dolconf-assistant.gtk"
-#include "dolconf-wnd.gtk"
+#include "dolconf-assistant.gtkh"
+#include "dolconf-wnd.gtkh"
 
 int v_nonempty(const char *val)
 {
@@ -865,3 +847,6 @@ int main(int argc, char **argv)
     }
     return(0);
 }
+
+#include "dolconf-assistant.gtk"
+#include "dolconf-wnd.gtk"
