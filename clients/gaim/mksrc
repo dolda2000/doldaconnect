@@ -1,0 +1,10 @@
+#!/usr/bin/perl -w
+
+defined ($bn = $ARGV[0]) || die "no basename given";
+
+while(<STDIN>) {
+    s,G/PC,\u$bn,g;
+    s,G/PU,\U$bn\E,g;
+    s,G/P,$bn,g;
+    print;
+}

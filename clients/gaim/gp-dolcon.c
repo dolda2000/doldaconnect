@@ -24,7 +24,6 @@
 #include <doldaconnect/uilib.h>
 #include <doldaconnect/uimisc.h>
 #include <doldaconnect/utils.h>
-#include <gaim.h>
 #include <plugin.h>
 #include <version.h>
 #include <accountopt.h>
@@ -35,23 +34,23 @@
 struct conndata {
     int fd;
     int readhdl, writehdl;
-    GaimConnection *gc;
-    GaimRoomlist *roomlist;
+    G/PCConnection *gc;
+    G/PCRoomlist *roomlist;
 };
 
 static struct conndata *inuse = NULL;
-static GaimPlugin *me;
+static G/PCPlugin *me;
 
-static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition);
+static void dcfdcb(struct conndata *data, int fd, G/PCInputCondition condition);
 
 static void updatewrite(struct conndata *data)
 {
     if(dc_wantwrite()) {
 	if(data->writehdl == -1)
-	    data->writehdl = gaim_input_add(data->fd, GAIM_INPUT_WRITE, (void (*)(void *, int, GaimInputCondition))dcfdcb, data);
+	    data->writehdl = G/P_input_add(data->fd, G/PU_INPUT_WRITE, (void (*)(void *, int, G/PCInputCondition))dcfdcb, data);
     } else {
 	if(data->writehdl != -1) {
-	    gaim_input_remove(data->writehdl);
+	    G/P_input_remove(data->writehdl);
 	    data->writehdl = -1;
 	}
     }
@@ -62,11 +61,11 @@ static void disconnected(struct conndata *data)
     if(inuse == data)
 	inuse = NULL;
     if(data->readhdl != -1) {
-	gaim_input_remove(data->readhdl);
+	G/P_input_remove(data->readhdl);
 	data->readhdl = -1;
     }
     if(data->writehdl != -1) {
-	gaim_input_remove(data->writehdl);
+	G/P_input_remove(data->writehdl);
 	data->writehdl = -1;
     }
     data->fd = -1;
@@ -90,22 +89,22 @@ static int loginconv(int type, wchar_t *text, char **resp, struct conndata *data
     }
 }
 
-static gboolean gi_chatjoincb(GaimConversation *conv, const char *user, GaimConvChatBuddyFlags flags, void *uudata)
+static gboolean gi_chatjoincb(G/PCConversation *conv, const char *user, G/PCConvChatBuddyFlags flags, void *uudata)
 {
-    GaimConnection *c;
+    G/PCConnection *c;
     
-    if((c = gaim_conversation_get_gc(conv)) == NULL)
+    if((c = G/P_conversation_get_gc(conv)) == NULL)
 	return(FALSE);
     if(c->prpl == me)
 	return(TRUE);
     return(FALSE);
 }
 
-static gboolean gi_chatleavecb(GaimConversation *conv, const char *user, const char *reason, void *uudata)
+static gboolean gi_chatleavecb(G/PCConversation *conv, const char *user, const char *reason, void *uudata)
 {
-    GaimConnection *c;
+    G/PCConnection *c;
     
-    if((c = gaim_conversation_get_gc(conv)) == NULL)
+    if((c = G/P_conversation_get_gc(conv)) == NULL)
 	return(FALSE);
     if(c->prpl == me)
 	return(TRUE);
@@ -114,11 +113,11 @@ static gboolean gi_chatleavecb(GaimConversation *conv, const char *user, const c
 
 static void regsigs(void)
 {
-    static GaimPlugin *regged = NULL;
+    static G/PCPlugin *regged = NULL;
     
     if(regged != me) {
-	gaim_signal_connect(gaim_conversations_get_handle(), "chat-buddy-joining", me, GAIM_CALLBACK(gi_chatjoincb), NULL);
-	gaim_signal_connect(gaim_conversations_get_handle(), "chat-buddy-leaving", me, GAIM_CALLBACK(gi_chatleavecb), NULL);
+	G/P_signal_connect(G/P_conversations_get_handle(), "chat-buddy-joining", me, G/PU_CALLBACK(gi_chatjoincb), NULL);
+	G/P_signal_connect(G/P_conversations_get_handle(), "chat-buddy-leaving", me, G/PU_CALLBACK(gi_chatleavecb), NULL);
 	regged = me;
     }
 }
@@ -126,13 +125,13 @@ static void regsigs(void)
 static void newpeercb(struct dc_fnetpeer *peer)
 {
     struct conndata *data;
-    GaimConversation *conv;
+    G/PCConversation *conv;
     char *buf;
     
     data = peer->fn->udata;
-    if((conv = gaim_find_chat(data->gc, peer->fn->id)) != NULL) {
+    if((conv = G/P_find_chat(data->gc, peer->fn->id)) != NULL) {
 	buf = sprintf2("%s", icswcstombs(peer->nick, "UTF-8", NULL));
-	gaim_conv_chat_add_user(GAIM_CONV_CHAT(conv), buf, NULL, GAIM_CBFLAGS_NONE, TRUE);
+	G/P_conv_chat_add_user(G/PU_CONV_CHAT(conv), buf, NULL, G/PU_CBFLAGS_NONE, TRUE);
 	free(buf);
     }
 }
@@ -140,13 +139,13 @@ static void newpeercb(struct dc_fnetpeer *peer)
 static void delpeercb(struct dc_fnetpeer *peer)
 {
     struct conndata *data;
-    GaimConversation *conv;
+    G/PCConversation *conv;
     char *buf;
     
     data = peer->fn->udata;
-    if((conv = gaim_find_chat(data->gc, peer->fn->id)) != NULL) {
+    if((conv = G/P_find_chat(data->gc, peer->fn->id)) != NULL) {
 	buf = sprintf2("%s", icswcstombs(peer->nick, "UTF-8", NULL));
-	gaim_conv_chat_remove_user(GAIM_CONV_CHAT(conv), buf, NULL);
+	G/P_conv_chat_remove_user(G/PU_CONV_CHAT(conv), buf, NULL);
 	free(buf);
     }
 }
@@ -178,25 +177,25 @@ static void logincb(int err, wchar_t *reason, struct conndata *data)
     if(err != DC_LOGIN_ERR_SUCCESS) {
 	dc_disconnect();
 	disconnected(data);
-	gaim_connection_error(data->gc, "Invalid login");
+	G/P_connection_error(data->gc, "Invalid login");
 	return;
     }
-    gaim_connection_set_state(data->gc, GAIM_CONNECTED);
+    G/P_connection_set_state(data->gc, G/PU_CONNECTED);
     dc_queuecmd(NULL, NULL, L"notify", L"fn:chat", L"on", L"fn:act", L"on", L"fn:peer", L"on", NULL);
     dc_getfnlistasync((void (*)(int, void *))getfnlistcb, data);
 }
 
-static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
+static void dcfdcb(struct conndata *data, int fd, G/PCInputCondition condition)
 {
     struct dc_response *resp;
     struct dc_intresp *ires;
     struct dc_fnetnode *fn;
-    GaimConversation *conv;
+    G/PCConversation *conv;
     char *peer, *msg;
     
-    if(((condition & GAIM_INPUT_READ) && dc_handleread()) || ((condition & GAIM_INPUT_WRITE) && dc_handlewrite())) {
+    if(((condition & G/PU_INPUT_READ) && dc_handleread()) || ((condition & G/PU_INPUT_WRITE) && dc_handlewrite())) {
 	disconnected(data);
-	gaim_connection_error(data->gc, "Server has disconnected");
+	G/P_connection_error(data->gc, "Server has disconnected");
 	return;
     }
     while((resp = dc_getresp()) != NULL) {
@@ -204,15 +203,15 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
 	    if(resp->code != 201) {
 		dc_disconnect();
 		disconnected(data);
-		gaim_connection_error(data->gc, "Server refused connection");
+		G/P_connection_error(data->gc, "Server refused connection");
 		return;
 	    } else if(dc_checkprotocol(resp, DC_LATEST)) {
 		dc_disconnect();
 		disconnected(data);
-		gaim_connection_error(data->gc, "Server protocol revision mismatch");
+		G/P_connection_error(data->gc, "Server protocol revision mismatch");
 		return;
 	    } else {
-		gaim_connection_update_progress(data->gc, "Authenticating", 2, 3);
+		G/P_connection_update_progress(data->gc, "Authenticating", 2, 3);
 		dc_loginasync(NULL, 1, (int (*)(int, wchar_t *, char **, void *))loginconv, (void (*)(int, wchar_t *, void *))logincb, data);
 	    }
 	} else if(!wcscmp(resp->cmdname, L".notify")) {
@@ -226,18 +225,18 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
 			if(ires->argv[1].val.num)
 			{
 			    /* XXX: Handle different rooms */
-			    if((conv = gaim_find_chat(data->gc, fn->id)) != NULL)
+			    if((conv = G/P_find_chat(data->gc, fn->id)) != NULL)
 			    {
 				peer = icwcstombs(ires->argv[3].val.str, "UTF-8");
 				msg = g_markup_escape_text(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL), -1);
-				serv_got_chat_in(data->gc, gaim_conv_chat_get_id(GAIM_CONV_CHAT(conv)), peer, 0, msg, time(NULL));
+				serv_got_chat_in(data->gc, G/P_conv_chat_get_id(G/PU_CONV_CHAT(conv)), peer, 0, msg, time(NULL));
 				g_free(msg);
 				free(peer);
 			    }
 			} else {
 			    peer = sprintf2("%i:%s", fn->id, icswcstombs(ires->argv[3].val.str, "UTF-8", NULL));
 			    msg = g_markup_escape_text(icswcstombs(ires->argv[4].val.str, "UTF-8", NULL), -1);
-			    if(!gaim_account_get_bool(data->gc->account, "represspm", FALSE) || (gaim_find_conversation_with_account(GAIM_CONV_TYPE_IM, peer, data->gc->account) != NULL))
+			    if(!G/P_account_get_bool(data->gc->account, "represspm", FALSE) || (G/P_find_conversation_with_account(G/PU_CONV_TYPE_IM, peer, data->gc->account) != NULL))
 				serv_got_im(data->gc, peer, msg, 0, time(NULL));
 			    g_free(msg);
 			    free(peer);
@@ -272,7 +271,7 @@ static void dcfdcb(struct conndata *data, int fd, GaimInputCondition condition)
     updatewrite(data);
 }
 
-static int gi_sendchat(GaimConnection *gc, int id, const char *what, GaimMessageFlags flags)
+static int gi_sendchat(G/PCConnection *gc, int id, const char *what, G/PCMessageFlags flags)
 {
     struct conndata *data;
     struct dc_fnetnode *fn;
@@ -290,7 +289,7 @@ static int gi_sendchat(GaimConnection *gc, int id, const char *what, GaimMessage
     return(0);
 }
 
-static int gi_sendim(GaimConnection *gc, const char *who, const char *what, GaimMessageFlags flags)
+static int gi_sendim(G/PCConnection *gc, const char *who, const char *what, G/PCMessageFlags flags)
 {
     struct conndata *data;
     struct dc_fnetnode *fn;
@@ -331,34 +330,34 @@ static int gi_sendim(GaimConnection *gc, const char *who, const char *what, Gaim
     return(1);
 }
 
-static const char *gi_listicon(GaimAccount *a, GaimBuddy *b)
+static const char *gi_listicon(G/PCAccount *a, G/PCBuddy *b)
 {
     return("dolcon");
 }
 
-static char *gi_statustext(GaimBuddy *b)
+static char *gi_statustext(G/PCBuddy *b)
 {
-    GaimPresence *p;
+    G/PCPresence *p;
 
-    p = gaim_buddy_get_presence(b);
-    if (gaim_presence_is_online(p) && !gaim_presence_is_available(p))
+    p = G/P_buddy_get_presence(b);
+    if (G/P_presence_is_online(p) && !G/P_presence_is_available(p))
 	return(g_strdup("Away"));
     return(NULL);
 }
 
-static void gi_tiptext(GaimBuddy *b, GaimNotifyUserInfo *inf, gboolean full)
+static void gi_tiptext(G/PCBuddy *b, G/PCNotifyUserInfo *inf, gboolean full)
 {
     /* Nothing for now */
 }
 
-static GList *gi_statustypes(GaimAccount *act)
+static GList *gi_statustypes(G/PCAccount *act)
 {
     GList *ret;
     
     ret = NULL;
-    ret = g_list_append(ret, gaim_status_type_new(GAIM_STATUS_AVAILABLE, "avail", NULL, TRUE));
-    ret = g_list_append(ret, gaim_status_type_new(GAIM_STATUS_AWAY, "away", NULL, TRUE)); /* Coming up in ADC */
-    ret = g_list_append(ret, gaim_status_type_new(GAIM_STATUS_OFFLINE, "offline", NULL, TRUE));
+    ret = g_list_append(ret, G/P_status_type_new(G/PU_STATUS_AVAILABLE, "avail", NULL, TRUE));
+    ret = g_list_append(ret, G/P_status_type_new(G/PU_STATUS_AWAY, "away", NULL, TRUE)); /* Coming up in ADC */
+    ret = g_list_append(ret, G/P_status_type_new(G/PU_STATUS_OFFLINE, "offline", NULL, TRUE));
     return(ret);
 }
 
@@ -376,42 +375,42 @@ static struct conndata *newconndata(void)
 static void freeconndata(struct conndata *data)
 {
     if(data->roomlist != NULL)
-	gaim_roomlist_unref(data->roomlist);
+	G/P_roomlist_unref(data->roomlist);
     if(inuse == data)
 	inuse = NULL;
     if(data->readhdl != -1)
-	gaim_input_remove(data->readhdl);
+	G/P_input_remove(data->readhdl);
     if(data->writehdl != -1)
-	gaim_input_remove(data->writehdl);
+	G/P_input_remove(data->writehdl);
     if(data->fd >= 0)
 	dc_disconnect();
     free(data);
 }
 
-static void gi_login(GaimAccount *act)
+static void gi_login(G/PCAccount *act)
 {
-    GaimConnection *gc;
+    G/PCConnection *gc;
     struct conndata *data;
     
-    gc = gaim_account_get_connection(act);
+    gc = G/P_account_get_connection(act);
     gc->proto_data = data = newconndata();
     data->gc = gc;
     if(inuse != NULL) {
-	gaim_connection_error(gc, "Dolda Connect library already in use");
+	G/P_connection_error(gc, "Dolda Connect library already in use");
 	return;
     }
-    gaim_connection_update_progress(gc, "Connecting", 1, 3);
-    if((data->fd = dc_connect((char *)gaim_account_get_string(act, "server", "localhost"))) < 0)
+    G/P_connection_update_progress(gc, "Connecting", 1, 3);
+    if((data->fd = dc_connect((char *)G/P_account_get_string(act, "server", "localhost"))) < 0)
     {
-	gaim_connection_error(gc, "Could not connect to server");
+	G/P_connection_error(gc, "Could not connect to server");
 	return;
     }
-    data->readhdl = gaim_input_add(data->fd, GAIM_INPUT_READ, (void (*)(void *, int, GaimInputCondition))dcfdcb, data);
+    data->readhdl = G/P_input_add(data->fd, G/PU_INPUT_READ, (void (*)(void *, int, G/PCInputCondition))dcfdcb, data);
     updatewrite(data);
     inuse = data;
 }
 
-static void gi_close(GaimConnection *gc)
+static void gi_close(G/PCConnection *gc)
 {
     struct conndata *data;
     
@@ -419,57 +418,57 @@ static void gi_close(GaimConnection *gc)
     freeconndata(data);
 }
 
-static GaimRoomlist *gi_getlist(GaimConnection *gc)
+static G/PCRoomlist *gi_getlist(G/PCConnection *gc)
 {
     struct conndata *data;
     GList *fields;
-    GaimRoomlist *rl;
-    GaimRoomlistField *f;
-    GaimRoomlistRoom *r;
+    G/PCRoomlist *rl;
+    G/PCRoomlistField *f;
+    G/PCRoomlistRoom *r;
     struct dc_fnetnode *fn;
     
     data = gc->proto_data;
     if(data->roomlist != NULL)
-	gaim_roomlist_unref(data->roomlist);
-    data->roomlist = rl = gaim_roomlist_new(gaim_connection_get_account(gc));
+	G/P_roomlist_unref(data->roomlist);
+    data->roomlist = rl = G/P_roomlist_new(G/P_connection_get_account(gc));
     fields = NULL;
-    f = gaim_roomlist_field_new(GAIM_ROOMLIST_FIELD_INT, "", "id", TRUE);
+    f = G/P_roomlist_field_new(G/PU_ROOMLIST_FIELD_INT, "", "id", TRUE);
     fields = g_list_append(fields, f);
-    f = gaim_roomlist_field_new(GAIM_ROOMLIST_FIELD_INT, "Users", "users", FALSE);
+    f = G/P_roomlist_field_new(G/PU_ROOMLIST_FIELD_INT, "Users", "users", FALSE);
     fields = g_list_append(fields, f);
-    gaim_roomlist_set_fields(rl, fields);
+    G/P_roomlist_set_fields(rl, fields);
     for(fn = dc_fnetnodes; fn != NULL; fn = fn->next) {
 	if(fn->state != DC_FNN_STATE_EST)
 	    continue;
-	r = gaim_roomlist_room_new(GAIM_ROOMLIST_ROOMTYPE_ROOM, icswcstombs(fn->name, "UTF-8", NULL), NULL);
-	gaim_roomlist_room_add_field(rl, r, GINT_TO_POINTER(fn->id));
-	gaim_roomlist_room_add_field(rl, r, GINT_TO_POINTER(fn->numusers));
-	gaim_roomlist_room_add(rl, r);
+	r = G/P_roomlist_room_new(G/PU_ROOMLIST_ROOMTYPE_ROOM, icswcstombs(fn->name, "UTF-8", NULL), NULL);
+	G/P_roomlist_room_add_field(rl, r, GINT_TO_POINTER(fn->id));
+	G/P_roomlist_room_add_field(rl, r, GINT_TO_POINTER(fn->numusers));
+	G/P_roomlist_room_add(rl, r);
     }
-    gaim_roomlist_set_in_progress(rl, FALSE);
+    G/P_roomlist_set_in_progress(rl, FALSE);
     return(rl);
 }
 
-static void gi_cancelgetlist(GaimRoomlist *rl)
+static void gi_cancelgetlist(G/PCRoomlist *rl)
 {
-    GaimConnection *gc;
+    G/PCConnection *gc;
     struct conndata *data;
     
-    if((gc = gaim_account_get_connection(rl->account)) == NULL)
+    if((gc = G/P_account_get_connection(rl->account)) == NULL)
 	return;
     data = gc->proto_data;
-    gaim_roomlist_set_in_progress(rl, FALSE);
+    G/P_roomlist_set_in_progress(rl, FALSE);
     if(data->roomlist == rl) {
 	data->roomlist = NULL;
-	gaim_roomlist_unref(rl);
+	G/P_roomlist_unref(rl);
     }
 }
 
-static void gi_joinchat(GaimConnection *gc, GHashTable *chatdata)
+static void gi_joinchat(G/PCConnection *gc, GHashTable *chatdata)
 {
     struct conndata *data;
     struct dc_fnetnode *fn;
-    GaimConversation *conv;
+    G/PCConversation *conv;
     struct dc_fnetpeer *peer;
     char *buf;
     GList *ul, *fl, *c;
@@ -478,7 +477,7 @@ static void gi_joinchat(GaimConnection *gc, GHashTable *chatdata)
     data = gc->proto_data;
     if((fn = dc_findfnetnode(GPOINTER_TO_INT(g_hash_table_lookup(chatdata, "id")))) == NULL)
 	return;
-    if(gaim_find_chat(gc, fn->id) != NULL)
+    if(G/P_find_chat(gc, fn->id) != NULL)
 	return;
     conv = serv_got_joined_chat(data->gc, fn->id, icswcstombs(fn->name, "UTF-8", NULL));
     ul = fl = NULL;
@@ -487,19 +486,19 @@ static void gi_joinchat(GaimConnection *gc, GHashTable *chatdata)
 	ul = g_list_append(ul, buf);
 	fl = g_list_append(fl, GINT_TO_POINTER(0));
     }
-    gaim_conv_chat_add_users(GAIM_CONV_CHAT(conv), ul, NULL, fl, FALSE);
+    G/P_conv_chat_add_users(G/PU_CONV_CHAT(conv), ul, NULL, fl, FALSE);
     for(c = ul; c != NULL; c = c->next)
 	free(c->data);
     g_list_free(ul);
     g_list_free(fl);
 }
 
-static char *gi_cbname(GaimConnection *gc, int id, const char *who)
+static char *gi_cbname(G/PCConnection *gc, int id, const char *who)
 {
     return(g_strdup_printf("%i:%s", id, who));
 }
 
-static GaimPluginProtocolInfo protinfo = {
+static G/PCPluginProtocolInfo protinfo = {
     .options 		= OPT_PROTO_PASSWORD_OPTIONAL,
     .icon_spec		= NO_BUDDY_ICONS,
     .list_icon		= gi_listicon,
@@ -516,32 +515,32 @@ static GaimPluginProtocolInfo protinfo = {
     .get_cb_real_name	= gi_cbname,
 };
 
-static GaimPluginInfo info = {
-    .magic		= GAIM_PLUGIN_MAGIC,
-    .major_version	= GAIM_MAJOR_VERSION,
-    .minor_version	= GAIM_MINOR_VERSION,
-    .type		= GAIM_PLUGIN_PROTOCOL,
-    .priority		= GAIM_PRIORITY_DEFAULT,
+static G/PCPluginInfo info = {
+    .magic		= G/PU_PLUGIN_MAGIC,
+    .major_version	= G/PU_MAJOR_VERSION,
+    .minor_version	= G/PU_MINOR_VERSION,
+    .type		= G/PU_PLUGIN_PROTOCOL,
+    .priority		= G/PU_PRIORITY_DEFAULT,
     .id			= "prpl-dolcon",
     .name		= "Dolda Connect",
     .version		= VERSION,
     .summary		= "Dolda Connect chat plugin",
-    .description	= "Allows Gaim to be used as a chat user interface for the Dolda Connect daemon",
+    .description	= "Allows G/PC to be used as a chat user interface for the Dolda Connect daemon",
     .author		= "Fredrik Tolf <fredrik@dolda2000.com>",
     .homepage		= "http://www.dolda2000.com/~fredrik/doldaconnect/",
     .extra_info		= &protinfo
 };
 
-static void init(GaimPlugin *pl)
+static void init(G/PCPlugin *pl)
 {
-    GaimAccountOption *opt;
+    G/PCAccountOption *opt;
     
     dc_init();
-    opt = gaim_account_option_string_new("Server", "server", "");
+    opt = G/P_account_option_string_new("Server", "server", "");
     protinfo.protocol_options = g_list_append(protinfo.protocol_options, opt);
-    opt = gaim_account_option_bool_new("Do not pop up private messages automatically", "represspm", FALSE);
+    opt = G/P_account_option_bool_new("Do not pop up private messages automatically", "represspm", FALSE);
     protinfo.protocol_options = g_list_append(protinfo.protocol_options, opt);
     me = pl;
 }
 
-GAIM_INIT_PLUGIN(dolcon, init, info);
+G/PU_INIT_PLUGIN(dolcon, init, info);
