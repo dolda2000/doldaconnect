@@ -42,7 +42,7 @@ tree:
    client program.
  * A GNOME panel applet for showing the status of current downloads in
    progress.
- * A Gaim chat plugin for chatting in hubs and writing private
+ * A Gaim/Pidgin chat plugin for chatting in hubs and writing private
    messages (only for Gaim 2.0.0 and above).
  * A command-line automatic downloader written in Scheme.
  * A chat logger written in Scheme.
@@ -50,9 +50,9 @@ tree:
 
 The GNOME applet and Gaim  plugin are somewhat experimental. Both work
 fairly  well, but they  do require  special care  during installation,
-since neither GNOME  nor Gaim usually look for  applets/plugins in the
-directories  where Dolda Connect  gets installed  by default.  See the
-files doc/INSTALL.applet and doc/INSTALL.gaim for further details.
+since neither  GNOME nor Gaim/Pidgin usually  look for applets/plugins
+in the directories where Dolda Connect gets installed by default.  See
+the files doc/INSTALL.applet and doc/INSTALL.gaim for further details.
 
 			     Installation
 
@@ -74,5 +74,5 @@ through  the e-mail address  <fredrik@dolda2000.com>. His  homepage is
 
 
 
-This document  was last updated 2007-05-02, reflecting  release 0.4 of
+This document  was last updated 2007-07-18, reflecting  release 0.5 of
 Dolda Connect.
