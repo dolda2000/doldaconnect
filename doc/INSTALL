@@ -54,6 +54,8 @@ use of command-line parameters:
  * --enable-gnomeapplet selects the GNOME panel applet for
    compilation.
  * --enable-gaimplugin selects the Gaim chat plugin for compilation.
+ * --enable-pidginplugin selects the Pidgin chat plugin for
+   compilation.
 
 Gtk2  and  Kerberos  V  support  are  detected  automatically  by  the
 configure script. Make sure to check the output at the end so that all
@@ -69,8 +71,8 @@ configuration   file.   On   most   Linux  distributions,   the   file
 pam.d-doldacond  in   the  contrib  directory  can   be  installed  as
 /etc/pam.d/doldacond and work perfectly.
 
-The GNOME  applet and  GAIM plugin are  marked as experimental  not so
-much  because there is  anything wrong  with them,  but because  it is
+The GNOME applet and GAIM/Pidgin plugin are marked as experimental not
+so much because  there is anything wrong with them,  but because it is
 tricky to  install them. Please see the  seperate `INSTALL.applet' and
 `INSTALL.gaim' files for instructions.
 
@@ -180,5 +182,5 @@ allow you in if not all TTH hashes are calculated.
 
 
 
-This document  was last updated 2007-04-11, reflecting  release 0.3 of
+This document  was last updated 2007-07-18, reflecting  release 0.5 of
 Dolda Connect.
