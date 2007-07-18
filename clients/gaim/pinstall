@@ -1,5 +1,5 @@
 #!/bin/sh
 make install DESTDIR=$PWD/inst
 rm -f $HOME/.purple/plugins/libdolcon-purple.so
-cp inst/usr/local/lib/purple/libdolcon-purple.so $HOME/.purple/plugins
+cp inst/usr/local/lib/purple-2/libdolcon-purple.so $HOME/.purple/plugins
 rm -rf inst
