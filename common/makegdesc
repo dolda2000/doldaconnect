@@ -510,6 +510,7 @@ while(<>)
 if($args{"h"})
 {
     $hfile = IO::File->new($args{"h"}, "w") || die;
+    $hfile->print("GtkWidget *create_" . $options{"prefix"} . "wnd(void);\n");
     printheader $rootwidgets, $hfile;
     $hfile->close();
 }
