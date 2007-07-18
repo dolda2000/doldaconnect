@@ -1,3 +1,7 @@
+Version 0.5:
+
+	* Ported the Gaim plugin to Pidgin
+	
 Version 0.4:
 
 	* Added a GUI configurator (called `dolconf')
