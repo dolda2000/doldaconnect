@@ -20,7 +20,8 @@ dolcon_CPPFLAGS=@GTK2_CFLAGS@ @LIBXML_CFLAGS@ \
 		-DLOCALEDIR=\"$(localedir)\"
 
 .desc.gtk: $(top_srcdir)/common/makegdesc
-	cpp $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< | $(top_srcdir)/common/makegdesc >$@
+	cpp $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $< | $(top_srcdir)/common/makegdesc >$@
 
 mainwnd.desc: ../../config.h
 
