@@ -7,6 +7,7 @@ User-visible features:
 
 Protocol-visible features:
  * Implement full support for TTHL
+ * Implement some encryption for the UI channel (probably TLS)
 
 Enhancements:
  * Implement native HTTP library instead of calling out to wget in
