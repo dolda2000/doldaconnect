@@ -1,4 +1,7 @@
-clients/gtk2/main.c
+clients/gtk2/dolcon.c
+clients/gtk2/hublist.c
+clients/gtk2/hublist-xml.c
+clients/gtk2/hublist-old.c
 clients/gtk2/inpdialog.gtk
 clients/gtk2/mainwnd.gtk
 clients/gtk2/pref.gtk
