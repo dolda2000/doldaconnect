@@ -40,25 +40,16 @@
 #include <sys/time.h>
 #include <pwd.h>
 #include <locale.h>
-#include <libintl.h>
 #include <assert.h>
-
-/* "Programming with libxml2 is like the thrilling embrace of an
- * exotic strangler."
- *    --Me */
-#include <libxml/parser.h>
-#include <libxml/tree.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include "dolcon.h"
+#include "hublist.h"
 #include "progressbar.h"
 
 #define TRHISTSIZE 10
-#define PHO_INIT 0
-#define PHO_DATA 1
-#define PHO_EOF 2
-#define PHO_FINI 3
 
 struct trdata
 {
@@ -90,15 +81,11 @@ struct knownspeed
 
 GtkWidget *inpdialog;
 GtkListStore *fnmodel, *ulmodel, *dlmodel, *reslist;
-int (*pubhubhandler)(int, char *, size_t *) = NULL;
 GtkTreeStore *srchmodel;
 GtkTreeModelFilter *srchmodelfilter;
 GtkTextTagTable *chattags;
 int dcfd = -1, gdkread = -1, gdkwrite = -1;
-int pubhubfd = -1, pubhubtag = -1, filterpubhub = 0;
 int curchat = -1;
-regex_t pubhubfilter;
-pid_t pubhubproc = 0;
 char *pubhubaddr = NULL;
 char *connectas = NULL;
 char *dcserver = NULL;
@@ -112,10 +99,6 @@ int numsizes = 0, numspeeds = 0, ksqueryseq = -1, ksquerytag = -1, lsrestag = -1
 
 void dcfdcallback(gpointer data, gint source, GdkInputCondition condition);
 void srchstatupdate(void);
-
-#define DCCHARSET "windows-1252"
-
-#define _(text) gettext(text)
 
 #include "mainwnd.gtkh"
 #include "inpdialog.gtkh"
@@ -652,12 +635,6 @@ char *inputbox(char *title, char *prompt, char *def, int echo)
     updatewrite();
     return(buf);
 }
-
-int msgbox(int type, int buttons, char *format, ...)
-#if defined(__GNUC__)
-    __attribute__ ((format (printf, 3, 4)))
-#endif
-;
 
 int msgbox(int type, int buttons, char *format, ...)
 {
@@ -1443,371 +1420,29 @@ void setpubhubmodel(GtkTreeModel *model, int sortcol, int numcols, int *cols, ch
     g_object_unref(sortmodel);
 }
 
-xmlNodePtr findnode(xmlNodePtr node, char *name)
-{
-    for(; node != NULL; node = node->next)
-    {
-	if(!strcmp((char *)node->name, name))
-	    break;
-    }
-    return(node);
-}
-
-int pubhubxmlhandler(int op, char *buf, size_t *len)
-{
-    static xmlParserCtxtPtr ctxt = NULL;
-    int i, match;
-    xmlNodePtr dr, r, cr, c, n;
-    int numcols, *cols, sortcol;
-    GType type, *types;
-    char **names, *name, *stype, *attr;
-    GtkListStore *model;
-    GtkTreeIter iter;
-    
-    numcols = 0;
-    names = NULL;
-    types = NULL;
-    switch(op)
-    {
-    case PHO_INIT:
-	break;
-    case PHO_DATA:
-	if(ctxt == NULL) {
-	    ctxt = xmlCreatePushParserCtxt(NULL, NULL, buf, *len, pubhubaddr);
-	    *len = 0;
-	    if(ctxt == NULL)
-		return(1);
-	} else {
-	    xmlParseChunk(ctxt, buf, *len, 0);
-	    *len = 0;
-	}
-	break;
-    case PHO_EOF:
-	if(ctxt == NULL)
-	{
-	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("A hub list could not be read from %s"), pubhubaddr);
-	    break;
-	}
-	xmlParseChunk(ctxt, NULL, 0, 1);
-	if(!ctxt->wellFormed)
-	{
-	    msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("The hub list at %s is not valid"), pubhubaddr);
-	    break;
-	}
-	dr = r = cr = NULL;
-	dr = xmlDocGetRootElement(ctxt->myDoc);
-	if(dr != NULL)
-	    r = findnode(dr->children, "Hubs");
-	if(r != NULL)
-	    cr = findnode(r->children, "Columns");
-	if(cr == NULL)
-	{
-	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("The hub list at %s cannot be understood"), pubhubaddr);
-	    break;
-	}
-	for(c = findnode(cr->children, "Column"); c != NULL; c = findnode(c->next, "Column"))
-	{
-	    name = (char *)xmlGetProp(c, (xmlChar *)"Name");
-	    stype = (char *)xmlGetProp(c, (xmlChar *)"Type");
-	    type = G_TYPE_INVALID;
-	    if(stype != NULL)
-	    {
-		if(!strcmp(stype, "string"))
-		    type = G_TYPE_STRING;
-		else if(!strcmp(stype, "int"))
-		    type = G_TYPE_INT;
-		else if(!strcmp(stype, "bytes"))
-		    type = G_TYPE_INT64;
-	    }
-	    if((name != NULL) && (type != G_TYPE_INVALID))
-	    {
-		names = srealloc(names, (numcols + 1) * sizeof(*names));
-		types = srealloc(types, (numcols + 1) * sizeof(*names));
-		names[numcols] = sstrdup(name);
-		types[numcols] = type;
-		numcols++;
-	    }
-	    if(name != NULL)
-		xmlFree(name);
-	    if(stype != NULL)
-		xmlFree(stype);
-	}
-	if(numcols == 0)
-	{
-	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("The hub list at %s did not contain any columns"), pubhubaddr);
-	    break;
-	}
-	for(i = 0; i < numcols; i++)
-	{
-	    if(!strcmp(names[i], "Address"))
-	    {
-		name = names[0];
-		names[0] = names[i];
-		names[i] = name;
-		type = types[0];
-		types[0] = types[i];
-		types[i] = type;
-		break;
-	    }
-	}
-	if(i == numcols)
-	{
-	    msgbox(GTK_MESSAGE_WARNING, GTK_BUTTONS_OK, _("The hub list at %s did not contain the address to any hubs"), pubhubaddr);
-	    break;
-	}
-	model = gtk_list_store_newv(numcols, types);
-	for(n = findnode(r->children, "Hub"); n != NULL; n = findnode(n->next, "Hub"))
-	{
-	    if(!xmlHasProp(n, (xmlChar *)"Address") || !xmlHasProp(n, (xmlChar *)"Name"))
-		continue;
-	    if(filterpubhub)
-	    {
-		match = 0;
-		attr = (char *)xmlGetProp(n, (xmlChar *)"Name");
-		if(!regexec(&pubhubfilter, attr, 0, NULL, 0))
-		    match = 1;
-		xmlFree(attr);
-		if((attr = (char *)xmlGetProp(n, (xmlChar *)"Description")) != NULL)
-		{
-		    if(!regexec(&pubhubfilter, attr, 0, NULL, 0))
-			match = 1;
-		    xmlFree(attr);
-		}
-		if(!match)
-		    continue;
-	    }
-	    gtk_list_store_append(model, &iter);
-	    for(i = 0; i < numcols; i++)
-	    {
-		attr = (char *)xmlGetProp(n, (xmlChar *)names[i]);
-		if(attr != NULL)
-		{
-		    if(types[i] == G_TYPE_STRING)
-			gtk_list_store_set(model, &iter, i, attr, -1);
-		    else if(types[i] == G_TYPE_INT)
-			gtk_list_store_set(model, &iter, i, atoi(attr), -1);
-		    else if(types[i] == G_TYPE_INT64)
-			gtk_list_store_set(model, &iter, i, strtoll(attr, NULL, 0), -1);
-		    xmlFree(attr);
-		}
-	    }
-	}
-	cols = smalloc((numcols - 1) * sizeof(*cols));
-	for(i = 1; i < numcols; i++)
-	    cols[i - 1] = i;
-	sortcol = 0;
-	for(i = 0; i < numcols; i++)
-	{
-	    if(!strcmp(names[i], "Users"))
-		sortcol = i;
-	}
-	setpubhubmodel(GTK_TREE_MODEL(model), sortcol, numcols - 1, cols, names + 1);
-	free(cols);
-	g_object_unref(model);
-	break;
-    case PHO_FINI:
-	if(ctxt != NULL)
-	{
-	    if(ctxt->myDoc != NULL)
-		xmlFreeDoc(ctxt->myDoc);
-	    xmlFreeParserCtxt(ctxt);
-	    ctxt = NULL;
-	}
-	break;
-    }
-    if(numcols != 0)
-    {
-	for(i = 0; i < numcols; i++)
-	    free(names[i]);
-	free(names);
-	free(types);
-    }
-    return(0);
-}
-
-int pubhuboldhandler(int op, char *buf, size_t *len)
-{
-    static GtkListStore *model = NULL;
-    int i;
-    char *p, *p2;
-    wchar_t *wbuf;
-    char *fields[4], *names[3];
-    int cols[3];
-    GtkTreeIter iter;
-    
-    switch(op)
-    {
-    case PHO_INIT:
-	model = gtk_list_store_new(4, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT);
-	break;
-    case PHO_DATA:
-	while((p = memchr(buf, '\n', *len)) != NULL)
-	{
-	    *(p++) = 0;
-	    for(i = 0, p2 = buf; i < 4; i++) {
-		fields[i] = p2;
-		if((p2 = strchr(p2, '|')) == NULL)
-		    break;
-		*(p2++) = 0;
-	    }
-	    if(i == 4) {
-		for(i = 0; i < 4; i++) {
-		    if((wbuf = icsmbstowcs(fields[i], DCCHARSET, NULL)) == NULL) {
-			fields[i] = sstrdup(_("(Invalid character)"));
-		    } else {
-			if((fields[i] = icwcstombs(wbuf, "UTF-8")) == NULL)
-			    break;
-		    }
-		}
-		if(i == 4) {
-		    if(!filterpubhub || !regexec(&pubhubfilter, fields[0], 0, NULL, 0) || !regexec(&pubhubfilter, fields[2], 0, NULL, 0)) {
-			gtk_list_store_append(model, &iter);
-			gtk_list_store_set(model, &iter, 0, fields[1], 1, fields[0], 2, fields[2], 3, atoi(fields[3]), -1);
-		    }
-		}
-		for(i--; i >= 0; i--)
-		    free(fields[i]);
-	    }
-	    memmove(buf, p, *len -= p - buf);
-	}
-	break;
-    case PHO_EOF:
-	cols[0] = 3; names[0] = _("# users");
-	cols[1] = 1; names[1] = _("Name");
-	cols[2] = 2; names[2] = _("Description");
-	setpubhubmodel(GTK_TREE_MODEL(model), 3, 3, cols, names);
-	break;
-    case PHO_FINI:
-	if(model != NULL)
-	    g_object_unref(model);
-	model = NULL;
-	break;
-    }
-    return(0);
-}
-
-void pubhubfdcallback(gpointer data, gint source, GdkInputCondition condition)
-{
-    static char buf[65536];
-    static size_t bufpos = 0;
-    int ret, reset;
-    
-    if(!(condition & GDK_INPUT_READ))
-	return;
-    if(bufpos == sizeof(buf))
-	bufpos = 0;
-    ret = read(pubhubfd, buf + bufpos, sizeof(buf) - bufpos);
-    reset = 0;
-    if(ret <= 0)
-    {
-	if(ret < 0)
-	    msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not read from public hub listing process: %s"), strerror(errno));
-	else
-	    pubhubhandler(PHO_EOF, NULL, NULL);
-	reset = 1;
-    } else {
-	bufpos += ret;
-	if(pubhubhandler(PHO_DATA, buf, &bufpos))
-	    reset = 1;
-    }
-    if(reset)
-    {
-	pubhubhandler(PHO_FINI, NULL, NULL);
-	pubhubhandler = NULL;
-	gdk_input_remove(pubhubtag);
-	close(pubhubfd);
-	kill(pubhubproc, SIGINT);
-	pubhubfd = pubhubtag = -1;
-	pubhubproc = 0;
-	bufpos = 0;
-	if(filterpubhub)
-	{
-	    regfree(&pubhubfilter);
-	    filterpubhub = 0;
-	}
-    }
-}
-
 void cb_main_pubhubfilter_activate(GtkWidget *widget, gpointer data)
 {
-    int pipe1[2], pipe2[2];
-    int len, err;
-    const char *buf, *p;
+    int err;
+    const char *buf;
     char errbuf[1024];
+    regex_t *filter;
     
-    if(pubhubtag >= 0)
-	gdk_input_remove(pubhubtag);
-    if(pubhubfd >= 0)
-	close(pubhubfd);
-    if(pubhubproc > 0)
-	kill(pubhubproc, SIGINT);
-    if(pubhubhandler != NULL)
-    {
-	pubhubhandler(PHO_FINI, NULL, NULL);
-	pubhubhandler = NULL;
-    }
-    if(filterpubhub)
-    {
-	regfree(&pubhubfilter);
-	filterpubhub = 0;
-    }
     buf = gtk_entry_get_text(GTK_ENTRY(main_pubhubfilter));
     if(*buf)
     {
-	if((err = regcomp(&pubhubfilter, buf, REG_EXTENDED | REG_ICASE | REG_NOSUB)) != 0)
+	filter = smalloc(sizeof(*filter));
+	if((err = regcomp(filter, buf, REG_EXTENDED | REG_ICASE | REG_NOSUB)) != 0)
 	{
-	    regerror(err, &pubhubfilter, errbuf, sizeof(errbuf));
+	    regerror(err, filter, errbuf, sizeof(errbuf));
 	    msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "Could not compile regex: %s", errbuf);
-	    regfree(&pubhubfilter);
-	    filterpubhub = 0;
+	    regfree(filter);
+	    free(filter);
 	    return;
 	}
-	filterpubhub = 1;
-    }
-    pipe(pipe1);
-    if((pubhubproc = fork()) == 0)
-    {
-	dup2(pipe1[1], 1);
-	close(pipe1[0]);
-	close(pipe1[1]);
-	execlp("wget", "wget", "-qO", "-", pubhubaddr, NULL);
-	perror("wget");
-	exit(127);
-    }
-    close(pipe1[1]);
-    pubhubfd = pipe1[0];
-    len = strlen(pubhubaddr);
-    p = pubhubaddr + len;
-    if((len > 4) && !strncmp(p - 4, ".bz2", 4))
-    {
-	p -= 4;
-	len -= 4;
-	pipe(pipe2);
-	if(fork() == 0)
-	{
-	    dup2(pipe1[0], 0);
-	    dup2(pipe2[1], 1);
-	    close(pipe1[0]);
-	    close(pipe2[0]);
-	    close(pipe2[1]);
-	    execlp("bzcat", "bzcat", NULL);
-	    perror("bzcat");
-	    exit(127);
-	}
-	close(pipe1[0]);
-	close(pipe2[1]);
-	pubhubfd = pipe2[0];
-    }
-    if((len > 4) && !strncmp(p - 4, ".xml", 4))
-    {
-	p -= 4;
-	len -= 4;
-	pubhubhandler = pubhubxmlhandler;
     } else {
-	pubhubhandler = pubhuboldhandler;
+	filter = NULL;
     }
-    pubhubhandler(PHO_INIT, NULL, NULL);
-    pubhubtag = gdk_input_add(pubhubfd, GDK_INPUT_READ, pubhubfdcallback, NULL);
+    fetchhublist(pubhubaddr, filter);
 }
 
 void cb_main_dcnctbtn_clicked(GtkWidget *widget, gpointer data)

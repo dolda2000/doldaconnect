@@ -4,6 +4,10 @@ app_DATA=dolcon.desktop
 endif
 
 dolcon_SOURCES=	dolcon.c \
+		hublist.c \
+		hublist.h \
+		hublist-xml.c \
+		hublist-old.c \
 		progressbar.c \
 		progressbar.h
 
