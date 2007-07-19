@@ -120,6 +120,13 @@ do { \
     memcpy((d) + (d ## data), (s), sizeof(*(d)) * __bufcat_size__); \
     (d ## data) += __bufcat_size__; \
 } while (0)
+#define bprintf(b, fmt...) \
+    do { \
+	char *__bprintf_dest__; \
+	__bprintf_dest__ = sprintf2(fmt); \
+	bufcat(b, __bprintf_dest__, strlen(__bprintf_dest__)); \
+	free(__bprintf_dest__); \
+    } while(0)
 
 #define freeparr(parr) _freeparr((void **)(parr))
 #define parrlen(parr) _parrlen((void **)(parr))
