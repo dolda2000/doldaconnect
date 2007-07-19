@@ -8,6 +8,6 @@ clients/gtk2/pref.gtk
 clients/gnome-trans-applet/dolcon-trans-applet.c
 clients/gnome-trans-applet/conduit.c
 clients/gnome-trans-applet/conduit-pipe.c
-config/dolconf.c
-config/dolconf-assistant.gtk
-config/dolconf-wnd.gtk
+config/util/dolconf.c
+config/util/dolconf-assistant.gtk
+config/util/dolconf-wnd.gtk
