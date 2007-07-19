@@ -108,6 +108,7 @@ struct dchub
     char *charset;
     char *nativename;
     char *nativenick;
+    char **supports;
 };
 
 struct dcexppeer
@@ -242,6 +243,24 @@ static int isdchash(struct hash *hash)
 	return(0);
     return(1);
 }
+
+/*
+ * Uncomment when used!
+ 
+static int hubsupports(struct dchub *hub, char *cap)
+{
+    char **p;
+    
+    if(hub->supports == NULL)
+	return(0);
+    for(p = hub->supports; *p != NULL; p++)
+    {
+	if(!strcasecmp(*p, cap))
+	    return(1);
+    }
+    return(0);
+}
+*/
 
 static int supports(struct dcpeer *peer, char *cap)
 {
@@ -1479,6 +1498,36 @@ static void cmd_logedin(struct socket *sk, struct fnetnode *fn, char *cmd, char 
     hubhandleaction(sk, fn, cmd, args);
 }
 
+static void cmd_hubsupports(struct socket *sk, struct fnetnode *fn, char *cmd, char *args)
+{
+    struct dchub *hub;
+    int i;
+    char *p, *p2;
+    char **arr;
+    size_t arrsize, arrdata;
+    
+    hub = fn->data;
+    if(hub->supports != NULL)
+    {
+	for(i = 0; hub->supports[i] != NULL; i++)
+	    free(hub->supports[i]);
+	free(hub->supports);
+    }
+    arr = NULL;
+    arrsize = arrdata = 0;
+    p = args;
+    do
+    {
+	if((p2 = strchr(p, ' ')) != NULL)
+	    *(p2++) = 0;
+	if(*p == 0)
+	    continue;
+	addtobuf(arr, sstrdup(p));
+    } while((p = p2) != NULL);
+    addtobuf(arr, NULL);
+    hub->supports = arr;
+}
+
 static void cmd_mynick(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
     struct dcexppeer *expect;
@@ -2572,6 +2621,7 @@ static struct command hubcmds[] =
     {"$UserCommand", cc(cmd_usercommand)},
     {"$GetPass", cc(cmd_getpass)},
     {"$LogedIn", cc(cmd_logedin)}, /* sic */
+    {"$Supports", cc(cmd_hubsupports)},
     {NULL, NULL}
 };
 
@@ -3085,6 +3135,7 @@ static void hubconnect(struct fnetnode *fn)
 
 static void hubdestroy(struct fnetnode *fn)
 {
+    int i;
     struct dchub *hub;
     struct qcommand *qcmd;
     
@@ -3100,6 +3151,12 @@ static void hubdestroy(struct fnetnode *fn)
 	return;
     while((qcmd = ulqcmd(&hub->queue)) != NULL)
 	freeqcmd(qcmd);
+    if(hub->supports != NULL)
+    {
+	for(i = 0; hub->supports[i] != NULL; i++)
+	    free(hub->supports[i]);
+	free(hub->supports);
+    }
     if(hub->nativename != NULL)
 	free(hub->nativename);
     if(hub->nativenick != NULL)
