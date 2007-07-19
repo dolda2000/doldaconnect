@@ -3546,6 +3546,76 @@ static int shareupdate(unsigned long long uusharesize, void *data)
     return(0);
 }
 
+static char *quotestr(char *str)
+{
+    unsigned char *buf;
+    unsigned char *p;
+    size_t bufsize, bufdata;
+    wchar_t *wbuf;
+    static char *enc = NULL;
+    size_t encsize, encdata;
+    
+    buf = NULL;
+    bufsize = bufdata = 0;
+    for(p = (unsigned char *)str; *p; p++)
+    {
+	if(*p == '\b')
+	    bufcat(buf, "\\b", 2);
+	else if(*p == '\t')
+	    bufcat(buf, "\\t", 2);
+	else if(*p == '\n')
+	    bufcat(buf, "\\n", 2);
+	else if(*p == '\r')
+	    bufcat(buf, "\\r", 2);
+	else if(*p == '\\')
+	    bufcat(buf, "\\\\", 2);
+	else if(*p >= 32)
+	    addtobuf(buf, *p);
+	else
+	    bprintf(buf, "\\x%02x", *p);
+    }
+    addtobuf(buf, 0);
+    if(enc != NULL)
+	free(enc);
+    enc = NULL;
+    if((wbuf = icmbstowcs((char *)buf, DCCHARSET)) != NULL)
+    {
+	enc = icwcstombs(wbuf, NULL);
+	free(wbuf);
+    }
+    if(enc == NULL)
+    {
+	encsize = encdata = 0;
+	for(p = buf; *p; p++) {
+	    if(*p < 128)
+		addtobuf(enc, *p);
+	    else
+		bprintf(buf, "\\x%x", *p);
+	}
+    }
+    free(buf);
+    return(enc);
+}
+
+static void logunimpl(char *cmd, char *args)
+{
+    FILE *log;
+    
+    if((log = fopen("/tmp/dc-unimpl", "a")) == NULL)
+    {
+	flog(LOG_WARNING, "could not open unimpl log: %s", strerror(errno));
+	return;
+    }
+    fputs(quotestr(cmd), log);
+    if(args != NULL)
+    {
+	fputc('\t', log);
+	fputs(quotestr(args), log);
+    }
+    fputc('\n', log);
+    fclose(log);
+}
+
 static void dispatchcommand(struct qcommand *qcmd, struct command *cmdlist, struct socket *sk, void *data)
 {
     char *p;
@@ -3560,10 +3630,8 @@ static void dispatchcommand(struct qcommand *qcmd, struct command *cmdlist, stru
     }
     if(cmd->handler != NULL)
 	cmd->handler(sk, data, qcmd->string, p);
-/*
-    else
-	flog(LOG_DEBUG, "Unimplemented DC command: %s \"%s\"", qcmd->string, p?p:"noargs");
-*/
+    else if(confgetint("dc", "logunimpl"))
+	logunimpl(qcmd->string, p);
 }
 
 static int run(void)
@@ -3735,6 +3803,10 @@ static struct configvar myvars[] =
      * hub owners, though. Note that DC++ emulation can also be turned
      * on or off for individual hubs, overriding this setting. */
     {CONF_VAR_BOOL, "dcppemu", {.num = 0}},
+    /** Use for debugging. If set to true, doldacond will log all
+     * unknown commands it receives, and their arguments, to
+     * /tmp/dc-unimpl. */
+    {CONF_VAR_BOOL, "logunimpl", {.num = 0}},
     {CONF_VAR_END}
 };
 
