@@ -6,6 +6,7 @@ Makefile.in
 .deps
 .libs
 *.gtk
+*.gtkh
 
 /m4
 /configure

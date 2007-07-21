@@ -1,5 +1,10 @@
 #!/usr/bin/perl
 
+use Getopt::Long;
+use IO::File;
+
+GetOptions(\%args, "h=s") || exit 1;
+
 $tempvar = 0;
 
 sub printwidgets
@@ -423,6 +428,20 @@ sub printwidgets
     }
 }
 
+sub printheader
+{
+    my($widget, $handle);
+    $handle = $_[1];
+    foreach $widget (@{$_[0]})
+    {
+	if($widget->{"var"})
+	{
+	    $handle->print("extern GtkWidget *" . $options{"prefix"} . $widget->{"name"} .";\n");
+	}
+	printheader($widget->{"subwidgets"}, $handle) if($widget->{"subwidgets"});
+    }
+}
+
 sub printvars
 {
     my($widget);
@@ -486,6 +505,14 @@ while(<>)
     } else {
 	print STDERR "Invalid construct: $_\n";
     }
+}
+
+if($args{"h"})
+{
+    $hfile = IO::File->new($args{"h"}, "w") || die;
+    $hfile->print("GtkWidget *create_" . $options{"prefix"} . "wnd(void);\n");
+    printheader $rootwidgets, $hfile;
+    $hfile->close();
 }
 
 printvars $rootwidgets;
