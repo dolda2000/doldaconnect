@@ -13,7 +13,7 @@ libdolcon_purple_la_SOURCES = purple-dolcon.c
 
 BUILT_SOURCES = gaim-dolcon.c purple-dolcon.c
 
-EXTRA_DIST = mksrc
+EXTRA_DIST = mksrc gp-dolcon.c
 
 gaim-dolcon.c purple-dolcon.c: gp-dolcon.c
 	target="$@"; \
