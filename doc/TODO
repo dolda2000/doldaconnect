@@ -20,8 +20,6 @@ Documentation:
  * Document the API.
 
 Code cleanups:
- * Clean up the clients/gtk2/main.c file and split it into multiple
-   files
  * Clean up local variables in the library.
 
 Other: See output of "grep -r XXX ."
