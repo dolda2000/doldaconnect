@@ -3654,7 +3654,7 @@ static char *quotestr(char *str)
     return(enc);
 }
 
-static void logunimpl(char *cmd, char *args)
+static void logunimpl(char *list, char *cmd, char *args)
 {
     FILE *log;
     
@@ -3663,6 +3663,8 @@ static void logunimpl(char *cmd, char *args)
 	flog(LOG_WARNING, "could not open unimpl log: %s", strerror(errno));
 	return;
     }
+    fputs(list, log);
+    fputc('\t', log);
     fputs(quotestr(cmd), log);
     if(args != NULL)
     {
@@ -3686,9 +3688,16 @@ static void dispatchcommand(struct qcommand *qcmd, struct command *cmdlist, stru
 	    break;
     }
     if(cmd->handler != NULL)
+    {
 	cmd->handler(sk, data, qcmd->string, p);
-    else if(confgetint("dc", "logunimpl"))
-	logunimpl(qcmd->string, p);
+    } else if(confgetint("dc", "logunimpl")) {
+	if(cmdlist == hubcmds)
+	    logunimpl("hub", qcmd->string, p);
+	else if(cmdlist == peercmds)
+	    logunimpl("peer", qcmd->string, p);
+	else
+	    logunimpl("other?!", qcmd->string, p);
+    }
 }
 
 static int run(void)
