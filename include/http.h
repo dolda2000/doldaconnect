@@ -27,6 +27,7 @@ struct hturlinfo {
     int port;
     char *path;
     char *query;
+    char *fragment;
 };
 
 struct htconn {

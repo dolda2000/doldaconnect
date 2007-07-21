@@ -38,6 +38,7 @@ void freeurl(struct hturlinfo *ui)
     free(ui->host);
     free(ui->path);
     free(ui->query);
+    free(ui->fragment);
     free(ui);
 }
 
@@ -70,7 +71,15 @@ struct hturlinfo *parseurl(char *url)
     if(p2 == NULL) {
 	ui->query = sstrdup("");
     } else {
-	ui->query = sstrdup(p2);
+	p = p2;
+	if((p2 = strchr(p, '#')) != NULL)
+	    *(p2++) = 0;
+	ui->query = sstrdup(p);
+    }
+    if(p2 == NULL) {
+	ui->fragment = sstrdup("");
+    } else {
+	ui->fragment = sstrdup(p2);
     }
     return(ui);
 }
@@ -84,6 +93,7 @@ static struct hturlinfo *dupurl(struct hturlinfo *ui)
     new->port = ui->port;
     new->path = sstrdup(ui->path);
     new->query = sstrdup(ui->query);
+    new->fragment = sstrdup(ui->fragment);
     return(new);
 }
 
