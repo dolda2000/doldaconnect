@@ -17,7 +17,7 @@ baseconv_LDADD=$(top_srcdir)/common/libcommon.a
 
 dolconf.c: dolconf-assistant.desc dolconf-wnd.desc
 localedir=$(datadir)/locale
-dolconf_LDFLAGS=	@GTK2_LDADD@
+dolconf_LDFLAGS=	@GTK2_LIBS@
 dolconf_CPPFLAGS=	@GTK2_CFLAGS@ \
 			-DLOCALEDIR=\"$(localedir)\"
 dolconf_LDADD=		$(top_srcdir)/common/libcommon.a $(top_srcdir)/lib/libdcui.la

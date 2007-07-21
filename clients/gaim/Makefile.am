@@ -20,9 +20,9 @@ gaim-dolcon.c purple-dolcon.c: gp-dolcon.c
 	basename="$${target%-dolcon.c}"; \
 	./mksrc "$$basename" <$< >$@
 
-libdolcon_gaim_la_LDFLAGS=-module -avoid-version $(shell pkg-config --libs gaim glib)
+libdolcon_gaim_la_LDFLAGS=-module -avoid-version @GAIM_LIBS@
 libdolcon_gaim_la_LIBADD=$(top_srcdir)/lib/libdcui.la
-libdolcon_gaim_la_CPPFLAGS=$(shell pkg-config --cflags gaim glib) -DGAIM_PLUGINS
-libdolcon_purple_la_LDFLAGS=-module -avoid-version $(shell pkg-config --libs purple glib)
+libdolcon_gaim_la_CPPFLAGS=@GAIM_CFLAGS@ -DGAIM_PLUGINS
+libdolcon_purple_la_LDFLAGS=-module -avoid-version @PURPLE_LIBS@
 libdolcon_purple_la_LIBADD=$(top_srcdir)/lib/libdcui.la
-libdolcon_purple_la_CPPFLAGS=$(shell pkg-config --cflags purple glib) -DPURPLE_PLUGINS
+libdolcon_purple_la_CPPFLAGS=@PURPLE_CFLAGS@ -DPURPLE_PLUGINS

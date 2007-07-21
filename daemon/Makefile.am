@@ -24,8 +24,7 @@ doldacond_SOURCES=	main.c \
 			conf.c \
 			conf.h
 
-AM_CPPFLAGS=-I$(top_srcdir)/include -DDAEMON
-
 EXTRA_DIST=emacs-local
 doldacond_LDADD=$(top_srcdir)/common/libcommon.a \
-		@KRB5_LDADD@ -lbz2 -lz
+		@KRB5_LIBS@ -lbz2 -lz
+doldacond_CPPFLAGS=-I$(top_srcdir)/include -DDAEMON @KRB5_CFLAGS@
