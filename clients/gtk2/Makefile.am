@@ -4,6 +4,7 @@ app_DATA=dolcon.desktop
 endif
 
 dolcon_SOURCES=	dolcon.c \
+		dolcon.h \
 		hublist.c \
 		hublist.h \
 		hublist-xml.c \
