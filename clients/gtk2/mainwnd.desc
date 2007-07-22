@@ -59,6 +59,10 @@ end
 								$tvcol title: "Description" text: 2 sortcol: 2 resizable: TRUE
 							end
 						end
+						:hbox name: pubhubbarbox var: y noshow: y
+							$pbar name: pubhubbar var: y expand: TRUE fill: TRUE
+							$sbtn stock: CANCEL name: pubhubabort sig: clicked
+						end
 						:table rows: 2 cols: 3 fill: TRUE
 							$mlbl label: "_Filter:" tx: 0 ty: 0 mwidget: pubhubfilter
 							$text name: pubhubfilter var: y expand: y fill: y sig: activate tx: 1 ty: 0

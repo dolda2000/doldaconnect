@@ -48,6 +48,8 @@ static bz_stream *bzs;
 static char *mybuf;
 static size_t mybufsize, mybufdata;
 
+#include "mainwnd.gtkh"
+
 void aborthublist(void)
 {
     if(mybuf != NULL) {
@@ -56,6 +58,7 @@ void aborthublist(void)
 	mybufsize = mybufdata = 0;
     }
     if(hc != NULL) {
+	gtk_widget_hide(main_pubhubbarbox);
 	if(itag != -1)
 	    gdk_input_remove(itag);
 	if(otag != -1)
@@ -121,9 +124,16 @@ static void fdcb(gpointer data, gint source, GdkInputCondition cond)
 		return;
 	    }
 	    state = 1;
+	    gtk_progress_bar_set_text(GTK_PROGRESS_BAR(main_pubhubbar), _("Getting list..."));
 	}
     }
     if(state == 1) {
+	if(hc->tlen > 0) {
+	    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(main_pubhubbar), ((double)hc->rxd) / ((double)hc->tlen));
+	} else {
+	    gtk_progress_bar_set_pulse_step(GTK_PROGRESS_BAR(main_pubhubbar), ((double)hc->databufdata) / 10000.0);
+	    gtk_progress_bar_pulse(GTK_PROGRESS_BAR(main_pubhubbar));
+	}
 	if(hc->databufdata > 0) {
 	    if(bzs == NULL) {
 		bufcat(mybuf, hc->databuf, hc->databufdata);
@@ -155,6 +165,9 @@ static void fdcb(gpointer data, gint source, GdkInputCondition cond)
 		memmove(mybuf, mybuf + hret, mybufdata -= hret);
 	}
 	if(ret) {
+	    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(main_pubhubbar), 1);
+	    gtk_progress_bar_set_text(GTK_PROGRESS_BAR(main_pubhubbar), _("Finalizing list..."));
+	    gdk_window_process_updates(main_pubhubbar->window, FALSE);
 	    handler(PHO_EOF, NULL, 0);
 	    aborthublist();
 	}
@@ -184,6 +197,10 @@ void fetchhublist(char *url, regex_t *flt)
     freeurl(u);
     state = 0;
     settags();
+    gtk_widget_show(main_pubhubbarbox);
+    gtk_progress_bar_set_text(GTK_PROGRESS_BAR(main_pubhubbar), _("Connecting..."));
+    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(main_pubhubbar), 0);
+    gdk_window_process_updates(main_pubhubbarbox->window, TRUE);
 
     len = strlen(url);
     p = url + len;

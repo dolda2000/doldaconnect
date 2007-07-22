@@ -27,6 +27,7 @@
 #define PHO_EOF 2
 #define PHO_FINI 3
 
+void aborthublist(void);
 int validhub(char *field, ...);
 void fetchhublist(char *url, regex_t *flt);
 

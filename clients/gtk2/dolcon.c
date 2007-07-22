@@ -1445,6 +1445,11 @@ void cb_main_pubhubfilter_activate(GtkWidget *widget, gpointer data)
     fetchhublist(pubhubaddr, filter);
 }
 
+void cb_main_pubhubabort_clicked(GtkWidget *widget, gpointer data)
+{
+    aborthublist();
+}
+
 void cb_main_dcnctbtn_clicked(GtkWidget *widget, gpointer data)
 {
     GtkTreeIter iter;
