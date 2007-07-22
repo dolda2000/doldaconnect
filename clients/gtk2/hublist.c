@@ -196,6 +196,10 @@ void fetchhublist(char *url, regex_t *flt)
     u = parseurl(url);
     hc = htconnect(u);
     freeurl(u);
+    if(hc == NULL) {
+	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not read hublist from server: %s"), strerror(errno));
+	return;
+    }
     state = 0;
     settags();
     gtk_widget_show(main_pubhubbarbox);
