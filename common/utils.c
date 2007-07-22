@@ -801,6 +801,51 @@ char *findfile(char *name, char *homedir, int filldef)
     }
 }
 
+struct strpair *newstrpair(char *key, char *val, struct strpair **list)
+{
+    struct strpair *pair;
+    
+    pair = smalloc(sizeof(*pair));
+    memset(pair, 0, sizeof(*pair));
+    if(key != NULL)
+	pair->key = sstrdup(key);
+    if(val != NULL)
+	pair->val = sstrdup(val);
+    if(list != NULL)
+    {
+	pair->next = *list;
+	*list = pair;
+    }
+    return(pair);
+}
+
+void freestrpair(struct strpair *pair, struct strpair **list)
+{
+    struct strpair *cur;
+    
+    for(cur = *list; cur != NULL; list = &(cur->next), cur = cur->next)
+    {
+	if(cur == pair)
+	{
+	    *list = cur->next;
+	    break;
+	}
+    }
+    free(pair->key);
+    free(pair->val);
+    free(pair);
+}
+
+char *spfind(struct strpair *list, char *key)
+{
+    for(; list != NULL; list = list->next)
+    {
+	if(!strcmp(list->key, key))
+	    return(list->val);
+    }
+    return(NULL);
+}
+
 struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list)
 {
     struct wcspair *pair;
@@ -811,10 +856,8 @@ struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list)
 	pair->key = swcsdup(key);
     if(val != NULL)
 	pair->val = swcsdup(val);
-    if(list == NULL)
+    if(list != NULL)
     {
-	pair->next = NULL;
-    } else {
 	pair->next = *list;
 	*list = pair;
     }

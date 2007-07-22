@@ -31,6 +31,11 @@ struct wcspair {
     wchar_t *val;
 };
 
+struct strpair {
+    struct strpair *next;
+    char *key;
+    char *val;
+};
 
 /* "Safe" functions */
 #ifdef DAEMON
@@ -101,6 +106,9 @@ char *base32decode(char *data, size_t *datalen);
 void _freeparr(void **arr);
 int _parrlen(void **arr);
 char *findfile(char *name, char *homedir, int filldef);
+struct strpair *newstrpair(char *key, char *val, struct strpair **list);
+void freestrpair(struct strpair *pair, struct strpair **list);
+char *spfind(struct strpair *list, char *key);
 struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list);
 void freewcspair(struct wcspair *pair, struct wcspair **list);
 wchar_t *wpfind(struct wcspair *list, wchar_t *key);
