@@ -163,6 +163,8 @@ int htpollflags(struct htconn *cn)
 {
     int ret;
     
+    if(cn->fd == -1)
+	return(0);
     ret = POLLIN;
     if((cn->state == STATE_SYN) || (cn->outbufdata > 0))
 	ret |= POLLOUT;
