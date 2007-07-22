@@ -20,7 +20,7 @@ main.c: mainwnd.gtk inpdialog.gtk pref.gtk reslist.gtk
 
 localedir=$(datadir)/locale
 dolcon_LDFLAGS=	@GTK2_LIBS@ @LIBXML_LIBS@
-dolcon_LDADD=$(top_srcdir)/lib/libdcui.la
+dolcon_LDADD=$(top_srcdir)/lib/libdcui.la $(top_srcdir)/common/libhttp.a
 dolcon_CPPFLAGS=@GTK2_CFLAGS@ @LIBXML_CFLAGS@ \
 		-DLOCALEDIR=\"$(localedir)\"
 

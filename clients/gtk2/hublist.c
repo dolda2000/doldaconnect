@@ -25,31 +25,48 @@
 #include <string.h>
 #include <stdarg.h>
 #include <gtk/gtk.h>
+#include <bzlib.h>
 #include <errno.h>
+#include <sys/poll.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include "dolcon.h"
 #include "hublist.h"
+#include <http.h>
+
+static void settags(void);
 
 static regex_t *filter = NULL;
-static pid_t fetchpid = 0;
-static int listfd = -1;
-static int iotag = -1;
+static int itag = -1, otag = -1;
 static int (*handler)(int, char *, size_t) = NULL;
-static char readbuf[65536];
-static off_t bufpos = 0;
+static int state;
+static struct htconn *hc;
+static bz_stream *bzs;
+/* Only needed because of bzlib: */
+static char *mybuf;
+static size_t mybufsize, mybufdata;
 
 void aborthublist(void)
 {
-    if(fetchpid > 0) {
-	gdk_input_remove(iotag);
-	iotag = -1;
-	close(listfd);
-	listfd = -1;
-	kill(fetchpid, SIGINT);
-	fetchpid = 0;
+    if(mybuf != NULL) {
+	free(mybuf);
+	mybuf = NULL;
+	mybufsize = mybufdata = 0;
+    }
+    if(hc != NULL) {
+	if(itag != -1)
+	    gdk_input_remove(itag);
+	if(otag != -1)
+	    gdk_input_remove(otag);
+	itag = otag = -1;
+	freehtconn(hc);
+	hc = NULL;
+	if(bzs != NULL) {
+	    BZ2_bzDecompressEnd(bzs);
+	    free(bzs);
+	}
 	if(filter != NULL) {
 	    regfree(filter);
 	    free(filter);
@@ -81,68 +98,106 @@ int validhub(char *field, ...)
     return(match);
 }
 
-static void readcb(gpointer data, gint source, GdkInputCondition cond)
+static void fdcb(gpointer data, gint source, GdkInputCondition cond)
 {
-    int ret;
+    int ret, bzret, hret;
     
-    if(!(cond & GDK_INPUT_READ))
-	return;
-    if(bufpos == sizeof(readbuf))
-	bufpos = 0;
-    ret = read(listfd, readbuf + bufpos, sizeof(readbuf) - bufpos);
-    if(ret <= 0) {
-	if(ret < 0)
-	    msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not read from public hub listing process: %s"), strerror(errno));
-	else
-	    handler(PHO_EOF, NULL, 0);
+    if(itag != -1)
+	gdk_input_remove(itag);
+    if(otag != -1)
+	gdk_input_remove(otag);
+    itag = otag = -1;
+    ret = htprocess(hc, ((cond & GDK_INPUT_READ)?POLLIN:0) | ((cond & GDK_INPUT_WRITE)?POLLOUT:0));
+    if(ret < 0) {
+	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not read hublist from server: %s"), strerror(errno));
 	aborthublist();
-    } else {
-	bufpos += ret;
-	if((ret = handler(PHO_DATA, readbuf, (size_t)bufpos)) < 0)
-	    aborthublist();
-	else
-	    memmove(readbuf, readbuf + ret, bufpos -= ret);
+	return;
     }
+    if(state == 0) {
+	if(hc->rescode != 0) {
+	    if(hc->rescode != 200) {
+		msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("The hublist server returned an error: \"%i %s\""), hc->rescode, hc->resstr);
+		aborthublist();
+		return;
+	    }
+	    state = 1;
+	}
+    }
+    if(state == 1) {
+	if(hc->databufdata > 0) {
+	    if(bzs == NULL) {
+		bufcat(mybuf, hc->databuf, hc->databufdata);
+		hc->databufdata = 0;
+	    } else {
+		bzs->next_in = hc->databuf;
+		bzs->avail_in = hc->databufdata;
+		do {
+		    sizebuf2(mybuf, mybufdata + 1024, 1);
+		    bzs->next_out = mybuf + mybufdata;
+		    bzs->avail_out = mybufsize - mybufdata;
+		    bzret = BZ2_bzDecompress(bzs);
+		    if((bzret != BZ_OK) && (bzret != BZ_STREAM_END)) {
+			msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not decompress hublist (%i)"), hret);
+			aborthublist();
+			return;
+		    }
+		    mybufdata = mybufsize - bzs->avail_out;
+		    if(bzret == BZ_STREAM_END) {
+			ret = 1;
+			break;
+		    }
+		} while(bzs->avail_out == 0);
+		memmove(hc->databuf, bzs->next_in, hc->databufdata -= (bzs->next_in - hc->databuf));
+	    }
+	    if((hret = handler(PHO_DATA, mybuf, mybufdata)) < 0)
+		aborthublist();
+	    else
+		memmove(mybuf, mybuf + hret, mybufdata -= hret);
+	}
+	if(ret) {
+	    handler(PHO_EOF, NULL, 0);
+	    aborthublist();
+	}
+    }
+    if(hc != NULL)
+	settags();
+}
+
+static void settags(void)
+{
+    if(htpollflags(hc) & POLLIN)
+	itag = gdk_input_add(hc->fd, GDK_INPUT_READ, fdcb, NULL);
+    if(htpollflags(hc) & POLLOUT)
+	otag = gdk_input_add(hc->fd, GDK_INPUT_WRITE, fdcb, NULL);
 }
 
 void fetchhublist(char *url, regex_t *flt)
 {
-    int pfd[2];
     int len;
     char *p;
+    struct hturlinfo *u;
     
     aborthublist();
     filter = flt;
-    pipe(pfd);
-    if((fetchpid = fork()) == 0) {
-	dup2(pfd[1], 1);
-	close(pfd[0]);
-	close(pfd[1]);
-	execlp("wget", "wget", "-qO", "-", url, NULL);
-	perror("wget");
-	exit(127);
-    }
-    close(pfd[1]);
-    listfd = pfd[0];
+    u = parseurl(url);
+    hc = htconnect(u);
+    freeurl(u);
+    state = 0;
+    settags();
+
     len = strlen(url);
     p = url + len;
     if((len > 4) && !strncmp(p - 4, ".bz2", 4)) {
 	p -= 4;
 	len -= 4;
-	pipe(pfd);
-	if(fork() == 0) {
-	    dup2(listfd, 0);
-	    dup2(pfd[1], 1);
-	    close(listfd);
-	    close(pfd[0]);
-	    close(pfd[1]);
-	    execlp("bzcat", "bzcat", NULL);
-	    perror("bzcat");
-	    exit(127);
+	bzs = memset(smalloc(sizeof(*bzs)), 0, sizeof(*bzs));
+	if(BZ2_bzDecompressInit(bzs, 0, 0) != BZ_OK) {
+	    msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not initialize decompression library"));
+	    free(bzs);
+	    bzs = NULL;
+	    aborthublist();
+	    return;
 	}
-	close(listfd);
-	close(pfd[1]);
-	listfd = pfd[0];
     }
     if((len > 4) && !strncmp(p - 4, ".xml", 4)) {
 	p -= 4;
@@ -151,7 +206,5 @@ void fetchhublist(char *url, regex_t *flt)
     } else {
 	handler = pubhuboldhandler;
     }
-    bufpos = 0;
     handler(PHO_INIT, NULL, 0);
-    iotag = gdk_input_add(listfd, GDK_INPUT_READ, readcb, NULL);
 }
