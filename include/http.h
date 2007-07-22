@@ -22,6 +22,8 @@
 
 #include <netdb.h>
 
+#include "utils.h"
+
 struct hturlinfo {
     char *host;
     int port;
@@ -34,10 +36,15 @@ struct htconn {
     int state;
     int fd;
     struct addrinfo *ailist, *curai;
-    char *outbuf, *inbuf;
+    char *outbuf, *inbuf, *databuf;
     size_t outbufsize, outbufdata;
     size_t inbufsize, inbufdata;
+    size_t databufsize, databufdata;
     struct hturlinfo *url;
+    int rescode;
+    char *resstr;
+    struct strpair *headers;
+    ssize_t tlen, rxd, chl;
 };
 
 struct htcookie {
@@ -47,7 +54,9 @@ struct htcookie {
 
 struct hturlinfo *parseurl(char *url);
 void freeurl(struct hturlinfo *ui);
+void freehtconn(struct htconn *cn);
 struct htconn *htconnect(struct hturlinfo *ui);
 int htpollflags(struct htconn *hc);
+int htprocess(struct htconn *hc, int pollflags);
 
 #endif
