@@ -69,6 +69,7 @@ void aborthublist(void)
 	if(bzs != NULL) {
 	    BZ2_bzDecompressEnd(bzs);
 	    free(bzs);
+	    bzs = NULL;
 	}
 	if(filter != NULL) {
 	    regfree(filter);
