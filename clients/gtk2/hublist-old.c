@@ -45,10 +45,10 @@ int pubhuboldhandler(int op, char *buf, size_t len)
 	break;
     case PHO_DATA:
 	p = buf;
-	while((p = memchr(p, '\n', len)) != NULL)
+	while((p = memchr((p2 = p), '\n', len - (p - buf))) != NULL)
 	{
 	    *(p++) = 0;
-	    for(i = 0, p2 = buf; i < 4; i++) {
+	    for(i = 0; i < 4; i++) {
 		fields[i] = p2;
 		if((p2 = strchr(p2, '|')) == NULL)
 		    break;
@@ -73,7 +73,7 @@ int pubhuboldhandler(int op, char *buf, size_t len)
 		    free(fields[i]);
 	    }
 	}
-	return(p - buf);
+	return(p2 - buf);
 	break;
     case PHO_EOF:
 	cols[0] = 3; names[0] = _("# users");
