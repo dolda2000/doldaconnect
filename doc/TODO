@@ -10,10 +10,8 @@ Protocol-visible features:
  * Implement some encryption for the UI channel (probably TLS)
 
 Enhancements:
- * Implement native HTTP library instead of calling out to wget in
-   dolcon (initial work in the `httplib' Git branch)
- * Alternatively, find some good external HTTP library (Curl seems to
-   be hard to use with Gtk)
+ * Maybe find some external HTTP library which is better than the
+   internal httplib.
 
 Documentation:
  * Document the protocol (initial work in the `protodoc' Git branch)
