@@ -1,6 +1,6 @@
 /*
  *  Dolda Connect - Modular multiuser Direct Connect-style client
- *  Copyright (C) 2007 Fredrik Tolf (fredrik@dolda2000.com)
+ *  Copyright (C) 2007 Fredrik Tolf <fredrik@dolda2000.com>
  *  
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
