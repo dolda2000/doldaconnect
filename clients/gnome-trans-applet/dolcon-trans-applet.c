@@ -59,7 +59,7 @@ static void cancel_transfer(BonoboUIComponent *uic, struct appletdata *data, con
 static BonoboUIVerb ctxtmenuverbs[] =
 {
     BONOBO_UI_VERB("dca_pref", run_pref_dialog),
-    BONOBO_UI_VERB("dca_cancel", cancel_transfer),
+    BONOBO_UI_VERB("dca_cancel", (void (*)(BonoboUIComponent*, gpointer, const char *))cancel_transfer),
     BONOBO_UI_VERB_END
 };
 
@@ -75,8 +75,10 @@ static gboolean updatetip(struct appletdata *data)
     time_t now;
     char buf[256];
     
-    if(data->curdisplay == NULL)
+    if(data->curdisplay == NULL) {
+	gtk_tooltips_set_tip(data->tips, GTK_WIDGET(data->applet), _("No transfer selected"), NULL);
 	return(TRUE);
+    }
     now = time(NULL);
     if(data->curdisplay->cmptime == 0)
     {

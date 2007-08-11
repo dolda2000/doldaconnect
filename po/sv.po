@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2007-07-22 06:35+0200\n"
+"POT-Creation-Date: 2007-08-11 18:27+0200\n"
 "PO-Revision-Date: 2007-07-22 06:38+0200\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -120,8 +120,8 @@ msgstr ""
 "\n"
 "%s"
 
-#: clients/gtk2/dolcon.c:1320 clients/gtk2/hublist.c:202
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:111
+#: clients/gtk2/dolcon.c:1320 clients/gtk2/hublist.c:206
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:113
 msgid "Connecting..."
 msgstr "Ansluter..."
 
@@ -225,7 +225,7 @@ msgstr "Redo att söka"
 msgid "Search scheduled and will be submitted in %i seconds"
 msgstr "Sökningen är schemalagd och kommer genomföras om %i sekunder"
 
-#: clients/gtk2/hublist.c:116
+#: clients/gtk2/hublist.c:116 clients/gtk2/hublist.c:200
 #, c-format
 msgid "Could not read hublist from server: %s"
 msgstr "Kunde inte läsa den publika hublistan från servern: %s"
@@ -248,7 +248,7 @@ msgstr "Kunde inte packa upp hubblista (%i)"
 msgid "Finalizing list..."
 msgstr "Färdigställer listan..."
 
-#: clients/gtk2/hublist.c:213
+#: clients/gtk2/hublist.c:217
 msgid "Could not initialize decompression library"
 msgstr "Kunde inte initiera dekompressionsbiblioteket"
 
@@ -506,32 +506,33 @@ msgstr "Dolda Connect-_server:"
 msgid "Connect _automatically on startup"
 msgstr "Anslut au_tomatiskt vid uppstart"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:83
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:79
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:125
+msgid "No transfer selected"
+msgstr "Ingen överföring vald"
+
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:85
 msgid "Calculating remaining time..."
 msgstr "Beräknar återstående tid..."
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:89
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:91
 msgid "Time left: Infinite (Transfer is standing still)"
 msgstr "Tid kvar: Oändlig (Överföringen står still)"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:92
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:94
 #, c-format
 msgid "Time left: %i:%02i"
 msgstr "Tid kvar: %i:%02i"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:107
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:109
 msgid "Not connected"
 msgstr "Ej ansluten"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:119
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:121
 msgid "No transfers to display"
 msgstr "Inga överföringar"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:123
-msgid "No transfer selected"
-msgstr "Ingen överföring vald"
-
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:132
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:134
 msgid "Initializing"
 msgstr "Förbereder"
 
