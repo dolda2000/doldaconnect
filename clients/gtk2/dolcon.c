@@ -2200,6 +2200,8 @@ void initchattags(void)
     gtk_text_tag_table_add(chattags, tag);
 }
 
+#include "../dolda-icon.xpm"
+
 int main(int argc, char **argv)
 {
     GtkWidget *wnd;
@@ -2221,6 +2223,7 @@ int main(int argc, char **argv)
 	exit(1);
     }
     connectas = sstrdup(pwent->pw_name);
+    gtk_window_set_default_icon(gdk_pixbuf_new_from_xpm_data(dolda_icon_xpm));
     wnd = create_main_wnd();
     create_reslist_wnd();
     gtk_window_resize(GTK_WINDOW(reslist_wnd), 600, 400);
