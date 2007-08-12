@@ -34,8 +34,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <ucontext.h>
-#include <security/pam_appl.h>
 #include <errno.h>
 
 #ifdef HAVE_CONFIG_H
@@ -45,6 +43,11 @@
 #include "utils.h"
 #include "conf.h"
 #include "log.h"
+#include "module.h"
+
+#ifdef HAVE_PAM
+#include <ucontext.h>
+#include <security/pam_appl.h>
 
 struct pamdata
 {
@@ -321,7 +324,7 @@ static int closesess(struct authhandle *auth)
     return(rc);
 }
 
-struct authmech authmech_pam =
+static struct authmech authmech_pam =
 {
     .inithandle = inithandle,
     .release = release,
@@ -332,3 +335,31 @@ struct authmech authmech_pam =
     .name = L"pam",
     .enabled = 1
 };
+
+static int init(int hup)
+{
+    if(!hup)
+	regmech(&authmech_pam);
+    return(0);
+}
+
+static struct configvar myvars[] =
+{
+    /** The name of the PAM service file to use. */
+    {CONF_VAR_STRING, "pamserv", {.str = L"doldacond"}},
+    {CONF_VAR_END}
+};
+
+static struct module me =
+{
+    .conf =
+    {
+	.vars = myvars
+    },
+    .init = init,
+    .name = "auth-pam"
+};
+
+MODULE(me);
+
+#endif /* HAVE_PAM */

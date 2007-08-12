@@ -155,12 +155,9 @@ void regmech(struct authmech *mech)
 
 static void preinit(int hup)
 {
-    extern struct authmech authmech_pam;
-    
     if(hup)
 	return;
     regmech(&authless);
-    regmech(&authmech_pam);
 }
 
 static int init(int hup)
@@ -171,8 +168,6 @@ static int init(int hup)
 
 static struct configvar myvars[] =
 {
-    /** The name of the PAM service file to use. */
-    {CONF_VAR_STRING, "pamserv", {.str = L"doldacond"}},
     /** Specifies whether insecure authentication is to be allowed. If
      * you are not completely sure what you are doing, never turn this
      * on without also turning on net.onlylocal. */

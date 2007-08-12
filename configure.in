@@ -23,7 +23,6 @@ AC_PROG_LIBTOOL
 
 DOLDA_AC_GROUP([Checking required libraries])
 
-AC_CHECK_LIB(pam, pam_start, , AC_MSG_ERROR([*** must have PAM]))
 AC_CHECK_LIB(z, deflate, , AC_MSG_ERROR([*** must have zlib]))
 AC_CHECK_LIB(bz2, BZ2_bzWriteOpen, , AC_MSG_ERROR([*** must have bzlib]))
 AC_CHECK_LIB(gdbm, gdbm_open, , AC_MSG_ERROR([*** must have gdbm]))
@@ -32,6 +31,20 @@ extlibs=
 experimental=no
 
 DOLDA_AC_GROUP([Checking optional libraries])
+
+# PAM check
+pam_msg=no
+AH_TEMPLATE(HAVE_PAM, [define to compile support for PAM authentication])
+AC_ARG_WITH(pam, [  --with-pam              Enable PAM support])
+DOLDA_PKG([HAS_PAM], [test "$with_pam" = no && HAS_PAM=no],
+		     [AC_CHECK_LIB(pam, pam_start, , [HAS_PAM=no])])
+if test "$with_pam" = yes -a "$HAS_PAM" = no; then
+	AC_MSG_ERROR([*** cannot find PAM on this system])
+fi
+if test "$with_pam" != no -a "$HAS_PAM" = yes; then
+	AC_DEFINE(HAVE_PAM)
+	pam_msg=yes
+fi
 
 # Gtk 2.0 check
 AC_ARG_WITH(gtk2, [  --with-gtk2             Enable GTK2 support])
@@ -235,6 +248,7 @@ autopackage/dcguile.apspec
 echo
 echo "Dolda Connect has been configured with the following settings:"
 echo
+echo "    PAM support:             $pam_msg"
 echo "    Kerberos 5 support:      $krb_msg"
 echo "    GTK2 user interface:     $enable_gtk2ui"
 echo "    GTK2 progress bars:      $enable_gtk2pbar"
