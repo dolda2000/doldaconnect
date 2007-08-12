@@ -10,7 +10,12 @@ exec 2>>$HOME/dc/filterlog
 cd $HOME/dc
 
 unset speedrecpath
-for dir in /usr/libexec /usr/local/libexec; do
+IFS=: binpath=($PATH)
+lepath=()
+for dir in "${binpath[@]}"; do
+    lepath=("${lepath[@]}" "${dir%/bin}/libexec")
+done
+for dir in "${lepath[@]}" /usr/libexec /usr/local/libexec; do
     if [ -x "${dir}/speedrec" ]; then
 	speedrecpath="${dir}/speedrec"
     fi
