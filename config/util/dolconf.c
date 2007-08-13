@@ -837,8 +837,8 @@ int main(int argc, char **argv)
 	} else if(state == 2) {
 	    for(i = 3; i < FD_SETSIZE; i++)
 		close(i);
-	    execlp("dolcon", "dolcon", NULL);
-	    perror("dolcon");
+	    execlp("dolcon-launch", "dolcon-launch", NULL);
+	    perror("dolcon-launch");
 	    exit(127);
 	} else {
 	    msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Internal error (Unknown state)"));
