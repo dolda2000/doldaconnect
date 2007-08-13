@@ -23,6 +23,7 @@
 #include <string.h>
 #include <pwd.h>
 #include <libintl.h>
+#include <signal.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -30,7 +31,44 @@
 
 #define _(text) gettext(text)
 
+int running(char *pf)
+{
+    FILE *pfs;
+    char buf[1024];
+    int pid;
+    
+    if((pfs = fopen(pf, "r")) == NULL) {
+	perror(pf);
+	return(0);
+    }
+    fgets(buf, sizeof(buf), pfs);
+    fclose(pfs);
+    if((pid = atoi(buf)) == 0)
+	return(0);
+    return(!kill(pid, 0));
+}
+
 int main(int argc, char **argv)
 {
-    return(0);
+    char cf[1024], pf[1024];
+    
+    if(getenv("HOME") != NULL)
+	snprintf(cf, sizeof(cf), "%s/.doldacond.conf", getenv("HOME"));
+    else
+	snprintf(cf, sizeof(cf), "%s/.doldacond.conf", getpwuid(getuid())->pw_dir);
+    if(getenv("HOME") != NULL)
+	snprintf(pf, sizeof(pf), "%s/.doldacond.pid", getenv("HOME"));
+    else
+	snprintf(pf, sizeof(pf), "%s/.doldacond.pid", getpwuid(getuid())->pw_dir);
+    if(access(cf, F_OK)) {
+	execlp("dolconf", "dolconf", "-a", NULL);
+	perror("dolconf");
+    } else if(access(pf, F_OK) || !running(pf)) {
+	execlp("doldacond-shell", "doldacond-shell", NULL);
+	perror("doldacond-shell");
+    } else {
+	execlp("dolcon", "dolcon", NULL);
+	perror("dolcon");
+    }
+    return(127);
 }
