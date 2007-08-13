@@ -1,4 +1,4 @@
-SUBDIRS=gtk2 tty gnome-trans-applet gaim
+SUBDIRS=gtk2 tty gnome-trans-applet gaim gui-shell
 EXTRA_DIST=hellodolda.png
 
 iconsdir = $(datadir)/pixmaps

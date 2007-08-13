@@ -231,6 +231,7 @@ clients/gtk2/Makefile
 clients/tty/Makefile
 clients/gnome-trans-applet/Makefile
 clients/gaim/Makefile
+clients/gui-shell/Makefile
 include/Makefile
 include/doldaconnect/Makefile
 doc/Makefile
