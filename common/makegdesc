@@ -119,6 +119,9 @@ sub printwidgets
 	    $widget->{"stock"} || die("Can't have image without stock\n");
 	    $widget->{"size"} || die("Can't have image without size\n");
 	    print "${p}stack[$sl] = gtk_image_new_from_stock(GTK_STOCK_" . $widget->{"stock"} . ", GTK_ICON_SIZE_" . $widget->{"size"} . ");\n";
+	} elsif($widget->{"type"} eq "xpmimg") {
+	    $widget->{"data"} || die("Can't have XPM image without data\n");
+	    print "${p}stack[$sl] = gtk_image_new_from_pixbuf(gdk_pixbuf_new_from_xpm_data((const char **)" . $widget->{"data"} . "));\n";
 	} elsif($widget->{"type"} eq "lbl") {
 	    $widget->{"label"} || $widget->{"markup"} || die("Can't have label without label\n");
 	    if($widget->{"label"}) {
