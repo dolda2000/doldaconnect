@@ -639,7 +639,8 @@ void cb_ast_shareadd_clicked(GtkWidget *widget, gpointer uudata)
 
 void cb_cfw_shareadd_clicked(GtkWidget *widget, gpointer uudata)
 {
-    shareadd();
+    if(shareadd())
+	dirty = 1;
 }
 
 void cb_ast_sharerem_clicked(GtkWidget *widget, gpointer uudata)
@@ -656,8 +657,10 @@ void cb_cfw_sharerem_clicked(GtkWidget *widget, gpointer uudata)
 {
     GtkTreeIter iter;
     
-    if(gtk_tree_selection_get_selected(gtk_tree_view_get_selection(GTK_TREE_VIEW(cfw_sharelist)), NULL, &iter))
+    if(gtk_tree_selection_get_selected(gtk_tree_view_get_selection(GTK_TREE_VIEW(cfw_sharelist)), NULL, &iter)) {
 	gtk_list_store_remove(shares, &iter);
+	dirty = 1;
+    }
 }
 
 void cb_ast_checkports(GtkWidget *widget, gpointer uudata)
