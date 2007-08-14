@@ -43,7 +43,7 @@ if test "[$enable_][$1]" = yes; then
 		   	AC_MSG_ERROR([*** cannot enable $1 without $var])
 		fi
 	done
-else
+elif test -z "[$enable_][$1]"; then
 	ifelse([$3], yes, [dnl
 	[enable_][$1]=yes
 	for var in [$4]; do
