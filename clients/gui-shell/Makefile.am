@@ -1,10 +1,13 @@
+if GUISHELL
 bin_PROGRAMS=dolcon-launch doldacond-shell
+app_DATA=dolcon.desktop
+endif
 
 dolcon_launch_SOURCES=launch.c
 
 doldacond_shell_SOURCES=dsh.c
 
-EXTRA_DIST=dsh-start.desc dsh-menu.desc
+EXTRA_DIST=dsh-start.desc dsh-menu.desc dolcon.desktop
 BUILT_SOURCES=dsh-start.gtk dsh-menu.gtk
 
 dsh.c: dsh-start.gtk dsh-menu.gtk
@@ -21,3 +24,5 @@ doldacond_shell_CPPFLAGS=@GTK2_CFLAGS@ @LIBNOTIFY_CFLAGS@ \
 	basename="$${target%.gtk}"; \
 	cpp $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $< \
 	 | $(top_srcdir)/common/makegdesc -h "$${basename}.gtkh" >$@
+
+appdir=$(datadir)/applications

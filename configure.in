@@ -98,6 +98,11 @@ DOLDA_ENABLE(dolconf, [  --enable-dolconf        Build the configuration helper]
 		      [HAS_GTK2])
 AM_CONDITIONAL(DOLCONF, test "$enable_dolconf" = yes)
 
+# GUI shell check
+DOLDA_ENABLE(guishell, [  --enable-guishell       Build the GUI shell programs], yes,
+		       [HAS_GTK2])
+AM_CONDITIONAL(GUISHELL, test "$enable_guishell" = yes)
+
 # Gtk progress bar check
 AH_TEMPLATE(ENABLE_GTK2PBAR, [define to compile GTK2 progress bars (experimental)])
 DOLDA_ENABLE(gtk2pbar, [  --enable-gtk2pbar       Enable GTK2 progress bars (experimental)], no,
@@ -258,6 +263,7 @@ echo "    Kerberos 5 support:      $krb_msg"
 echo "    GTK2 user interface:     $enable_gtk2ui"
 echo "    GTK2 progress bars:      $enable_gtk2pbar"
 echo "    Dolconf configurator:    $enable_dolconf"
+echo "    GUI shell:               $enable_guishell"
 echo "    Guile extension library: $guile_msg"
 echo "    GNOME transfer applet:   $enable_gnomeapplet"
 echo "    Gaim chat plugin:        $gaimplugin_msg"

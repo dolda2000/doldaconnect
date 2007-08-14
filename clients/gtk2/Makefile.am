@@ -1,6 +1,8 @@
 if CLI_GTK2
 bin_PROGRAMS=dolcon
+if !GUISHELL
 app_DATA=dolcon.desktop
+endif
 endif
 
 dolcon_SOURCES=	dolcon.c \
