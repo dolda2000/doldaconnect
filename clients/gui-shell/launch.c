@@ -29,8 +29,6 @@
 #include <config.h>
 #endif
 
-#define _(text) gettext(text)
-
 int running(char *pf)
 {
     FILE *pfs;

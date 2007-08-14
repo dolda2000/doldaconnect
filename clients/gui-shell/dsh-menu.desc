@@ -1,0 +1,6 @@
+;prefix: shm_
+;hasaccels: y
+:menu name: menu var: y
+	$menuitem name: dolcon label: "Start interface" sig: activate
+	$smenuitem name: quit stock: QUIT sig: activate
+end

@@ -1,0 +1,29 @@
+;prefix: start_
+:wnd name: wnd title: "Dolda Connect" var: y sig(delete_event): cb_start_hide_clicked
+	:vbox
+		:hbox
+			$xpmimg data: dolda_icon_xpm
+			$lbl expand: y fill: y pad: 15 wrap: y label: "Dolda Connect is currently starting.\\n\\nDepending on the number of files you are sharing and the speed of your hard drive, this process may take a few minutes."
+		end
+		$hr pad: 5
+		:hbtnbox layout: END
+			$btn name: hide label: "_Hide this window" sig: clicked
+			$sbtn name: abort stock: CANCEL sig: clicked
+		end
+	end
+end
+:wnd name: errwnd title: "Error" var: y sig(delete_event): cb_start_errok_clicked
+	:vbox
+		:hbox
+			$simg stock: DIALOG_ERROR size: DIALOG
+			$lbl pad: 15 wrap: y label: "The Dolda Connect daemon failed to start.\\n\\nThe following messages were recorded before the daemon aborted:"
+		end
+		:sw expand: y fill: y
+			$textview name: log var: y editable: FALSE
+		end
+		$hr pad: 5
+		:hbtnbox layout: END
+			$sbtn name: errok stock: OK sig: clicked
+		end
+	end
+end
