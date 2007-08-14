@@ -337,7 +337,7 @@ void dolcon(void)
     if((dcpid = fork()) == 0) {
 	for(i = 3; i < FD_SETSIZE; i++)
 	    close(i);
-	execlp("dolcon", "dolcon", NULL);
+	execlp("dolcon", "dolcon", "-l", NULL);
 	perror("dolcon");
 	exit(127);
     }

@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	execlp("doldacond-shell", "doldacond-shell", NULL);
 	perror("doldacond-shell");
     } else {
-	execlp("dolcon", "dolcon", NULL);
+	execlp("dolcon", "dolcon", "-l", NULL);
 	perror("dolcon");
     }
     return(127);
