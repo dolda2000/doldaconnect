@@ -2204,6 +2204,7 @@ void initchattags(void)
 
 int main(int argc, char **argv)
 {
+    int c, connlocal;
     GtkWidget *wnd;
     PangoFontDescription *monospacefont;
     GtkTreeModel *sortmodel;
@@ -2213,6 +2214,22 @@ int main(int argc, char **argv)
     bindtextdomain(PACKAGE, LOCALEDIR);
     textdomain(PACKAGE);
     gtk_init(&argc, &argv);
+    connlocal = 0;
+    while((c = getopt(argc, argv, "lh")) != -1) {
+	switch(c) {
+	case 'l':
+	    connlocal = 1;
+	    break;
+	case 'h':
+	    printf("usage: dolcon [-hl]\n");
+	    printf("\t-h\tDisplay this help message\n");
+	    printf("\t-l\tConnect to the locally running daemon\n");
+	    exit(0);
+	default:
+	    fprintf(stderr, "usage: dolcon [-hl]\n");
+	    exit(1);
+	}
+    }
     dc_init();
     signal(SIGCHLD, SIG_IGN);
     pubhubaddr = sstrdup("http://www.hublist.org/PublicHubList.xml.bz2");
@@ -2223,7 +2240,7 @@ int main(int argc, char **argv)
 	exit(1);
     }
     connectas = sstrdup(pwent->pw_name);
-    gtk_window_set_default_icon(gdk_pixbuf_new_from_xpm_data(dolda_icon_xpm));
+    gtk_window_set_default_icon(gdk_pixbuf_new_from_xpm_data((const char **)dolda_icon_xpm));
     wnd = create_main_wnd();
     create_reslist_wnd();
     gtk_window_resize(GTK_WINDOW(reslist_wnd), 600, 400);
@@ -2277,7 +2294,9 @@ int main(int argc, char **argv)
     readconfigfile();
     updatesbar(_("Disconnected"));
     gtk_widget_show(wnd);
-    if(autoconn)
+    if(connlocal)
+	dcconnect(dc_srv_local);
+    else if(autoconn)
 	dcconnect(dcserver);
     g_timeout_add(500, srchstatupdatecb, NULL);
     g_timeout_add(5000, ksupdatecb, NULL);
