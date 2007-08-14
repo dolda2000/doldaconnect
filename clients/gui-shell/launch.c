@@ -48,8 +48,27 @@ int running(char *pf)
 
 int main(int argc, char **argv)
 {
+    int c;
     char cf[1024], pf[1024];
     
+    while((c = getopt(argc, argv, "h")) != -1) {
+	switch(c) {
+	case 'h':
+	    printf("usage: dolcon-launch [-h]\n");
+	    printf("\t-h\tDisplay this help message\n");
+	    printf("\n");
+	    printf("\tIf $HOME/.doldacond.conf does not exist, dolcon-launch will run\n");
+	    printf("\tdolconf. Otherwise, if $HOME/.doldacond.pid does not exist,\n");
+	    printf("\tor does not contain a valid PID, dolcon-launch will run\n");
+	    printf("\tdoldacond-shell. Otherwise, dolcon-launch will run dolcon. All\n");
+	    printf("\tthese programs must be somewhere in $PATH for dolcon-launch to work.\n");
+	    exit(0);
+	    break;
+	default:
+	    fprintf(stderr, "usage: dolcon-launch [-h]\n");
+	    exit(1);
+	}
+    }
     if(getenv("HOME") != NULL)
 	snprintf(cf, sizeof(cf), "%s/.doldacond.conf", getenv("HOME"));
     else
