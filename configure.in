@@ -90,6 +90,10 @@ DOLDA_PKG([HAS_LIBGAIM], [PKG_CHECK_MODULES(GAIM, gaim, [], [HAS_LIBGAIM=no])],
 DOLDA_PKG([HAS_LIBPURPLE], [PKG_CHECK_MODULES(PURPLE, purple, [], [HAS_LIBPURPLE=no])],
 			   [DOLDA_CHECK_HEADER(plugin.h, [], [HAS_LIBPURPLE=no], $PURPLE_CFLAGS)])
 
+# Daemon check
+DOLDA_ENABLE(daemon, [  --enable-daemon         Enable the daemon], yes, [])
+AM_CONDITIONAL(DAEMON, test "$enable_daemon" = yes)
+
 # Gtk GUI check
 DOLDA_ENABLE(gtk2ui, [  --enable-gtk2ui         Enable the GTK2 user interface], yes,
 		     [HAS_GTK2 HAS_LIBXML])
@@ -260,6 +264,7 @@ autopackage/dcguile.apspec
 echo
 echo "Dolda Connect has been configured with the following settings:"
 echo
+echo "    Daemon:                  $enable_daemon"
 echo "    PAM support:             $pam_msg"
 echo "    Kerberos 5 support:      $krb_msg"
 echo "    GTK2 user interface:     $enable_gtk2ui"

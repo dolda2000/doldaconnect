@@ -1,4 +1,6 @@
+if DAEMON
 bin_PROGRAMS=doldacond
+endif
 doldacond_SOURCES=	main.c \
 			search.c \
 			search.h \
