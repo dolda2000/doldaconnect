@@ -23,9 +23,9 @@ AC_PROG_LIBTOOL
 
 DOLDA_AC_GROUP([Checking required libraries])
 
-AC_CHECK_LIB(z, deflate, , AC_MSG_ERROR([*** must have zlib]))
-AC_CHECK_LIB(bz2, BZ2_bzWriteOpen, , AC_MSG_ERROR([*** must have bzlib]))
-AC_CHECK_LIB(gdbm, gdbm_open, , AC_MSG_ERROR([*** must have gdbm]))
+AC_CHECK_LIB(z, deflate, [:], AC_MSG_ERROR([*** must have zlib]))
+AC_CHECK_LIB(bz2, BZ2_bzWriteOpen, [:], AC_MSG_ERROR([*** must have bzlib]))
+AC_CHECK_LIB(gdbm, gdbm_open, [:], AC_MSG_ERROR([*** must have gdbm]))
 
 extlibs=
 experimental=no
@@ -37,7 +37,8 @@ pam_msg=no
 AH_TEMPLATE(HAVE_PAM, [define to compile support for PAM authentication])
 AC_ARG_WITH(pam, [  --with-pam              Enable PAM support])
 DOLDA_PKG([HAS_PAM], [test "$with_pam" = no && HAS_PAM=no],
-		     [AC_CHECK_LIB(pam, pam_start, , [HAS_PAM=no])])
+		     [AC_CHECK_LIB(pam, pam_start, [:], [HAS_PAM=no])],
+		     [PAM_LIBS=-lpam])
 if test "$with_pam" = yes -a "$HAS_PAM" = no; then
 	AC_MSG_ERROR([*** cannot find PAM on this system])
 fi
@@ -45,6 +46,7 @@ if test "$HAS_PAM" = yes; then
 	AC_DEFINE(HAVE_PAM)
 	pam_msg=yes
 fi
+AC_SUBST(PAM_LIBS)
 
 # Gtk 2.0 check
 AC_ARG_WITH(gtk2, [  --with-gtk2             Enable GTK2 support])
