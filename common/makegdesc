@@ -63,6 +63,16 @@ sub printwidgets
 		print $widget->{"pad"} || "0";
 		print ");\n";
 	    }
+	} elsif($widget->{"type"} =~ /([hv])btnbox/) {
+	    print "${p}stack[$sl] = gtk_" . $1 . "button_box_new();\n";
+	    if(defined($widget->{"layout"})) {
+		print "${p}gtk_button_box_set_layout(GTK_BUTTON_BOX(stack[$sl]), GTK_BUTTONBOX_" . $widget->{"layout"} . ");\n";
+	    }
+	    $pf = sub
+	    {
+		my($widget, $p, $sl) = @_;
+		print "${p}gtk_container_add(GTK_CONTAINER(stack[" . ($sl - 1) . "]), stack[$sl]);\n";
+	    }
 	} elsif($widget->{"type"} eq "table") {
 	    print "${p}stack[$sl] = gtk_table_new(" . $widget->{"rows"} . ", " . $widget->{"cols"};
 	    print ", " . (($widget->{"homo"} eq "TRUE")?"TRUE":"FALSE");
