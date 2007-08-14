@@ -1,0 +1,67 @@
+			  GUI shell details
+
+The majority of Dolda Connect is made out of a number of ordinary Unix
+programs;  for  example,  doldacond  follows the  normal  Unix  daemon
+conventions, and  dolcon -- while not  a command-line program  -- is a
+self-contained  GUI completely  separate from  the daemon.  While Unix
+users  should  feel quite  at  home  with  these programs,  the  whole
+convention of  using separate programs  may seem quite alien  to those
+used  to  traditional Direct  Connect  clients,  such  as DC++,  where
+everything is done by one, monolithic program.
+
+In order to make life a bit easier for those people, Dolda Connect, as
+of 0.5, comes with a number  of wrapper programs, which should be able
+to  provide  the  illusion  of  Dolda Connect  being  one,  integrated
+environment. For  those wishing  to hack on  them or those  just being
+curious  about how everything  works together,  this file  attempts to
+document the details of this so called `GUI shell'.
+
+At its  core, Dolda  Connect consists of  two programs:  The doldacond
+daemon, and the dolcon GUI. The  GUI shell adds three programs to wrap
+them together:
+
+ * The `dolconf' GUI configuration program
+ * The `doldacond-shell' daemon wrapper
+ * The `dolcon-launch' magic do-what-I-mean program
+
+The dolconf  program is simply a  program which provides a  GUI to the
+user in  order to compose a  configuration file for  doldacond. It can
+run  both  in  assistant  (that's  `wizard'  for  you  Windows  users)
+super-simple  mode, or  on  a slightly  more  advanced ordinary  mode,
+somewhat,   vaguely  reminiscent  of   the  configuration   dialog  in
+DC++. When  it starts, it  checks to see if  the $HOME/.doldacond.conf
+file exists. If  it does, it will automatically  start in its ordinary
+mode, whereas if it does not, it will ask the user whether to start in
+assistant or ordinary mode. It provides the `-a' and `-w' command-line
+options   to  immediately,   regardless  of   the  existance   of  the
+configuration   file,   enter  the   assistant   or  ordinary   modes,
+respectively.
+
+The doldacond-shell program  is a wrapper program for  the daemon. Its
+main task  is providing visual feedback  (by means of  a window) while
+the daemon  is starting and  scanning the shares,  and a tray  icon to
+indicate that  the daemon  is currently running.   It also  provides a
+simple way  to launch dolcon simply  by clicking the tray  icon. As an
+extra  service, it  also monitors  all transfers  in progress  and, if
+compiled  with  libnotify  support,  will pop  up  notifications  when
+interesting things  happen to the  transfers. When it starts,  it will
+check  the  $HOME/.doldacond.pid  file   for  the  PID  of  a  running
+daemon. If a  daemon is already running as indicated  by that file, it
+will not  attempt to  start a new  one. It  shuts down along  with the
+daemon itself.
+
+The dolcon-launch  program is a  little DWIM program  for facilitating
+the creation  of a desktop  file (a program  menu entry). It  is quite
+simply  --   if  $HOME/.doldacond.conf  does  not   exist,  it  starts
+dolconf.  If it  does exist,  but  no daemon  can be  found (again  as
+indicated  by $HOME/.doldacond.pid),  it  starts doldacond-shell,  and
+otherwise it starts an instance of dolcon.
+
+To facilitate  all this,  dolcon has been  gifted with a  `-l' command
+line  option, which,  if present,  causes dolcon  to autoconnect  to a
+local daemon  via a  Unix socket. That  way, $HOME/.dolconrc  need not
+necessarily be  configured for  local operation for  the GUI  shell to
+work.
+
+In all, I believe these programs together should present the illusion
+of an integrated Direct Connect client program.
