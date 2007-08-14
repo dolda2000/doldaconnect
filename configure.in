@@ -41,7 +41,7 @@ DOLDA_PKG([HAS_PAM], [test "$with_pam" = no && HAS_PAM=no],
 if test "$with_pam" = yes -a "$HAS_PAM" = no; then
 	AC_MSG_ERROR([*** cannot find PAM on this system])
 fi
-if test "$with_pam" != no -a "$HAS_PAM" = yes; then
+if test "$HAS_PAM" = yes; then
 	AC_DEFINE(HAVE_PAM)
 	pam_msg=yes
 fi
@@ -67,12 +67,16 @@ if test "$with_libxml" = yes -a "$HAS_LIBXML" = no; then
 fi
 
 # libnotify check
+AH_TEMPLATE(HAVE_NOTIFY, [define to compile support for libnotify])
 AC_ARG_WITH(libnotify, [  --with-libnotify        Enable libnotify support])
 DOLDA_PKG([HAS_LIBNOTIFY], [test "$with_libnotify" = no && HAS_LIBNOTIFY=no],
 			   [PKG_CHECK_MODULES(LIBNOTIFY, libnotify, [], [HAS_LIBNOTIFY=no])],
 			   [AC_CHECK_LIB(notify, notify_init, [:], [HAS_LIBNOTIFY=no], $LIBNOTIFY_LIBS)])
 if test "$with_libnotify" = yes -a "$HAS_LIBNOTIFY" = no; then
    	AC_MSG_ERROR([*** cannot find libnotify on this system])
+fi
+if test "$HAS_LIBNOTIFY" = yes; then
+   	AC_DEFINE(HAVE_NOTIFY)
 fi
 
 # libpanelapplet check
