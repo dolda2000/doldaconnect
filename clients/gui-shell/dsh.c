@@ -50,6 +50,7 @@ struct trinfo {
 
 void updatewrite(void);
 
+int remote = 0;
 GtkStatusIcon *tray;
 pid_t dpid = 0, dcpid = 0;
 int connected = 0;
@@ -254,7 +255,7 @@ void updatewrite(void)
 
 void connectdc(void)
 {
-    if((dcfd = dc_connect(dc_srv_local)) < 0) {
+    if((dcfd = dc_connect(remote?NULL:dc_srv_local)) < 0) {
 	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not connect to server: %s"), strerror(errno));
 	exit(1);
     }
@@ -337,7 +338,10 @@ void dolcon(void)
     if((dcpid = fork()) == 0) {
 	for(i = 3; i < FD_SETSIZE; i++)
 	    close(i);
-	execlp("dolcon", "dolcon", "-l", NULL);
+	if(remote)
+	    execlp("dolcon", "dolcon", NULL);
+	else
+	    execlp("dolcon", "dolcon", "-l", NULL);
 	perror("dolcon");
 	exit(127);
     }
@@ -396,6 +400,8 @@ void inittray(void)
 
 int main(int argc, char **argv)
 {
+    int c;
+    
     setlocale(LC_ALL, "");
     bindtextdomain(PACKAGE, LOCALEDIR);
     textdomain(PACKAGE);
@@ -405,12 +411,30 @@ int main(int argc, char **argv)
 #ifdef HAVE_NOTIFY
     notify_init("Dolda Connect");
 #endif
+    while((c = getopt(argc, argv, "rh")) != -1) {
+	switch(c) {
+	case 'r':
+	    remote = 1;
+	    break;
+	case 'h':
+	    printf("usage: doldacond-shell [-hr]\n");
+	    printf("\t-h\tDisplay this help message\n");
+	    printf("\t-r\tConnect to a remote host\n");
+	    exit(0);
+	default:
+	    fprintf(stderr, "usage: doldacond-shell [-hr]\n");
+	    exit(1);
+	}
+    }
 
     create_shm_wnd();
     dcicon = gdk_pixbuf_new_from_xpm_data((const char **)dolda_icon_xpm);
     gtk_window_set_default_icon(dcicon);
     inittray();
-    startdaemon();
+    if(remote)
+	connectdc();
+    else
+	startdaemon();
     
     gtk_main();
 
