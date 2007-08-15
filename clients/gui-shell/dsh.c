@@ -174,11 +174,13 @@ void trstatechange(struct dc_transfer *tr, int ostate)
     if((ostate == DC_TRNS_MAIN) && (tr->dir == DC_TRNSD_DOWN)) {
 	if(tr->state == DC_TRNS_DONE) {
 #ifdef HAVE_NOTIFY
-	    notify(&trnote, "transfer.complete", _("Transfer complete"), _("Finished downloading %ls from %ls"), getfilename(tr->path), tr->peernick);
+	    if(dcpid == 0)
+		notify(&trnote, "transfer.complete", _("Transfer complete"), _("Finished downloading %ls from %ls"), getfilename(tr->path), tr->peernick);
 #endif
 	} else {
 #ifdef HAVE_NOTIFY
-	    notify(&trnote, "transfer.error", _("Transfer interrupted"), _("The transfer of %ls from %ls was interrupted from the other side"), getfilename(tr->path), tr->peernick);
+	    if(dcpid == 0)
+		notify(&trnote, "transfer.error", _("Transfer interrupted"), _("The transfer of %ls from %ls was interrupted from the other side"), getfilename(tr->path), tr->peernick);
 #endif
 	}
     }
@@ -206,7 +208,8 @@ void updatetrinfo(void)
 	    }
 #ifdef NOTIFY
 	    if((tr->state = DC_TRNS_MAIN) && (now - tri->lastprog > 600)) {
-		notify(&trnote, "transfer.error", _("Transfer stalled"), _("The transfer of %ls from %ls has not made progress for 10 minutes"), getfilename(tr->path), tr->peernick);
+		if(dcpid == 0)
+		    notify(&trnote, "transfer.error", _("Transfer stalled"), _("The transfer of %ls from %ls has not made progress for 10 minutes"), getfilename(tr->path), tr->peernick);
 	    }
 #endif
 	}
