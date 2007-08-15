@@ -46,6 +46,8 @@
 
 struct trinfo {
     int ostate;
+    int opos;
+    time_t lastprog;
 };
 
 void updatewrite(void);
@@ -133,6 +135,8 @@ void inittr(struct dc_transfer *tr)
     tr->udata = tri = memset(smalloc(sizeof(*tri)), 0, sizeof(*tri));
     tr->destroycb = destroytr;
     tri->ostate = tr->state;
+    tri->opos = tr->curpos;
+    tri->lastprog = time(NULL);
 }
 
 #ifdef HAVE_NOTIFY
@@ -154,16 +158,27 @@ void notify(NotifyNotification **n, char *cat, char *title, char *body, ...)
 }
 #endif
 
+/* XXX: Achtung! Too DC-specific! */
+wchar_t *getfilename(wchar_t *path)
+{
+    wchar_t *p;
+    
+    if((p = wcsrchr(path, L'\\')) == NULL)
+	return(path);
+    else
+	return(p + 1);
+}
+
 void trstatechange(struct dc_transfer *tr, int ostate)
 {
-    if(ostate == DC_TRNS_MAIN) {
+    if((ostate == DC_TRNS_MAIN) && (tr->dir == DC_TRNSD_DOWN)) {
 	if(tr->state == DC_TRNS_DONE) {
 #ifdef HAVE_NOTIFY
-	    notify(&trnote, "transfer.complete", _("Transfer complete"), _("Finished downloading %ls from %ls"), tr->path, tr->peernick);
+	    notify(&trnote, "transfer.complete", _("Transfer complete"), _("Finished downloading %ls from %ls"), getfilename(tr->path), tr->peernick);
 #endif
 	} else {
 #ifdef HAVE_NOTIFY
-	    notify(&trnote, "transfer.error", _("Transfer interrupted"), _("The transfer of %ls from %ls was interrupted from the other side"), tr->path, tr->peernick);
+	    notify(&trnote, "transfer.error", _("Transfer interrupted"), _("The transfer of %ls from %ls was interrupted from the other side"), getfilename(tr->path), tr->peernick);
 #endif
 	}
     }
@@ -173,7 +188,9 @@ void updatetrinfo(void)
 {
     struct dc_transfer *tr;
     struct trinfo *tri;
+    time_t now;
     
+    now = time(NULL);
     for(tr = dc_transfers; tr != NULL; tr = tr->next) {
 	if(tr->udata == NULL) {
 	    inittr(tr);
@@ -183,6 +200,15 @@ void updatetrinfo(void)
 		trstatechange(tr, tri->ostate);
 		tri->ostate = tr->state;
 	    }
+	    if(tri->opos != tr->curpos) {
+		tri->opos = tr->curpos;
+		tri->lastprog = now;
+	    }
+#ifdef NOTIFY
+	    if((tr->state = DC_TRNS_MAIN) && (now - tri->lastprog > 600)) {
+		notify(&trnote, "transfer.error", _("Transfer stalled"), _("The transfer of %ls from %ls has not made progress for 10 minutes"), getfilename(tr->path), tr->peernick);
+	    }
+#endif
 	}
     }
 }
