@@ -2,5 +2,7 @@
 ;hasaccels: y
 :menu name: menu var: y
 	$menuitem name: dolcon label: "Start interface" sig: activate
-	$smenuitem name: quit stock: QUIT sig: activate
+	$menuitem name: dolconf label: "Configure" sig: activate
+	$menusep
+	$menuitem name: quit label: "Shut down" sig: activate
 end

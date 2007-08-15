@@ -376,6 +376,19 @@ void dolcon(void)
     }
 }
 
+void cb_shm_dolconf_activate(GtkWidget *uu1, gpointer uu2)
+{
+    int i;
+    
+    if((dcpid = fork()) == 0) {
+	for(i = 3; i < FD_SETSIZE; i++)
+	    close(i);
+	execlp("dolconf", "dolconf", NULL);
+	perror("dolconf");
+	exit(127);
+    }
+}
+
 void cb_shm_dolcon_activate(GtkWidget *uu1, gpointer uu2)
 {
     dolcon();
