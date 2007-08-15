@@ -263,6 +263,7 @@ void dcfdcb(gpointer data, gint source, GdkInputCondition cond)
 	    dc_uimisc_handlenotify(resp);
 	    updatetrinfo();
 	}
+	dc_freeresp(resp);
     }
     updatewrite();
 }
