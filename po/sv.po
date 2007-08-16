@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2007-08-11 18:27+0200\n"
-"PO-Revision-Date: 2007-07-22 06:38+0200\n"
+"POT-Creation-Date: 2007-08-16 18:22+0200\n"
+"PO-Revision-Date: 2007-08-16 18:29+0200\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -41,11 +41,11 @@ msgstr "%H:%M:%S"
 msgid "%s (reported at %s)"
 msgstr "%s (rapporterades kl. %s)"
 
-#: clients/gtk2/dolcon.c:611 clients/gtk2/dolcon.c:2275
+#: clients/gtk2/dolcon.c:611 clients/gtk2/dolcon.c:2295
 msgid "Disconnected"
 msgstr "Frånkopplad"
 
-#: clients/gtk2/dolcon.c:734 config/util/dolconf.c:797
+#: clients/gtk2/dolcon.c:734 config/util/dolconf.c:800
 msgid "Could not get your home directory!"
 msgstr "Kunde inte hitta din hemkatalog!"
 
@@ -78,11 +78,11 @@ msgstr "Inloggningsförsöket misslyckades!"
 msgid "Discrete sizes"
 msgstr "Enskilda storlekar"
 
-#: clients/gtk2/dolcon.c:1014
+#: clients/gtk2/dolcon.c:1014 clients/gui-shell/dsh.c:253
 msgid "The server refused the connection"
 msgstr "Servern vägrade förbindelsen"
 
-#: clients/gtk2/dolcon.c:1018
+#: clients/gtk2/dolcon.c:1018 clients/gui-shell/dsh.c:256
 msgid "Server protocol revision mismatch"
 msgstr "Fel protokoll-revision hos servern"
 
@@ -536,6 +536,93 @@ msgstr "Inga överföringar"
 msgid "Initializing"
 msgstr "Förbereder"
 
+#: clients/gui-shell/dsh.c:178
+msgid "Transfer complete"
+msgstr "Färdig överföring"
+
+#: clients/gui-shell/dsh.c:178
+#, c-format
+msgid "Finished downloading %ls from %ls"
+msgstr "Färdig nedladdning av %ls från %ls"
+
+#: clients/gui-shell/dsh.c:183
+msgid "Transfer interrupted"
+msgstr "Avbruten överföring"
+
+#: clients/gui-shell/dsh.c:183
+#, c-format
+msgid "The transfer of %ls from %ls was interrupted from the other side"
+msgstr "Överföringen av %ls från %ls avbröts från andra sidan"
+
+#: clients/gui-shell/dsh.c:212
+msgid "Transfer stalled"
+msgstr "Stillastående överföring"
+
+#: clients/gui-shell/dsh.c:212
+#, c-format
+msgid "The transfer of %ls from %ls has not made progress for 10 minutes"
+msgstr "Överföringen av %ls från %ls har inte kommit någonstans på 10 minuter"
+
+#: clients/gui-shell/dsh.c:227 config/util/dolconf.c:713
+#: config/util/dolconf.c:718 config/util/dolconf.c:724
+msgid "Could not connect to server"
+msgstr "Kunde inte ansluta till servern"
+
+#: clients/gui-shell/dsh.c:245 clients/gui-shell/dsh.c:289
+#, c-format
+msgid "Could not connect to server: %s"
+msgstr "Kunde inte ansluta till servern: %s"
+
+#: clients/gui-shell/dsh.c:259
+msgid "Authenticating..."
+msgstr "Autentiserar..."
+
+#: clients/gui-shell/dsh.c:294
+msgid "Connecting to server..."
+msgstr "Ansluter..."
+
+#: clients/gui-shell/dsh.c:323
+msgid "Starting..."
+msgstr "Startar..."
+
+#: clients/gui-shell/dsh-menu.gtk:13
+msgid "Start interface"
+msgstr "Starta gränssnitt"
+
+#: clients/gui-shell/dsh-menu.gtk:18
+msgid "Configure"
+msgstr "Konfigurera"
+
+#: clients/gui-shell/dsh-menu.gtk:27
+msgid "Shut down"
+msgstr "Stäng av"
+
+#: clients/gui-shell/dsh-start.gtk:22
+msgid ""
+"Dolda Connect is currently starting.\n"
+"\n"
+"Depending on the number of files you are sharing and the speed of your hard "
+"drive, this process may take a few minutes."
+msgstr ""
+"Dolda Connect håller på och startar.\n"
+"\n"
+"Det kan ta ett antal minuter, beroende på hur många filer du delar och "
+"hastigheten på din hårddisk."
+
+#: clients/gui-shell/dsh-start.gtk:37
+msgid "_Hide this window"
+msgstr "_Göm det här fönstret"
+
+#: clients/gui-shell/dsh-start.gtk:67
+msgid ""
+"The Dolda Connect daemon failed to start.\n"
+"\n"
+"The following messages were recorded before the daemon aborted:"
+msgstr ""
+"Dolda Connect-demonen kunde inte starta.\n"
+"\n"
+"Följande meddelanden mottogs innan demonen avbröt:"
+
 #: config/util/dolconf.c:116
 #, c-format
 msgid "%s must not be empty"
@@ -617,12 +704,7 @@ msgstr "Utdelningar:\n"
 msgid "Shared directories"
 msgstr "Delade kataloger"
 
-#: config/util/dolconf.c:710 config/util/dolconf.c:715
-#: config/util/dolconf.c:721
-msgid "Could not connect to server"
-msgstr "Kunde inte ansluta till servern"
-
-#: config/util/dolconf.c:743
+#: config/util/dolconf.c:746
 msgid ""
 "There are unsaved changes. Do you wish to discard the changes and exit "
 "anyway?"
@@ -630,7 +712,7 @@ msgstr ""
 "Vissa ändringar har inte ännu sparats. Vill du låta bli att spara dem och "
 "avsluta i alla fall?"
 
-#: config/util/dolconf.c:804
+#: config/util/dolconf.c:807
 msgid ""
 "It appears that you have not run this setup program before. Would you like "
 "to run the first-time setup assistant?"
@@ -638,7 +720,7 @@ msgstr ""
 "Du tycks inte ha kört det här inställningsprogrammet tidigare. Vill du köra "
 "förstagångs-assistenten?"
 
-#: config/util/dolconf.c:815
+#: config/util/dolconf.c:818
 msgid ""
 "The configuration file appears to have been edited outside the control of "
 "this program. If you continue using this program, all settings not handled "
@@ -648,7 +730,7 @@ msgstr ""
 "kontroll. Om du fortsätter använda det här programmet, kommer inställningar "
 "som det inte hanterar förloras. Vill du fortsätta?"
 
-#: config/util/dolconf.c:844
+#: config/util/dolconf.c:847
 msgid "Internal error (Unknown state)"
 msgstr "Internt fel (Okänt läge)"
 

@@ -8,6 +8,9 @@ clients/gtk2/pref.gtk
 clients/gnome-trans-applet/dolcon-trans-applet.c
 clients/gnome-trans-applet/conduit.c
 clients/gnome-trans-applet/conduit-pipe.c
+clients/gui-shell/dsh.c
+clients/gui-shell/dsh-menu.gtk
+clients/gui-shell/dsh-start.gtk
 config/util/dolconf.c
 config/util/dolconf-assistant.gtk
 config/util/dolconf-wnd.gtk
