@@ -1,0 +1,45 @@
+# -*-shell-script-*-
+
+[Meta]
+RootName: @dolda2000.com/fredrik/doldaconnect/dolcon:$SOFTWAREVERSION
+DisplayName: Dolda Connect daemon
+ShortName: doldaconnect-daemon
+Maintainer: Fredrik Tolf <fredrik@dolda2000.com>
+Packager: Fredrik Tolf <fredrik@dolda2000.com>
+Summary: The main Dolda Connect file-sharing program.
+URL: http://www.dolda2000.com/~fredrik/doldaconnect/
+License: GNU General Public License, Version 2 or later
+SoftwareVersion: @VERSION@
+AutopackageTarget: 1.0
+
+# Only uncomment InterfaceVersion if your package exposes interfaces to other software,
+# for instance if it includes DSOs or python/perl modules. See the developer guide for more info,
+# or ask on autopackage-dev if you don't understand interface versioning in autopackage.
+#
+# InterfaceVersion: 0.0
+
+[Description]
+This is the Dolda Connect daemon, the program that does all the actual
+file-sharing work in Dolda Connect.
+
+Note that, unless you really want to talk to the daemon using telnet,
+you will also want a user interface program to control it.
+
+[BuildPrepare]
+prepareBuild --disable-gtk2ui --without-krb5
+
+[BuildUnprepare]
+unprepareBuild
+
+[Imports]
+echo bin/doldacond bin/locktouch bin/tthsum libexec/speedrec share/man etc | import
+
+[Prepare]
+
+[Install]
+installExe bin/doldacond bin/locktouch bin/tthsum
+copyFiles libexec/speedrec "$PREFIX/libexec"
+copyFiles etc/* "$PREFIX/etc"
+
+[Uninstall]
+uninstallFromLog
