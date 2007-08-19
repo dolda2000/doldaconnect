@@ -340,12 +340,12 @@ pid_t forksess(uid_t user, struct authhandle *auth, void (*ccbfunc)(pid_t, int, 
 		    flog(LOG_WARNING, "could not setuid: %s", strerror(errno));
 		    exit(127);
 		}
+		putenv(sprintf2("HOME=%s", pwent->pw_dir));
+		putenv(sprintf2("SHELL=%s", pwent->pw_shell));
+		putenv(sprintf2("PATH=%s/bin:/usr/local/bin:/bin:/usr/bin", pwent->pw_dir));
 	    }
-	    putenv(sprintf2("HOME=%s", pwent->pw_dir));
-	    putenv(sprintf2("SHELL=%s", pwent->pw_shell));
 	    putenv(sprintf2("USER=%s", pwent->pw_name));
 	    putenv(sprintf2("LOGNAME=%s", pwent->pw_name));
-	    putenv(sprintf2("PATH=%s/bin:/usr/local/bin:/bin:/usr/bin", pwent->pw_dir));
 	    chdir(pwent->pw_dir);
 	    return(0);
 	}
