@@ -1,4 +1,4 @@
-SUBDIRS= common daemon lib include clients config po autopackage doc contrib
+SUBDIRS= common daemon include lib clients config po autopackage doc contrib
 
 ACLOCAL_AMFLAGS = -I m4
 
