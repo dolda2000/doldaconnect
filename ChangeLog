@@ -1,5 +1,6 @@
 Version 0.5:
 
+	* Added a GUI shell to integrate the whole system
 	* Improved hublist fetching
 	* Ported the Gaim plugin to Pidgin
 	
