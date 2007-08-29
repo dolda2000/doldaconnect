@@ -1,6 +1,8 @@
 			     Items to do
 
 User-visible features:
+ * Implement a CLI client. I'm currently not sure what it's supposed
+   to actually do that cannot be done with dcruncmd, though.
  * Implement ADC
  * Implement fetching and displaying of file lists (requires rather
    heavy protocol changes)
