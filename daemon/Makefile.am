@@ -28,5 +28,5 @@ doldacond_SOURCES=	main.c \
 
 EXTRA_DIST=emacs-local
 doldacond_LDADD=$(top_srcdir)/common/libcommon.a \
-		@KRB5_LIBS@ -lbz2 -lz -lgdbm @PAM_LIBS@
+		@KRB5_LIBS@ -lbz2 -lz -lgdbm @PAM_LIBS@ @KEYUTILS_LIBS@
 doldacond_CPPFLAGS=-I$(top_srcdir)/include -DDAEMON @KRB5_CFLAGS@
