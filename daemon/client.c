@@ -528,13 +528,14 @@ static int hashfile(char *path)
  */
 static void checkhashes(void)
 {
-    struct sharecache *node;
+    struct sharecache *node, *next;
     struct hashcache *hc;
     char *path;
     
     node = shareroot->child;
-    for(node = shareroot->child; node != NULL; node = nextscnode(node))
+    for(node = shareroot->child; node != NULL; node = next)
     {
+	next = nextscnode(node);
 	if(node->f.b.type != FILE_REG)
 	    continue;
 	if(!node->f.b.hastth)
