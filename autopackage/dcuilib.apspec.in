@@ -8,7 +8,7 @@ Maintainer: Fredrik Tolf <fredrik@dolda2000.com>
 Packager: Fredrik Tolf <fredrik@dolda2000.com>
 Summary: A library used by programs interfacing against the Dolda Connect daemon
 URL: http://www.dolda2000.com/~fredrik/doldaconnect/
-License: GNU General Public License, Version 2
+License: GNU General Public License, Version 2 or later
 SoftwareVersion: @VERSION@
 Repository: http://www.dolda2000.com/~fredrik/doldaconnect/ap/doldaconnect-uilib.xml
 AutopackageTarget: 1.2

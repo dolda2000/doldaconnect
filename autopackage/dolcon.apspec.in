@@ -8,7 +8,7 @@ Maintainer: Fredrik Tolf <fredrik@dolda2000.com>
 Packager: Fredrik Tolf <fredrik@dolda2000.com>
 Summary: A user interface module for Dolda Connect using GTK 2.
 URL: http://www.dolda2000.com/~fredrik/doldaconnect/
-License: GNU General Public License, Version 2
+License: GNU General Public License, Version 2 or later
 SoftwareVersion: @VERSION@
 AutopackageTarget: 1.2
 Repository: http://www.dolda2000.com/~fredrik/doldaconnect/ap/doldaconnect-gtk.xml
