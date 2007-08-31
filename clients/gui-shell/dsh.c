@@ -200,12 +200,12 @@ void updatetooltip(void)
 {
     struct dc_transfer *tr;
     struct trinfo *tri;
-    int t, i, a, st;
+    int t, i, a, st, bc, bt;
     char *buf;
     size_t bufsize, bufdata;
     
     t = i = a = 0;
-    st = -1;
+    st = bc = bt = -1;
     for(tr = dc_transfers; tr != NULL; tr = tr->next) {
 	if(tr->dir != DC_TRNSD_DOWN)
 	    continue;
@@ -215,10 +215,16 @@ void updatetooltip(void)
 	    i++;
 	else if((tr->state == DC_TRNS_HS) || (tr->state == DC_TRNS_MAIN))
 	    a++;
-	if((tr->state == DC_TRNS_MAIN) && (tri->speed != -1)) {
-	    if(st == -1)
-		st = 0;
-	    st += tri->speed;
+	if((tr->state == DC_TRNS_MAIN)) {
+	    if(bt == -1)
+		bc = bt = 0;
+	    bc += tr->curpos;
+	    bt += tr->size;
+	    if(tri->speed != -1) {
+		if(st == -1)
+		    st = 0;
+		st += tri->speed;
+	    }
 	}
     }
     buf = NULL;
@@ -226,9 +232,10 @@ void updatetooltip(void)
     bprintf(buf, "Transfers: %i", t);
     if(t > 0)
 	bprintf(buf, " (%i/%i)", i, a);
-    if(st != -1) {
+    if(bt > 0)
+	bprintf(buf, ", %.1f%%", (double)bc / (double)bt);
+    if(st != -1)
 	bprintf(buf, ", %s/s", bytes2si(st));
-    }
     addtobuf(buf, 0);
     gtk_status_icon_set_tooltip(tray, buf);
     free(buf);
