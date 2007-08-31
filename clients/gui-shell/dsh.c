@@ -46,8 +46,9 @@
 
 struct trinfo {
     int ostate;
-    int opos;
+    int opos, spos, speed;
     time_t lastprog;
+    double sprog;
 };
 
 void updatewrite(void);
@@ -135,8 +136,10 @@ void inittr(struct dc_transfer *tr)
     tr->udata = tri = memset(smalloc(sizeof(*tri)), 0, sizeof(*tri));
     tr->destroycb = destroytr;
     tri->ostate = tr->state;
-    tri->opos = tr->curpos;
+    tri->spos = tri->opos = tr->curpos;
+    tri->speed = -1;
     tri->lastprog = time(NULL);
+    tri->sprog = ntime();
 }
 
 #ifdef HAVE_NOTIFY
@@ -169,8 +172,73 @@ wchar_t *getfilename(wchar_t *path)
 	return(p + 1);
 }
 
+char *bytes2si(long long bytes)
+{
+    int i;
+    double b;
+    char *sd;
+    static char ret[64];
+    
+    b = bytes;
+    for(i = 0; (b >= 1024) && (i < 4); i++)
+	b /= 1024;
+    if(i == 0)
+	sd = "B";
+    else if(i == 1)
+	sd = "kiB";
+    else if(i == 2)
+	sd = "MiB";
+    else if(i == 3)
+	sd = "GiB";
+    else
+	sd = "TiB";
+    snprintf(ret, 64, "%.1f %s", b, sd);
+    return(ret);
+}
+
+void updatetooltip(void)
+{
+    struct dc_transfer *tr;
+    struct trinfo *tri;
+    int t, i, a, st;
+    char *buf;
+    size_t bufsize, bufdata;
+    
+    t = i = a = 0;
+    st = -1;
+    for(tr = dc_transfers; tr != NULL; tr = tr->next) {
+	if(tr->dir != DC_TRNSD_DOWN)
+	    continue;
+	tri = tr->udata;
+	t++;
+	if(tr->state == DC_TRNS_WAITING)
+	    i++;
+	else if((tr->state == DC_TRNS_HS) || (tr->state == DC_TRNS_MAIN))
+	    a++;
+	if((tr->state == DC_TRNS_MAIN) && (tri->speed != -1)) {
+	    if(st == -1)
+		st = 0;
+	    st += tri->speed;
+	}
+    }
+    buf = NULL;
+    bufsize = bufdata = 0;
+    bprintf(buf, "Transfers: %i", t);
+    if(t > 0)
+	bprintf(buf, " (%i/%i)", i, a);
+    if(st != -1) {
+	bprintf(buf, ", %s/s", bytes2si(st));
+    }
+    addtobuf(buf, 0);
+    gtk_status_icon_set_tooltip(tray, buf);
+    free(buf);
+}
+
 void trstatechange(struct dc_transfer *tr, int ostate)
 {
+    struct trinfo *tri;
+    
+    tri = tr->udata;
     if((ostate == DC_TRNS_MAIN) && (tr->dir == DC_TRNSD_DOWN)) {
 	if(tr->state == DC_TRNS_DONE) {
 #ifdef HAVE_NOTIFY
@@ -184,6 +252,11 @@ void trstatechange(struct dc_transfer *tr, int ostate)
 #endif
 	}
     }
+    if(tr->state == DC_TRNS_MAIN) {
+	tri->speed = -1;
+	tri->spos = tr->curpos;
+	tri->sprog = ntime();
+    }
 }
 
 void updatetrinfo(void)
@@ -191,8 +264,10 @@ void updatetrinfo(void)
     struct dc_transfer *tr;
     struct trinfo *tri;
     time_t now;
+    double dnow;
     
     now = time(NULL);
+    dnow = ntime();
     for(tr = dc_transfers; tr != NULL; tr = tr->next) {
 	if(tr->udata == NULL) {
 	    inittr(tr);
@@ -212,13 +287,25 @@ void updatetrinfo(void)
 		    notify(&trnote, "transfer.error", _("Transfer stalled"), _("The transfer of %ls from %ls has not made progress for 10 minutes"), getfilename(tr->path), tr->peernick);
 	    }
 #endif
+	    if((tr->state == DC_TRNS_MAIN) && (dnow - tri->sprog > 10)) {
+		tri->speed = ((double)(tr->curpos - tri->spos) / (dnow - tri->sprog));
+		tri->spos = tr->curpos;
+		tri->sprog = dnow;
+	    }
 	}
     }
+    updatetooltip();
 }
 
 void trlscb(int resp, void *data)
 {
     updatetrinfo();
+}
+
+gint trupdatecb(gpointer data)
+{
+    updatetrinfo();
+    return(TRUE);
 }
 
 void logincb(int err, wchar_t *reason, void *data)
@@ -227,7 +314,6 @@ void logincb(int err, wchar_t *reason, void *data)
 	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not connect to server"));
 	exit(1);
     }
-    gtk_status_icon_set_tooltip(tray, "Dolda Connect");
     dc_queuecmd(NULL, NULL, L"notify", L"trans:act", L"on", L"trans:prog", L"on", NULL);
     dc_gettrlistasync(trlscb, NULL);
     connected = 1;
@@ -479,6 +565,7 @@ int main(int argc, char **argv)
     else
 	startdaemon();
     
+    g_timeout_add(10000, trupdatecb, NULL);
     gtk_main();
 
     return(0);
