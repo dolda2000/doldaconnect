@@ -229,7 +229,7 @@ void updatetooltip(void)
     }
     buf = NULL;
     bufsize = bufdata = 0;
-    bprintf(buf, "Transfers: %i", t);
+    bprintf(buf, "%s: %i", _("Transfers"), t);
     if(t > 0)
 	bprintf(buf, " (%i/%i)", i, a);
     if(bt > 0)

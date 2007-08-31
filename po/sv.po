@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2007-08-16 18:22+0200\n"
-"PO-Revision-Date: 2007-08-16 18:29+0200\n"
+"POT-Creation-Date: 2007-08-31 03:37+0200\n"
+"PO-Revision-Date: 2007-08-31 03:37+0200\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -78,11 +78,11 @@ msgstr "Inloggningsförsöket misslyckades!"
 msgid "Discrete sizes"
 msgstr "Enskilda storlekar"
 
-#: clients/gtk2/dolcon.c:1014 clients/gui-shell/dsh.c:253
+#: clients/gtk2/dolcon.c:1014 clients/gui-shell/dsh.c:346
 msgid "The server refused the connection"
 msgstr "Servern vägrade förbindelsen"
 
-#: clients/gtk2/dolcon.c:1018 clients/gui-shell/dsh.c:256
+#: clients/gtk2/dolcon.c:1018 clients/gui-shell/dsh.c:349
 msgid "Server protocol revision mismatch"
 msgstr "Fel protokoll-revision hos servern"
 
@@ -536,52 +536,56 @@ msgstr "Inga överföringar"
 msgid "Initializing"
 msgstr "Förbereder"
 
-#: clients/gui-shell/dsh.c:178
+#: clients/gui-shell/dsh.c:232
+msgid "Transfers"
+msgstr "Överföringar"
+
+#: clients/gui-shell/dsh.c:253
 msgid "Transfer complete"
 msgstr "Färdig överföring"
 
-#: clients/gui-shell/dsh.c:178
+#: clients/gui-shell/dsh.c:253
 #, c-format
 msgid "Finished downloading %ls from %ls"
 msgstr "Färdig nedladdning av %ls från %ls"
 
-#: clients/gui-shell/dsh.c:183
+#: clients/gui-shell/dsh.c:258
 msgid "Transfer interrupted"
 msgstr "Avbruten överföring"
 
-#: clients/gui-shell/dsh.c:183
+#: clients/gui-shell/dsh.c:258
 #, c-format
 msgid "The transfer of %ls from %ls was interrupted from the other side"
 msgstr "Överföringen av %ls från %ls avbröts från andra sidan"
 
-#: clients/gui-shell/dsh.c:212
+#: clients/gui-shell/dsh.c:294
 msgid "Transfer stalled"
 msgstr "Stillastående överföring"
 
-#: clients/gui-shell/dsh.c:212
+#: clients/gui-shell/dsh.c:294
 #, c-format
 msgid "The transfer of %ls from %ls has not made progress for 10 minutes"
 msgstr "Överföringen av %ls från %ls har inte kommit någonstans på 10 minuter"
 
-#: clients/gui-shell/dsh.c:227 config/util/dolconf.c:713
+#: clients/gui-shell/dsh.c:321 config/util/dolconf.c:713
 #: config/util/dolconf.c:718 config/util/dolconf.c:724
 msgid "Could not connect to server"
 msgstr "Kunde inte ansluta till servern"
 
-#: clients/gui-shell/dsh.c:245 clients/gui-shell/dsh.c:289
+#: clients/gui-shell/dsh.c:338 clients/gui-shell/dsh.c:382
 #, c-format
 msgid "Could not connect to server: %s"
 msgstr "Kunde inte ansluta till servern: %s"
 
-#: clients/gui-shell/dsh.c:259
+#: clients/gui-shell/dsh.c:352
 msgid "Authenticating..."
 msgstr "Autentiserar..."
 
-#: clients/gui-shell/dsh.c:294
+#: clients/gui-shell/dsh.c:387
 msgid "Connecting to server..."
 msgstr "Ansluter..."
 
-#: clients/gui-shell/dsh.c:323
+#: clients/gui-shell/dsh.c:416
 msgid "Starting..."
 msgstr "Startar..."
 
