@@ -10,15 +10,16 @@ Summary: A library used by programs interfacing against the Dolda Connect daemon
 URL: http://www.dolda2000.com/~fredrik/doldaconnect/
 License: GNU General Public License, Version 2
 SoftwareVersion: @VERSION@
-AutopackageTarget: 1.0
-InterfaceVersion: 0.0
+Repository: http://www.dolda2000.com/~fredrik/doldaconnect/ap/doldaconnect-uilib.xml
+AutopackageTarget: 1.2
+InterfaceVersion: 1.1
 
 [Description]
 The Dolda Connect interface library is used by programs for talking
 with the Dolda Connect daemon.
 
 [BuildPrepare]
-prepareBuild
+prepareBuild --without-krb5 --disable-daemon --disable-gtk2ui
 
 [BuildUnprepare]
 unprepareBuild
@@ -27,10 +28,9 @@ unprepareBuild
 echo lib | import
 
 [Prepare]
-require @mit.edu/krb5 3.2
 
 [Install]
-installLib lib/libdcui.so.0.0.0
+installLib lib/libdcui.so.1.1.0
 
 [Uninstall]
 uninstallFromLog
