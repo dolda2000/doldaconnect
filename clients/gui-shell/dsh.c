@@ -233,7 +233,7 @@ void updatetooltip(void)
     if(t > 0)
 	bprintf(buf, " (%i/%i)", i, a);
     if(bt > 0)
-	bprintf(buf, ", %.1f%%", (double)bc / (double)bt);
+	bprintf(buf, ", %.1f%%", ((double)bc / (double)bt) * 100.0);
     if(st != -1)
 	bprintf(buf, ", %s/s", bytes2si(st));
     addtobuf(buf, 0);
