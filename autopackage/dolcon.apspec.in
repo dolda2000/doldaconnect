@@ -10,7 +10,8 @@ Summary: A user interface module for Dolda Connect using GTK 2.
 URL: http://www.dolda2000.com/~fredrik/doldaconnect/
 License: GNU General Public License, Version 2
 SoftwareVersion: @VERSION@
-AutopackageTarget: 1.0
+AutopackageTarget: 1.2
+Repository: http://www.dolda2000.com/~fredrik/doldaconnect/ap/doldaconnect-gtk.xml
 
 # Only uncomment InterfaceVersion if your package exposes interfaces to other software,
 # for instance if it includes DSOs or python/perl modules. See the developer guide for more info,
@@ -28,7 +29,7 @@ it is the daemon that does that. This program only controls the
 daemon.
 
 [BuildPrepare]
-prepareBuild --enable-gtk2ui --disable-gnomeapplet
+prepareBuild --enable-gtk2ui --disable-daemon --disable-dolconf --disable-guishell
 
 [BuildUnprepare]
 unprepareBuild
@@ -38,11 +39,10 @@ echo bin/dolcon share | import
 
 [Prepare]
 require @gtk.org/gtk 2.0
-require @mit.edu/krb5 3.2
-require @dolda2000.com/fredrik/doldaconnect/dcuilib 0.0
+require @dolda2000.com/fredrik/doldaconnect/dcuilib 1.1
 
 [Install]
-installExe dolcon
+installExe bin/dolcon
 installLocale share/locale
 
 [Uninstall]
