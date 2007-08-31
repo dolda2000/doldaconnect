@@ -182,6 +182,20 @@ if test "$with_krb5" != no -a "$HAS_KRB5" = yes; then
 fi
 AC_SUBST([KRB5_LIBS KRB5_CFLAGS])
 
+# Linux keyring
+AH_TEMPLATE(HAVE_KEYUTILS, [define if your system supports the Linux keyring functions])
+AC_ARG_WITH(keyutils, [  --with-keyutils           Enable support for the Linux keyring stash])
+DOLDA_PKG([HAS_KEYUTILS], [test "$with_keyutils" = no && HAS_KEYUTILS=no],
+			  [AC_CHECK_LIB(keyutils, keyctl_search, [:], [HAS_KEYUTILS=no])])
+if test "$with_keyutils" = yes -a "$HAS_KEYUTILS" = no; then
+   	AC_MSG_ERROR([*** cannot find keyutils on this system])
+fi
+if test "$HAS_KEYUTILS" = yes; then
+   	AC_DEFINE(HAVE_KEYUTILS)
+	KEYUTILS_LIBS=-lkeyutils
+fi
+AC_SUBST([KEYUTILS_LIBS])
+
 DOLDA_AC_GROUP([Checking operating system features])
 
 # Misc. functions checks
@@ -198,9 +212,6 @@ AC_CHECK_MEMBER(struct sockaddr_in6.sin6_family, [ AC_DEFINE(HAVE_IPV6) ], , [#i
 AH_TEMPLATE(HAVE_RESOLVER, [define if your system supports the res_* functions to fetch DNS RRs])
 AC_CHECK_LIB(resolv, res_query, [ AC_DEFINE(HAVE_RESOLVER)
 				  LDFLAGS="$LDFLAGS -lresolv" ])
-AH_TEMPLATE(HAVE_KEYUTILS, [define if your system supports the Linux keyring functions])
-AC_CHECK_LIB(keyutils, keyctl_search, [ AC_DEFINE(HAVE_KEYUTILS)
-					LDFLAGS="$LDFLAGS -lkeyutils" ])
 
 # Unix credentials selector
 AH_TEMPLATE(UNIX_AUTH_STYLE, [undefine for no Unix auth, 1 for Linux style, 2 for BSD style])
