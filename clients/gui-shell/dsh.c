@@ -54,6 +54,7 @@ struct trinfo {
 void updatewrite(void);
 
 int remote = 0;
+char *server;
 GtkStatusIcon *tray;
 pid_t dpid = 0, dcpid = 0;
 int connected = 0;
@@ -378,7 +379,7 @@ void updatewrite(void)
 
 void connectdc(void)
 {
-    if((dcfd = dc_connect(remote?NULL:dc_srv_local)) < 0) {
+    if((dcfd = dc_connect(server)) < 0) {
 	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not connect to server: %s"), strerror(errno));
 	exit(1);
     }
@@ -543,14 +544,20 @@ int main(int argc, char **argv)
     textdomain(PACKAGE);
     signal(SIGCHLD, sighandler);
     dc_init();
+    server = dc_srv_local;
     gtk_init(&argc, &argv);
 #ifdef HAVE_NOTIFY
     notify_init("Dolda Connect");
 #endif
-    while((c = getopt(argc, argv, "rh")) != -1) {
+    while((c = getopt(argc, argv, "rhs:")) != -1) {
 	switch(c) {
 	case 'r':
 	    remote = 1;
+	    server = NULL;
+	    break;
+	case 's':
+	    remote = 1;
+	    server = optarg;
 	    break;
 	case 'h':
 	    printf("usage: doldacond-shell [-hr]\n");
