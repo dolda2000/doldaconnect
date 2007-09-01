@@ -48,6 +48,7 @@ struct trinfo {
     int ostate;
     int opos, spos, speed;
     time_t lastprog;
+    int warned;
     double sprog;
 };
 
@@ -288,11 +289,14 @@ void updatetrinfo(void)
 	    if(tri->opos != tr->curpos) {
 		tri->opos = tr->curpos;
 		tri->lastprog = now;
+		tri->warned = 0;
 	    }
-#ifdef NOTIFY
-	    if((tr->state = DC_TRNS_MAIN) && (now - tri->lastprog > 600)) {
-		if(dcpid == 0)
+#ifdef HAVE_NOTIFY
+	    if((tr->state = DC_TRNS_MAIN) && (now - tri->lastprog > 600) && !tri->warned) {
+		if(dcpid == 0) {
 		    notify(&trnote, "transfer.error", _("Transfer stalled"), _("The transfer of %ls from %ls has not made progress for 10 minutes"), getfilename(tr->path), tr->peernick);
+		    tri->warned = 1;
+		}
 	    }
 #endif
 	    if((tr->state == DC_TRNS_MAIN) && (dnow - tri->sprog > 10)) {
