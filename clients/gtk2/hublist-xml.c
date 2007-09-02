@@ -61,7 +61,7 @@ static int checkvalid(xmlNodePtr n)
 int pubhubxmlhandler(int op, char *buf, size_t len)
 {
     static xmlParserCtxtPtr ctxt = NULL;
-    int i;
+    int i, o;
     xmlNodePtr dr, r, cr, c, n;
     int numcols, *cols, sortcol;
     GType type, *types;
@@ -142,14 +142,16 @@ int pubhubxmlhandler(int op, char *buf, size_t len)
 	}
 	for(i = 0; i < numcols; i++)
 	{
-	    if(!strcmp(names[i], "Address"))
+	    if(!strcasecmp(names[i], "Address"))
 	    {
-		name = names[0];
-		names[0] = names[i];
-		names[i] = name;
-		type = types[0];
-		types[0] = types[i];
-		types[i] = type;
+		for(o = i; o > 0; o--) {
+		    name = names[o];
+		    type = types[o];
+		    names[o] = names[o - 1];
+		    types[o] = types[o - 1];
+		    names[o - 1] = name;
+		    types[o - 1] = type;
+		}
 		break;
 	    }
 	}
