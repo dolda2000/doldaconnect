@@ -171,9 +171,9 @@ static int inithandle(struct authhandle *auth, char *username)
     data = newpamdata();
     conv.conv = (int (*)(int, const struct pam_message **, struct pam_response **, void *))pamconv;
     conv.appdata_ptr = auth;
-    if((buf = icwcstombs(confgetstr("auth", "pamserv"), NULL)) == NULL)
+    if((buf = icwcstombs(confgetstr("auth-pam", "pamserv"), NULL)) == NULL)
     {
-	flog(LOG_ERR, "could not initialize pam since auth.pamserv cannot be translated into the current locale: %s", strerror(errno));
+	flog(LOG_ERR, "could not initialize pam since auth-pam.pamserv cannot be translated into the current locale: %s", strerror(errno));
 	releasepam(data);
 	return(1);
     }
