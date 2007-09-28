@@ -12,6 +12,9 @@ Protocol-visible features:
  * Implement some encryption for the UI channel (probably TLS)
 
 Enhancements:
+ * Implement real Unicode support instead of using wchar_t.
+ * Upgrade file handling code (including integer handling in the
+   protocol code) to always use 64-bit file offsets and sizes.
  * Maybe find some external HTTP library which is better than the
    internal httplib.
 
