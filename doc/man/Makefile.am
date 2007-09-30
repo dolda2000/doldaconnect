@@ -1,5 +1,9 @@
+man_MANS =
 if DAEMON
-man_MANS = doldacond.conf.5 doldacond.8
+man_MANS += doldacond.conf.5 doldacond.8
+endif
+if CLI_GTK2
+man_MANS += dolcon.1
 endif
 BUILT_SOURCES = doldacond.conf.5
 
