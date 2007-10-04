@@ -21,7 +21,7 @@
 .\" Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111,
 .\" USA.
 .\"
-.TH DOLDACOND 8 "2007-04-11" "" "Dolda Connect manual"
+.TH DOLDACOND 8 "2007-09-30" "" "Dolda Connect manual"
 .SH NAME
 doldacond \- Dolda Connect daemon
 .SH SYNOPSIS
@@ -31,9 +31,9 @@ doldacond \- Dolda Connect daemon
 .SH DESCRIPTION
 The \fBdoldacond\fP program is the primary part of the collection of
 software that makes up Dolda Connect. It runs in the background and
-carries out all the actual work of filesharing. Other programs connect
-to \fBdoldacond\fP over a socket in order to command it and/or display
-its status to a user.
+carries out all the actual work of filesharing. Other programs, such
+as \fBdolcon\fP(1), connect to \fBdoldacond\fP over a socket in order
+to command it and/or display its status to a user.
 .P
 The configuration of \fBdoldacond\fP is controlled via the
 \fBdoldacond.conf\fP(5) file, which is described in detail in its own
@@ -138,4 +138,4 @@ job is actually running, though.
 .SH AUTHOR
 Fredrik Tolf <fredrik@dolda2000.com>
 .SH SEE ALSO
-\fBdoldacond.conf\fP(5)
+\fBdoldacond.conf\fP(5), \fBdolcon\fP(1)

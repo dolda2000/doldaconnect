@@ -1,0 +1,54 @@
+.\"
+.\" Copyright (C) 2007 Fredrik Tolf <fredrik@dolda2000.com>
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License as
+.\" published by the Free Software Foundation; either version 2 of
+.\" the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111,
+.\" USA.
+.\"
+.TH DOLCON 1 "2007-09-30" "" "Dolda Connect manual"
+.SH NAME
+dolcon \- Graphical user interface for Dolda Connect
+.SH SYNOPSIS
+.B dolcon
+[ \fB-hl\fP ]
+.SH DESCRIPTION
+The \fBdolcon\fP program runs a graphical user interface for Dolda
+Connect. It controls the \fBdoldacond\fP(8) daemon, which is the
+program doing all the actual work (consequently, \fBdoldacond\fP must
+be running to use \fBdolcon\fP). The high-level operations currently
+supported by \fBdolcon\fP include connecting to hubs, chatting on
+hubs, searching for files and request to download them, watching the
+status of currently ongoing file transfers.
+.SH OPTIONS
+.TP
+.B -h
+Displays a brief usage message on stdout and exits.
+.TP
+.B -l
+Directly on startup, automatically connect to the doldacond server
+running locally on the machine (that is, via a Unix socket). This
+option is primarily intended for use by the GUI shell of Dolda
+Connect.
+.SH FILES
+Configuration options for \fBdolcon\fP will be stored in the files
+~/.dolconrc. It is saved when the program exits normally.
+.SH AUTHOR
+Fredrik Tolf <fredrik@dolda2000.com>
+.SH SEE ALSO
+\fBdoldacond\fP(8)
