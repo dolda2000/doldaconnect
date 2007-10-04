@@ -56,7 +56,7 @@ void filelog(char *format, ...)
     t = ctime(&now);
     if((p = strchr(t, '\n')) != NULL)
 	*p = 0;
-    fprintf(out, "%s: %s\n", p, b);
+    fprintf(out, "%s: %s\n", t, b);
     free(b);
     fclose(out);
 }
