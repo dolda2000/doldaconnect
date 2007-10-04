@@ -122,12 +122,13 @@ static int chfile(struct configvar *var, void *uudata)
     return(0);
 }
 
-static void preinit(int hup)
+static int init(int hup)
 {
     if(!hup) {
 	GCBREG(newtransfercb, reg, NULL);
 	CBREG(confgetvar("reqstat", "file"), conf_update, chfile, NULL, NULL);
     }
+    return(0);
 }
 
 static struct configvar myvars[] = {
@@ -141,8 +142,8 @@ static struct module me = {
     .conf = {
 	.vars = myvars
     },
-    .preinit = preinit,
+    .init = init,
     .name = "reqstat"
 };
 
-MODULE(me);
+MODULE(me)
