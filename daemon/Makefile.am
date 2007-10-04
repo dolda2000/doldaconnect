@@ -24,7 +24,8 @@ doldacond_SOURCES=	main.c \
 			log.c \
 			ui.c \
 			conf.c \
-			conf.h
+			conf.h \
+			reqstat.c
 
 EXTRA_DIST=emacs-local
 doldacond_LDADD=$(top_srcdir)/common/libcommon.a \
