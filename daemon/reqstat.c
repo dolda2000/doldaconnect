@@ -40,7 +40,7 @@ void filelog(char *format, ...)
 {
     FILE *out;
     va_list args;
-    char *b;
+    char *b, *t, *p;
     time_t now;
     
     if(fn == NULL)
@@ -53,7 +53,10 @@ void filelog(char *format, ...)
     va_start(args, format);
     b = vsprintf2(format, args);
     va_end(args);
-    fprintf(out, "%s: %s\n", ctime(&now), b);
+    t = ctime(&now);
+    if((p = strchr(t, '\n')) != NULL)
+	*p = 0;
+    fprintf(out, "%s: %s\n", p, b);
     free(b);
     fclose(out);
 }
@@ -65,12 +68,12 @@ void request(struct transfer *transfer, struct trdata *data)
 
 void start(struct transfer *transfer, struct trdata *data)
 {
-    filelog("start %ls at %zi\n", transfer->path, data->startpos);
+    filelog("start %ls at %zi", transfer->path, data->startpos);
 }
 
 void finish(struct transfer *transfer, struct trdata *data)
 {
-    filelog("finish %ls at %zi, total %zi\n", transfer->path, transfer->curpos, transfer->curpos - data->startpos);
+    filelog("finish %ls at %zi, total %zi", transfer->path, transfer->curpos, transfer->curpos - data->startpos);
 }
 
 static int chattr(struct transfer *transfer, wchar_t *attrib, struct trdata *data)
@@ -92,7 +95,8 @@ static int chattr(struct transfer *transfer, wchar_t *attrib, struct trdata *dat
 
 static int destroy(struct transfer *transfer, struct trdata *data)
 {
-    finish(transfer, data);
+    if(transfer->curpos > data->startpos)
+	finish(transfer, data);
     free(data);
     return(0);
 }
