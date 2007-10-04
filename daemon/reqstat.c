@@ -130,6 +130,7 @@ static int init(int hup)
 {
     if(!hup) {
 	GCBREG(newtransfercb, reg, NULL);
+	chfile(confgetvar("reqstat", "file"), NULL);
 	CBREG(confgetvar("reqstat", "file"), conf_update, chfile, NULL, NULL);
     }
     return(0);
