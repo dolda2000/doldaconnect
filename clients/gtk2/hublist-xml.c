@@ -119,6 +119,8 @@ int pubhubxmlhandler(int op, char *buf, size_t len)
 		    type = G_TYPE_STRING;
 		else if(!strcmp(stype, "int"))
 		    type = G_TYPE_INT;
+		else if(!strcmp(stype, "percent"))
+		    type = G_TYPE_INT;
 		else if(!strcmp(stype, "bytes"))
 		    type = G_TYPE_INT64;
 	    }
