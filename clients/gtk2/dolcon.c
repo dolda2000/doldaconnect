@@ -279,23 +279,16 @@ char *bytes2si(long long bytes)
 {
     int i;
     double b;
-    char *sd;
     static char ret[64];
+    static char pfx[] = {'k', 'M', 'G', 'T'};
     
     b = bytes;
-    for(i = 0; (b >= 1024) && (i < 4); i++)
+    for(i = 0; (b >= 1024) && (i < sizeof(pfx)); i++)
 	b /= 1024;
     if(i == 0)
-	sd = "B";
-    else if(i == 1)
-	sd = "kiB";
-    else if(i == 2)
-	sd = "MiB";
-    else if(i == 3)
-	sd = "GiB";
+	snprintf(ret, 64, "%.1f B", b);
     else
-	sd = "TiB";
-    snprintf(ret, 64, "%.1f %s", b, sd);
+	snprintf(ret, 64, "%.1f %ciB", b, pfx[i - 1]);
     return(ret);
 }
 
