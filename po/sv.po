@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2007-08-31 03:37+0200\n"
+"POT-Creation-Date: 2007-10-13 21:46+0200\n"
 "PO-Revision-Date: 2007-08-31 03:37+0200\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -18,83 +18,83 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: clients/gtk2/dolcon.c:245 clients/gtk2/dolcon.c:268
-#: clients/gtk2/dolcon.c:324 clients/gtk2/dolcon.c:339
-#: clients/gtk2/dolcon.c:373 clients/gtk2/dolcon.c:518
-#: clients/gtk2/dolcon.c:541
+#: clients/gtk2/dolcon.c:317 clients/gtk2/dolcon.c:332
+#: clients/gtk2/dolcon.c:366 clients/gtk2/dolcon.c:511
+#: clients/gtk2/dolcon.c:534
 msgid "Unknown"
 msgstr "Okänt"
 
-#: clients/gtk2/dolcon.c:415
+#: clients/gtk2/dolcon.c:408
 msgid "Not found"
 msgstr "Kunde inte hittas"
 
-#: clients/gtk2/dolcon.c:417
+#: clients/gtk2/dolcon.c:410
 msgid "No slots"
 msgstr "Inga kanaler lediga"
 
-#: clients/gtk2/dolcon.c:418
+#: clients/gtk2/dolcon.c:411
 msgid "%H:%M:%S"
 msgstr "%H:%M:%S"
 
-#: clients/gtk2/dolcon.c:419
+#: clients/gtk2/dolcon.c:412
 #, c-format
 msgid "%s (reported at %s)"
 msgstr "%s (rapporterades kl. %s)"
 
-#: clients/gtk2/dolcon.c:611 clients/gtk2/dolcon.c:2295
+#: clients/gtk2/dolcon.c:604 clients/gtk2/dolcon.c:2292
 msgid "Disconnected"
 msgstr "Frånkopplad"
 
-#: clients/gtk2/dolcon.c:734 config/util/dolconf.c:800
+#: clients/gtk2/dolcon.c:727 config/util/dolconf.c:804
 msgid "Could not get your home directory!"
 msgstr "Kunde inte hitta din hemkatalog!"
 
-#: clients/gtk2/dolcon.c:741
+#: clients/gtk2/dolcon.c:734
 #, c-format
 msgid "Could not open configuration file for writing: %s"
 msgstr "Kunde inte skriva till konfigurationsfilen: %s"
 
-#: clients/gtk2/dolcon.c:782 clients/gtk2/dolcon.c:786
+#: clients/gtk2/dolcon.c:775 clients/gtk2/dolcon.c:779
 msgid "Login"
 msgstr "Logga in"
 
-#: clients/gtk2/dolcon.c:822
+#: clients/gtk2/dolcon.c:815
 msgid "Could not negotiate an acceptable authentication mechanism"
 msgstr "Kunde inte förhandla fram en acceptabel autentiseringsmekanism"
 
-#: clients/gtk2/dolcon.c:827
+#: clients/gtk2/dolcon.c:820
 msgid "The server has encountered an error"
 msgstr "Servern har råkat ut för ett fel"
 
-#: clients/gtk2/dolcon.c:832
+#: clients/gtk2/dolcon.c:825
 msgid "Internal client error"
 msgstr "Internt fel i klienten"
 
-#: clients/gtk2/dolcon.c:841
+#: clients/gtk2/dolcon.c:834
 msgid "Login attempt failed!"
 msgstr "Inloggningsförsöket misslyckades!"
 
-#: clients/gtk2/dolcon.c:887
+#: clients/gtk2/dolcon.c:880
 msgid "Discrete sizes"
 msgstr "Enskilda storlekar"
 
-#: clients/gtk2/dolcon.c:1014 clients/gui-shell/dsh.c:346
+#: clients/gtk2/dolcon.c:1007 clients/gui-shell/dsh.c:351
 msgid "The server refused the connection"
 msgstr "Servern vägrade förbindelsen"
 
-#: clients/gtk2/dolcon.c:1018 clients/gui-shell/dsh.c:349
+#: clients/gtk2/dolcon.c:1011 clients/gui-shell/dsh.c:354
 msgid "Server protocol revision mismatch"
 msgstr "Fel protokoll-revision hos servern"
 
-#: clients/gtk2/dolcon.c:1024
+#: clients/gtk2/dolcon.c:1017
 msgid "Connected"
 msgstr "Ansluten"
 
-#: clients/gtk2/dolcon.c:1252
+#: clients/gtk2/dolcon.c:1245
 msgid "The server has closed the connection"
 msgstr "Servern har stängt förbindelsen"
 
-#: clients/gtk2/dolcon.c:1254
+#: clients/gtk2/dolcon.c:1247
 #, c-format
 msgid ""
 "The connection to the server failed:\n"
@@ -105,11 +105,11 @@ msgstr ""
 "\n"
 "%s"
 
-#: clients/gtk2/dolcon.c:1274
+#: clients/gtk2/dolcon.c:1267
 msgid "Preferences"
 msgstr "Inställningar"
 
-#: clients/gtk2/dolcon.c:1313
+#: clients/gtk2/dolcon.c:1306
 #, c-format
 msgid ""
 "Could not connect:\n"
@@ -120,107 +120,107 @@ msgstr ""
 "\n"
 "%s"
 
-#: clients/gtk2/dolcon.c:1320 clients/gtk2/hublist.c:206
+#: clients/gtk2/dolcon.c:1313 clients/gtk2/hublist.c:206
 #: clients/gnome-trans-applet/dolcon-trans-applet.c:113
 msgid "Connecting..."
 msgstr "Ansluter..."
 
-#: clients/gtk2/dolcon.c:1329
+#: clients/gtk2/dolcon.c:1322
 msgid "Connect"
 msgstr "Anslut"
 
-#: clients/gtk2/dolcon.c:1329
+#: clients/gtk2/dolcon.c:1322
 msgid "Server address:"
 msgstr "Serverns adress:"
 
-#: clients/gtk2/dolcon.c:1342 clients/gtk2/dolcon.c:1363
-#: clients/gtk2/dolcon.c:1461 clients/gtk2/dolcon.c:1503
-#: clients/gtk2/dolcon.c:1567 clients/gtk2/dolcon.c:1655
-#: clients/gtk2/dolcon.c:1752
+#: clients/gtk2/dolcon.c:1335 clients/gtk2/dolcon.c:1356
+#: clients/gtk2/dolcon.c:1454 clients/gtk2/dolcon.c:1496
+#: clients/gtk2/dolcon.c:1560 clients/gtk2/dolcon.c:1648
+#: clients/gtk2/dolcon.c:1745
 msgid "Not connected to DC server"
 msgstr "Ej ansluten till DC-servern"
 
-#: clients/gtk2/dolcon.c:1349 clients/gtk2/dolcon.c:1382
-#: clients/gtk2/dolcon.c:1474 clients/gtk2/dolcon.c:1521
-#: clients/gtk2/dolcon.c:1580 clients/gtk2/dolcon.c:1673
-#: clients/gtk2/dolcon.c:1728 clients/gtk2/dolcon.c:1799
-#: clients/gtk2/dolcon.c:1924 clients/gtk2/dolcon.c:1951
+#: clients/gtk2/dolcon.c:1342 clients/gtk2/dolcon.c:1375
+#: clients/gtk2/dolcon.c:1467 clients/gtk2/dolcon.c:1514
+#: clients/gtk2/dolcon.c:1573 clients/gtk2/dolcon.c:1666
+#: clients/gtk2/dolcon.c:1721 clients/gtk2/dolcon.c:1792
+#: clients/gtk2/dolcon.c:1917 clients/gtk2/dolcon.c:1944
 msgid "You do not have permission to do that"
 msgstr "Du har inte tillstånd att göra det"
 
-#: clients/gtk2/dolcon.c:1369
+#: clients/gtk2/dolcon.c:1362
 msgid "Illegal address entered"
 msgstr "Ogiltig adress"
 
-#: clients/gtk2/dolcon.c:1384 clients/gtk2/dolcon.c:1523
+#: clients/gtk2/dolcon.c:1377 clients/gtk2/dolcon.c:1516
 msgid "The server could not parse that address"
 msgstr "Servern kunde inte tolka den adressen"
 
-#: clients/gtk2/dolcon.c:1386 clients/gtk2/dolcon.c:1525
+#: clients/gtk2/dolcon.c:1379 clients/gtk2/dolcon.c:1518
 msgid "There are too many hubs connected"
 msgstr "För många hubbar är anslutna"
 
-#: clients/gtk2/dolcon.c:1466 clients/gtk2/dolcon.c:1572
+#: clients/gtk2/dolcon.c:1459 clients/gtk2/dolcon.c:1565
 msgid "No hub selected"
 msgstr "Ingen hub vald"
 
-#: clients/gtk2/dolcon.c:1582
+#: clients/gtk2/dolcon.c:1575
 msgid ""
 "This hub could not support all the types of characters in your chat message"
 msgstr "Den här hubben klarar inte av alla sorters bokstäver i ditt meddelande"
 
-#: clients/gtk2/dolcon.c:1584
+#: clients/gtk2/dolcon.c:1577
 msgid "This hub does not support chatting"
 msgstr "Den här hubben klarar inte av att chatta"
 
-#: clients/gtk2/dolcon.c:1586
+#: clients/gtk2/dolcon.c:1579
 #, c-format
 msgid "An error occurred while trying to chat (%i)"
 msgstr "Ett fel uppstod under försöket att chatta (%i)"
 
-#: clients/gtk2/dolcon.c:1663
+#: clients/gtk2/dolcon.c:1656
 msgid "Please enter a search expression before searching"
 msgstr "Skriv in ett sökuttryck först"
 
-#: clients/gtk2/dolcon.c:1671
+#: clients/gtk2/dolcon.c:1664
 msgid "Could not find any hubs to search on"
 msgstr "Kunde inte hitta någon hub att söka på"
 
-#: clients/gtk2/dolcon.c:1675
+#: clients/gtk2/dolcon.c:1668
 msgid "The server could not parse your search expression"
 msgstr "Servern kunde inte tolka ditt sökuttryck"
 
-#: clients/gtk2/dolcon.c:1677
+#: clients/gtk2/dolcon.c:1670
 #, c-format
 msgid "An error occurred while trying to search (%i)"
 msgstr "Ett fel uppstod under försöket att söka (%i)"
 
-#: clients/gtk2/dolcon.c:1730 clients/gtk2/dolcon.c:1953
+#: clients/gtk2/dolcon.c:1723 clients/gtk2/dolcon.c:1946
 #, c-format
 msgid "An error occurred while trying to cancel (%i)"
 msgstr "Ett fel uppstod under försöket att avbryta (%i)"
 
-#: clients/gtk2/dolcon.c:1801
+#: clients/gtk2/dolcon.c:1794
 #, c-format
 msgid "An error occurred while trying to queue the download (%i)"
 msgstr "Ett fel uppstod under försöket att lägga till nerladdningen (%i)"
 
-#: clients/gtk2/dolcon.c:1926
+#: clients/gtk2/dolcon.c:1919
 #, c-format
 msgid "An error occurred while trying to reset (%i)"
 msgstr "Ett fel uppstod under försöket att återställa (%i)"
 
-#: clients/gtk2/dolcon.c:2061
+#: clients/gtk2/dolcon.c:2054
 #, c-format
 msgid "An error occurred (%ls)"
 msgstr "Ett fel uppstod (%ls)"
 
-#: clients/gtk2/dolcon.c:2179 clients/gtk2/mainwnd.gtk:470
+#: clients/gtk2/dolcon.c:2172 clients/gtk2/mainwnd.gtk:470
 #, c-format
 msgid "Ready to search"
 msgstr "Redo att söka"
 
-#: clients/gtk2/dolcon.c:2181
+#: clients/gtk2/dolcon.c:2174
 #, c-format
 msgid "Search scheduled and will be submitted in %i seconds"
 msgstr "Sökningen är schemalagd och kommer genomföras om %i sekunder"
@@ -264,11 +264,11 @@ msgstr "Hublistan är inte giltig"
 msgid "The hub list cannot be understood"
 msgstr "Hublistan är oförståelig"
 
-#: clients/gtk2/hublist-xml.c:140
+#: clients/gtk2/hublist-xml.c:142
 msgid "The hub list did not contain any columns"
 msgstr "Hublistan innehöll inga kolumner"
 
-#: clients/gtk2/hublist-xml.c:158
+#: clients/gtk2/hublist-xml.c:162
 msgid "The hub list did not contain the address to any hubs"
 msgstr "Hublistan innehöll inte adresser till några hubbar"
 
@@ -536,56 +536,56 @@ msgstr "Inga överföringar"
 msgid "Initializing"
 msgstr "Förbereder"
 
-#: clients/gui-shell/dsh.c:232
+#: clients/gui-shell/dsh.c:234
 msgid "Transfers"
 msgstr "Överföringar"
 
-#: clients/gui-shell/dsh.c:253
+#: clients/gui-shell/dsh.c:255
 msgid "Transfer complete"
 msgstr "Färdig överföring"
 
-#: clients/gui-shell/dsh.c:253
+#: clients/gui-shell/dsh.c:255
 #, c-format
 msgid "Finished downloading %ls from %ls"
 msgstr "Färdig nedladdning av %ls från %ls"
 
-#: clients/gui-shell/dsh.c:258
+#: clients/gui-shell/dsh.c:260
 msgid "Transfer interrupted"
 msgstr "Avbruten överföring"
 
-#: clients/gui-shell/dsh.c:258
+#: clients/gui-shell/dsh.c:260
 #, c-format
 msgid "The transfer of %ls from %ls was interrupted from the other side"
 msgstr "Överföringen av %ls från %ls avbröts från andra sidan"
 
-#: clients/gui-shell/dsh.c:294
+#: clients/gui-shell/dsh.c:297
 msgid "Transfer stalled"
 msgstr "Stillastående överföring"
 
-#: clients/gui-shell/dsh.c:294
+#: clients/gui-shell/dsh.c:297
 #, c-format
 msgid "The transfer of %ls from %ls has not made progress for 10 minutes"
 msgstr "Överföringen av %ls från %ls har inte kommit någonstans på 10 minuter"
 
-#: clients/gui-shell/dsh.c:321 config/util/dolconf.c:713
+#: clients/gui-shell/dsh.c:326 config/util/dolconf.c:713
 #: config/util/dolconf.c:718 config/util/dolconf.c:724
 msgid "Could not connect to server"
 msgstr "Kunde inte ansluta till servern"
 
-#: clients/gui-shell/dsh.c:338 clients/gui-shell/dsh.c:382
+#: clients/gui-shell/dsh.c:343 clients/gui-shell/dsh.c:387
 #, c-format
 msgid "Could not connect to server: %s"
 msgstr "Kunde inte ansluta till servern: %s"
 
-#: clients/gui-shell/dsh.c:352
+#: clients/gui-shell/dsh.c:357
 msgid "Authenticating..."
 msgstr "Autentiserar..."
 
-#: clients/gui-shell/dsh.c:387
+#: clients/gui-shell/dsh.c:392
 msgid "Connecting to server..."
 msgstr "Ansluter..."
 
-#: clients/gui-shell/dsh.c:416
+#: clients/gui-shell/dsh.c:426
 msgid "Starting..."
 msgstr "Startar..."
 
@@ -716,7 +716,7 @@ msgstr ""
 "Vissa ändringar har inte ännu sparats. Vill du låta bli att spara dem och "
 "avsluta i alla fall?"
 
-#: config/util/dolconf.c:807
+#: config/util/dolconf.c:811
 msgid ""
 "It appears that you have not run this setup program before. Would you like "
 "to run the first-time setup assistant?"
@@ -724,7 +724,7 @@ msgstr ""
 "Du tycks inte ha kört det här inställningsprogrammet tidigare. Vill du köra "
 "förstagångs-assistenten?"
 
-#: config/util/dolconf.c:818
+#: config/util/dolconf.c:822
 msgid ""
 "The configuration file appears to have been edited outside the control of "
 "this program. If you continue using this program, all settings not handled "
@@ -734,7 +734,7 @@ msgstr ""
 "kontroll. Om du fortsätter använda det här programmet, kommer inställningar "
 "som det inte hanterar förloras. Vill du fortsätta?"
 
-#: config/util/dolconf.c:847
+#: config/util/dolconf.c:851
 msgid "Internal error (Unknown state)"
 msgstr "Internt fel (Okänt läge)"
 
