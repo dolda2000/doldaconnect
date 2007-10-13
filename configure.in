@@ -279,6 +279,7 @@ config/Makefile
 config/cmd/Makefile
 config/util/Makefile
 contrib/Makefile
+share/Makefile
 autopackage/doldacond.apspec
 autopackage/dolcon.apspec
 autopackage/dcuilib.apspec

@@ -1,8 +1,5 @@
 SUBDIRS=gtk2 tty gnome-trans-applet gaim gui-shell
-EXTRA_DIST=hellodolda.png dolda-icon.xpm
-
-iconsdir = $(datadir)/pixmaps
-icons_DATA = hellodolda.png
+EXTRA_DIST=dolda-icon.xpm
 
 noinst_PROGRAMS=test
 

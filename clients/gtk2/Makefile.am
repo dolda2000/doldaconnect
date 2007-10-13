@@ -1,8 +1,5 @@
 if CLI_GTK2
 bin_PROGRAMS=dolcon
-if !GUISHELL
-app_DATA=dolcon.desktop
-endif
 endif
 
 dolcon_SOURCES=	dolcon.c \
@@ -14,7 +11,7 @@ dolcon_SOURCES=	dolcon.c \
 		progressbar.c \
 		progressbar.h
 
-EXTRA_DIST=mainwnd.desc inpdialog.desc pref.desc reslist.desc dolcon.desktop
+EXTRA_DIST=mainwnd.desc inpdialog.desc pref.desc reslist.desc
 
 BUILT_SOURCES=	mainwnd.gtk inpdialog.gtk pref.gtk reslist.gtk
 
@@ -33,5 +30,3 @@ dolcon_CPPFLAGS=@GTK2_CFLAGS@ @LIBXML_CFLAGS@ \
 	 | $(top_srcdir)/common/makegdesc -h "$${basename}.gtkh" >$@
 
 mainwnd.desc: ../../config.h
-
-appdir=$(datadir)/applications
