@@ -1,0 +1,18 @@
+# -*-shell-script-*-
+
+[Meta]
+RootName: @dolda2000.com/fredrik/doldaconnect/dolcon
+DisplayName: Dolda Connect GTK 2 user interface
+ShortName: doldaconnect-gtk
+Skeleton-Author: Fredrik Tolf <fredrik@dolda2000.com>
+Skeleton-Version: 1
+Repository: http://www.dolda2000.com/~fredrik/doldaconnect/ap/doldaconnect-gtk.xml
+
+[Test]
+SOFTWARE_VERSIONS=
+if which dolcon >/dev/null 2>&1; then
+    SOFTWARE_VERSIONS="$(dolcon -V | sed -n 's/^relver \(.*\)$/\1/p')"
+fi
+if [ -n "$SOFTWARE_VERSIONS" ]; then
+    INTERFACE_VERSIONS=1.0
+fi
