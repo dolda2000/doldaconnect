@@ -15,7 +15,7 @@
 				$tvcol title: "Hash" text: 5 sortcol: 5
 			end
 		end
-		:hbox
+		:hbtnbox layout: END
 			$sbtn name: reload stock: REFRESH sig: clicked var: y
 			$sbtn name: delete stock: DELETE sig: clicked sensitive: FALSE var: y
 			$btn name: search label: "_Search for hash" sig: clicked sensitive: FALSE var: y
