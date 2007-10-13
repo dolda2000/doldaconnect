@@ -1,0 +1,37 @@
+# -*-shell-script-*-
+
+[Meta]
+RootName: @dolda2000.com/fredrik/doldaconnect/guishell:$SOFTWAREVERSION
+DisplayName: Dolda Connect GUI
+ShortName: doldaconnect-guishell
+Maintainer: Fredrik Tolf <fredrik@dolda2000.com>
+Packager: Fredrik Tolf <fredrik@dolda2000.com>
+Summary: A friendly GUI for Dolda Connect
+URL: http://www.dolda2000.com/~fredrik/doldaconnect/
+License: GNU General Public License, Version 2 or later
+SoftwareVersion: @VERSION@
+Repository: http://www.dolda2000.com/~fredrik/doldaconnect/ap/doldaconnect-guishell.xml
+AutopackageTarget: 1.2
+
+[BuildPrepare]
+prepareBuild --enable-dolconf --enable-guishell --disable-gtk2ui --disable-daemon
+
+[BuildUnprepare]
+unprepareBuild
+
+[Imports]
+echo bin share/locale | import
+
+[Prepare]
+require @gtk.org/gtk 2.10
+require @dolda2000.com/fredrik/doldaconnect/dcuilib 1.1
+
+[Install]
+installExe bin/dolconf
+installExe bin/dolcon-launch
+installExe bin/doldacond-shell
+installLocale share/locale
+
+[Uninstall]
+# Usually just the following line is enough to uninstall everything
+uninstallFromLog

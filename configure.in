@@ -271,6 +271,7 @@ autopackage/doldacond.apspec
 autopackage/dolcon.apspec
 autopackage/dcuilib.apspec
 autopackage/dcguile.apspec
+autopackage/guishell.apspec
 ])
 
 echo
