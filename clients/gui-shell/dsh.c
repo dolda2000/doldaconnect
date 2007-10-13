@@ -396,6 +396,7 @@ void startdaemon(void)
 {
     char pf[1024];
     int pfd[2], i;
+    sigset_t ss;
     
     if(getenv("HOME") != NULL)
 	snprintf(pf, sizeof(pf), "%s/.doldacond.pid", getenv("HOME"));
@@ -403,7 +404,11 @@ void startdaemon(void)
 	snprintf(pf, sizeof(pf), "%s/.doldacond.pid", getpwuid(getuid())->pw_dir);
     if(access(pf, F_OK) || !running(pf)) {
 	pipe(pfd);
+	sigemptyset(&ss);
+	sigaddset(&ss, SIGCHLD);
+	sigprocmask(SIG_BLOCK, &ss, NULL);
 	if((dpid = fork()) == 0) {
+	    sigprocmask(SIG_UNBLOCK, &ss, NULL);
 	    dup2(pfd[1], 2);
 	    for(i = 3; i < FD_SETSIZE; i++)
 		close(i);
@@ -419,6 +424,7 @@ void startdaemon(void)
 	create_start_wnd();
 	gtk_widget_show(start_wnd);
 	gtk_status_icon_set_tooltip(tray, _("Starting..."));
+	sigprocmask(SIG_UNBLOCK, &ss, NULL);
     } else {
 	connectdc();
     }
