@@ -51,11 +51,12 @@ int main(int argc, char **argv)
     int c;
     char cf[1024], pf[1024];
     
-    while((c = getopt(argc, argv, "h")) != -1) {
+    while((c = getopt(argc, argv, "hV")) != -1) {
 	switch(c) {
 	case 'h':
-	    printf("usage: dolcon-launch [-h]\n");
+	    printf("usage: dolcon-launch [-hV]\n");
 	    printf("\t-h\tDisplay this help message\n");
+	    printf("\t-V\tDisplay version info and exit\n");
 	    printf("\n");
 	    printf("\tIf $HOME/.doldacond.conf does not exist, dolcon-launch will run\n");
 	    printf("\tdolconf. Otherwise, if $HOME/.doldacond.pid does not exist,\n");
@@ -63,7 +64,9 @@ int main(int argc, char **argv)
 	    printf("\tdoldacond-shell. Otherwise, dolcon-launch will run dolcon. All\n");
 	    printf("\tthese programs must be somewhere in $PATH for dolcon-launch to work.\n");
 	    exit(0);
-	    break;
+	case 'V':
+	    printf("%s", RELEASEINFO);
+	    exit(0);
 	default:
 	    fprintf(stderr, "usage: dolcon-launch [-h]\n");
 	    exit(1);

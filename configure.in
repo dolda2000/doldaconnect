@@ -243,6 +243,18 @@ CPPFLAGS="-I\$(top_srcdir)/include $CPPFLAGS"
 
 DOLDA_AC_GROUP([Writing output])
 
+AH_TEMPLATE(RELEASEINFO, [define release information reported by various programs (should be left to configure to define)])
+relinfo="relver ${VERSION}\\n"
+relinfo="${relinfo}builddate $(date)\\n"
+if test -d .git && which git-rev-parse >/dev/null 2>&1; then
+   	relinfo="${relinfo}source git $(git-rev-parse HEAD)\\n"
+elif test -r source; then
+	relinfo="${relinfo}source $(cat source)\\n"
+else
+	relinfo="${relinfo}source unknown\\n"
+fi
+AC_DEFINE_UNQUOTED([RELEASEINFO], ["$relinfo"])
+
 AC_SUBST([extlibs])
 AC_OUTPUT([
 Makefile

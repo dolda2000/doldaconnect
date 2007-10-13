@@ -763,7 +763,7 @@ int main(int argc, char **argv)
     
     gtk_init(&argc, &argv);
     state = -1;
-    while((c = getopt(argc, argv, "haw")) != -1) {
+    while((c = getopt(argc, argv, "hawV")) != -1) {
 	switch(c) {
 	case 'a':
 	    state = 1;
@@ -776,9 +776,13 @@ int main(int argc, char **argv)
 	    printf("\t-h\tDisplay this help message\n");
 	    printf("\t-a\tGo directly to the assistant\n");
 	    printf("\t-w\tGo directly to the standard window\n");
+	    printf("\t-V\tDisplay version info and exit\n");
+	    exit(0);
+	case 'V':
+	    printf("%s", RELEASEINFO);
 	    exit(0);
 	default:
-	    fprintf(stderr, "usage: dolconf [-haw]\n");
+	    fprintf(stderr, "usage: dolconf [-hawV]\n");
 	    exit(1);
 	}
     }

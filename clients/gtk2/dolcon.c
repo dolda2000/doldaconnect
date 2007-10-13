@@ -2208,18 +2208,22 @@ int main(int argc, char **argv)
     textdomain(PACKAGE);
     gtk_init(&argc, &argv);
     connlocal = 0;
-    while((c = getopt(argc, argv, "lh")) != -1) {
+    while((c = getopt(argc, argv, "lhV")) != -1) {
 	switch(c) {
 	case 'l':
 	    connlocal = 1;
 	    break;
 	case 'h':
-	    printf("usage: dolcon [-hl]\n");
+	    printf("usage: dolcon [-hlV]\n");
 	    printf("\t-h\tDisplay this help message\n");
 	    printf("\t-l\tConnect to the locally running daemon\n");
+	    printf("\t-V\tDisplay version info and exit\n");
+	    exit(0);
+	case 'V':
+	    printf("%s", RELEASEINFO);
 	    exit(0);
 	default:
-	    fprintf(stderr, "usage: dolcon [-hl]\n");
+	    fprintf(stderr, "usage: dolcon [-hlV]\n");
 	    exit(1);
 	}
     }

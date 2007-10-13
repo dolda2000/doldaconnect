@@ -559,7 +559,7 @@ int main(int argc, char **argv)
 #ifdef HAVE_NOTIFY
     notify_init("Dolda Connect");
 #endif
-    while((c = getopt(argc, argv, "rhs:")) != -1) {
+    while((c = getopt(argc, argv, "Vrhs:")) != -1) {
 	switch(c) {
 	case 'r':
 	    remote = 1;
@@ -573,6 +573,10 @@ int main(int argc, char **argv)
 	    printf("usage: doldacond-shell [-hr]\n");
 	    printf("\t-h\tDisplay this help message\n");
 	    printf("\t-r\tConnect to a remote host\n");
+	    printf("\t-V\tDisplay version info and exit\n");
+	    exit(0);
+	case 'V':
+	    printf("%s", RELEASEINFO);
 	    exit(0);
 	default:
 	    fprintf(stderr, "usage: doldacond-shell [-hr]\n");

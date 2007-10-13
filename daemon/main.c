@@ -390,7 +390,7 @@ int main(int argc, char **argv)
     syslogfac = LOG_DAEMON;
     configfile = NULL;
     pidfile = NULL;
-    while((c = getopt(argc, argv, "p:C:f:hns")) != -1)
+    while((c = getopt(argc, argv, "p:C:f:hnsV")) != -1)
     {
 	switch(c)
 	{
@@ -436,11 +436,14 @@ int main(int argc, char **argv)
 	case 's':
 	    immsyslog = 1;
 	    break;
+	case 'V':
+	    printf("%s", RELEASEINFO);
+	    exit(0);
 	case 'h':
 	case ':':
 	case '?':
 	default:
-	    printf("usage: doldacond [-hns] [-C configfile] [-p pidfile] [-f facility]\n");
+	    printf("usage: doldacond [-hnsV] [-C configfile] [-p pidfile] [-f facility]\n");
 	    exit(c != 'h');
 	}
     }
