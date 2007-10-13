@@ -18,7 +18,7 @@ endif
 EXTRA_DIST=hellodolda.png dolda-icon.png dolcon-gtk.desktop dolcon-shell.desktop
 
 install-data-local:
-	if [ "$$realdesktop" != none ]; then \
+	if [ "$(realdesktop)" != none ]; then \
 		$(mkinstalldirs) $(DESTDIR)$(appdir); \
 		$(INSTALL_DATA) $(srcdir)/$(realdesktop) $(DESTDIR)$(appdir)/dolcon.desktop; \
 	fi
