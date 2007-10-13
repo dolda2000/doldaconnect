@@ -38,7 +38,7 @@ unprepareBuild
 echo bin/dolcon share | import
 
 [Prepare]
-require @gtk.org/gtk 2.0
+require @gtk.org/gtk 2.4
 require @dolda2000.com/fredrik/doldaconnect/dcuilib 1.1
 
 [Install]
