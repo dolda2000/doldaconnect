@@ -20,7 +20,7 @@ prepareBuild --enable-dolconf --enable-guishell --disable-gtk2ui --disable-daemo
 unprepareBuild
 
 [Imports]
-echo bin share/locale | import
+echo bin share | import
 
 [Prepare]
 require @gtk.org/gtk 2.10
@@ -32,6 +32,8 @@ installExe bin/dolconf
 installExe bin/dolcon-launch
 installExe bin/doldacond-shell
 installLocale share/locale
+installIcon share/icons/hicolor
+installMenuItem "Network/File sharing" share/applications/dolcon.desktop
 
 [Uninstall]
 # Usually just the following line is enough to uninstall everything
