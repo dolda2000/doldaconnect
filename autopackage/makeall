@@ -9,7 +9,8 @@ cd doldaconnect
 ./bootstrap
 ./configure
 
-packages="dcuilib dolcon doldacond guishell"
+packages="`cat autopackage/build`"
+version="`sed -n 's/^.* VERSION "\([^"]*\)".*$/\1/p' config.h`"
 
 for pkg in $packages; do
     sfile="autopackage/$pkg.apspec"
@@ -20,7 +21,7 @@ for pkg in $packages; do
     fi
     make clean
     PACKAGEFILENAME="$pname.package" makepackage "$sfile"
-    mv "$pname.package" "$pname.package.meta" "$pname.xml" "$tempdir"
+    mv "$pname-$version.package" "$pname-$version.package.meta" "$pname.xml" "$tempdir"
 done
 
 rm -rf "$tempdir/doldaconnect"

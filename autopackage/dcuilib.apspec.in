@@ -13,7 +13,7 @@ SoftwareVersion: @VERSION@
 Repository: http://www.dolda2000.com/~fredrik/doldaconnect/ap/doldaconnect-uilib.xml
 AutopackageTarget: 1.2
 InterfaceVersion: 1.1
-PackageFileName: doldaconnect-uilib.package
+PackageFileName: doldaconnect-uilib-@VERSION@.package
 
 [Description]
 The Dolda Connect interface library is used by programs for talking

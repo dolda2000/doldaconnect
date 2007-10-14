@@ -12,7 +12,7 @@ License: GNU General Public License, Version 2 or later
 SoftwareVersion: @VERSION@
 Repository: http://www.dolda2000.com/~fredrik/doldaconnect/ap/doldaconnect-guishell.xml
 AutopackageTarget: 1.2
-PackageFileName: doldaconnect-guishell.package
+PackageFileName: doldaconnect-guishell-@VERSION@.package
 
 [BuildPrepare]
 prepareBuild --enable-dolconf --enable-guishell --disable-gtk2ui --disable-daemon
