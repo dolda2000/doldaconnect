@@ -35,6 +35,8 @@ installExe bin/dolcon-launch
 installExe bin/doldacond-shell
 installLocale share/locale
 installIcon share/icons/hicolor
+createBootstrapScript "$PREFIX/bin/dolcon-launch" "$PREFIX/bin/dolcon-launch.apkg"
+sed -i 's/\(Exec *= *dolcon-launch\)/\1.apkg/' share/applications/dolcon.desktop
 installMenuItem "Network/File sharing" share/applications/dolcon.desktop
 
 [Uninstall]

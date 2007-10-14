@@ -43,7 +43,7 @@ require @gtk.org/gtk 2.4
 require @dolda2000.com/fredrik/doldaconnect/dcuilib 1.1
 
 [Install]
-installExe bin/dolcon
+installExe dolcon
 installLocale share/locale
 
 [Uninstall]

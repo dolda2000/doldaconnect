@@ -42,8 +42,8 @@ require @bzip.org/libbz2 1
 require @gnu.org/gdbm 3
 
 [Install]
-installExe bin/doldacond bin/locktouch bin/tthsum
-copyFiles libexec/speedrec "$PREFIX/libexec"
+installExe doldacond locktouch tthsum
+copyFiles speedrec "$PREFIX/libexec"
 copyFiles etc/* "$PREFIX/etc"
 
 [Uninstall]
