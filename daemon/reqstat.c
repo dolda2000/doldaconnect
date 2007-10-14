@@ -117,7 +117,7 @@ static int chfile(struct configvar *var, void *uudata)
 {
     if(fn != NULL)
 	free(fn);
-    if(var->val.str[0] == L'0') {
+    if(var->val.str[0] == L'\0') {
 	fn = NULL;
     } else {
 	if((fn = icwcstombs(var->val.str, NULL)) == NULL)
