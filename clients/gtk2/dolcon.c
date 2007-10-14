@@ -47,7 +47,6 @@
 #endif
 #include "dolcon.h"
 #include "hublist.h"
-#include "progressbar.h"
 
 #define TRHISTSIZE 10
 
@@ -290,6 +289,27 @@ char *bytes2si(long long bytes)
     else
 	snprintf(ret, 64, "%.1f %ciB", b, pfx[i - 1]);
     return(ret);
+}
+
+void progressfunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)
+{
+    int totalc, curc;
+    int total, cur;
+    char buf[64];
+    
+    totalc = (GPOINTER_TO_INT(data) & 0xff00) >> 8;
+    curc = GPOINTER_TO_INT(data) & 0xff;
+    gtk_tree_model_get(model, iter, totalc, &total, curc, &cur, -1);
+    if(total < 1)
+	g_object_set(rend, "value", GINT_TO_POINTER(0), NULL);
+    else
+	g_object_set(rend, "value", GINT_TO_POINTER((int)(((double)cur / (double)total) * 100)), NULL);
+    if(cur < 0) {
+	g_object_set(rend, "text", "", NULL);
+    } else {
+	snprintf(buf, 64, "%'i", cur);
+	g_object_set(rend, "text", buf, NULL);
+    }
 }
 
 void percentagefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)

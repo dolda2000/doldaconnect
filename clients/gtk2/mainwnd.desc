@@ -149,12 +149,7 @@ end
 								$textrend func: transnicebytefunc funcdata: "GINT_TO_POINTER(6)"
 							end
 							:tvcol title: "Position"
-#ifdef ENABLE_GTK2PBAR
-								$custrend newfunc: custom_cell_renderer_progress_new attr(percentage): 9
-#else
-								$textrend func: percentagefunc funcdata: "GINT_TO_POINTER(9)" expand: FALSE
-#endif
-								$textrend func: transnicebytefunc funcdata: "GINT_TO_POINTER(7)"
+								$progrend func: progressfunc funcdata: "GINT_TO_POINTER((6 << 8) | 7)" expand: TRUE
 							end
 							:tvcol title: "Speed"
 								$textrend func: transspeedinfo
@@ -179,12 +174,7 @@ end
 								$textrend func: transnicebytefunc funcdata: "GINT_TO_POINTER(6)"
 							end
 							:tvcol title: "Position"
-#ifdef ENABLE_GTK2PBAR
-								$custrend newfunc: custom_cell_renderer_progress_new attr(percentage): 9
-#else
-								$textrend func: percentagefunc funcdata: "GINT_TO_POINTER(9)" expand: FALSE
-#endif
-								$textrend func: transnicebytefunc funcdata: "GINT_TO_POINTER(7)"
+								$progrend func: progressfunc funcdata: "GINT_TO_POINTER((6 << 8) | 7)" expand: TRUE
 							end
 							:tvcol title: "Speed"
 								$textrend func: transspeedinfo

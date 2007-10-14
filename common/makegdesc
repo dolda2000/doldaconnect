@@ -331,6 +331,16 @@ sub printwidgets
 		print "${p}gtk_tree_view_column_set_cell_data_func(column, renderer, " . $widget->{"func"} . ", " . ($widget->{"funcdata"} || "NULL") . ", NULL);\n";
 	    }
 	    $widget->{"noshow"} = 1;
+	} elsif($widget->{"type"} eq "progrend") {
+	    print "${p}renderer = gtk_cell_renderer_progress_new();\n";
+	    print "${p}gtk_tree_view_column_pack_start(column, renderer, " . (defined($widget->{"expand"})?$widget->{"expand"}:"FALSE") . ");\n";
+	    if(defined($widget->{"value"})) {
+		print "${p}gtk_tree_view_column_add_attribute(column, renderer, \"value\", " . $widget->{"value"} . ");\n";
+	    }
+	    if(defined($widget->{"func"})) {
+		print "${p}gtk_tree_view_column_set_cell_data_func(column, renderer, " . $widget->{"func"} . ", " . ($widget->{"funcdata"} || "NULL") . ", NULL);\n";
+	    }
+	    $widget->{"noshow"} = 1;
 	} elsif($widget->{"type"} eq "custrend") {
 	    print "${p}renderer = GTK_CELL_RENDERER(" . $widget->{"newfunc"} . "());\n";
 	    print "${p}gtk_tree_view_column_pack_start(column, renderer, " . (defined($widget->{"expand"})?$widget->{"expand"}:"FALSE") . ");\n";

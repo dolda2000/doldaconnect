@@ -109,15 +109,6 @@ DOLDA_ENABLE(guishell, [  --enable-guishell       Build the GUI shell programs],
 		       [HAS_GTK2])
 AM_CONDITIONAL(GUISHELL, test "$enable_guishell" = yes)
 
-# Gtk progress bar check
-AH_TEMPLATE(ENABLE_GTK2PBAR, [define to compile GTK2 progress bars (experimental)])
-DOLDA_ENABLE(gtk2pbar, [  --enable-gtk2pbar       Enable GTK2 progress bars (experimental)], no,
-		       [HAS_GTK2 enable_gtk2ui])
-if test "$enable_gtk2pbar" = yes; then
-	experimental=yes
-	AC_DEFINE(ENABLE_GTK2PBAR)
-fi
-
 # Gnome applet check
 DOLDA_ENABLE(gnomeapplet, [  --enable-gnomeapplet    Enable GNOME transfer applet (experimental)], no,
 			  [HAS_LIBPANELAPPLET])
@@ -294,7 +285,6 @@ echo "    Daemon:                  $enable_daemon"
 echo "    PAM support:             $pam_msg"
 echo "    Kerberos 5 support:      $krb_msg"
 echo "    GTK2 user interface:     $enable_gtk2ui"
-echo "    GTK2 progress bars:      $enable_gtk2pbar"
 echo "    Dolconf configurator:    $enable_dolconf"
 echo "    GUI shell:               $enable_guishell"
 echo "    Guile extension library: $guile_msg"

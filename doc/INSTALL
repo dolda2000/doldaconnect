@@ -46,11 +46,6 @@ use of command-line parameters:
 
  * --with-guile enables the Guile extension library, necessary for any
    clients written in Scheme (such as the automatic downloader).
- * --enable-gtk2pbar enables graphical progress bars in the Gtk2 GUI
-   client, instead of textual percent indicators. However, these
-   progress bars have proven to be unstable with certain Gtk2 themes,
-   so if the GUI crashes with them enabled, try turning them off
-   before reporting a bug.
  * --enable-gnomeapplet selects the GNOME panel applet for
    compilation.
  * --enable-gaimplugin selects the Gaim chat plugin for compilation.
