@@ -27,6 +27,7 @@ echo bin share | import
 require @gtk.org/gtk 2.10
 require @dolda2000.com/fredrik/doldaconnect/dcuilib 1.1
 requireAtLeast "@dolda2000.com/fredrik/doldaconnect/dolcon:@VERSION@"
+requireAtLeast "@dolda2000.com/fredrik/doldaconnect/doldacond:@VERSION@"
 
 [Install]
 installExe bin/dolconf
