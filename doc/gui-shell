@@ -33,7 +33,7 @@ DC++. When  it starts, it  checks to see if  the $HOME/.doldacond.conf
 file exists. If  it does, it will automatically  start in its ordinary
 mode, whereas if it does not, it will ask the user whether to start in
 assistant or ordinary mode. It provides the `-a' and `-w' command-line
-options   to  immediately,   regardless  of   the  existance   of  the
+options  to   immediately,  regardlessly  of  the   existance  of  the
 configuration   file,   enter  the   assistant   or  ordinary   modes,
 respectively.
 
@@ -52,7 +52,7 @@ daemon itself.
 
 The dolcon-launch  program is a  little DWIM program  for facilitating
 the creation  of a desktop  file (a program  menu entry). It  is quite
-simply  --   if  $HOME/.doldacond.conf  does  not   exist,  it  starts
+simple  --   if  $HOME/.doldacond.conf  does  not   exist,  it  starts
 dolconf.  If it  does exist,  but  no daemon  can be  found (again  as
 indicated  by $HOME/.doldacond.pid),  it  starts doldacond-shell,  and
 otherwise it starts an instance of dolcon.
