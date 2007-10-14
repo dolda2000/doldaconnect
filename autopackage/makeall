@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -e
+
+tempdir="$(mktemp -d /tmp/dc-apkg-XXXXXX)"
+cd "$tempdir"
+git clone git://git.dolda2000.com/doldaconnect
+cd doldaconnect
+./bootstrap
+./configure
+
+packages="dcuilib dolcon doldacond guishell"
+
+for pkg in $packages; do
+    sfile="autopackage/$pkg.apspec"
+    pname="$(sed -n 's/^ShortName: *\([^ ]\+\)$/\1/p' "$sfile")"
+    if [ -z "$pname" ]; then
+	echo "makeall: could not find apkg shortname for $sfile" >&2
+	exit 1
+    fi
+    make clean
+    PACKAGEFILENAME="$pname.package" makepackage "$sfile"
+    mv "$pname.package" "$pname.package.meta" "$pname.xml" "$tempdir"
+done
+
+rm -rf "$tempdir/doldaconnect"
+
+echo "packages are in $tempdir"
