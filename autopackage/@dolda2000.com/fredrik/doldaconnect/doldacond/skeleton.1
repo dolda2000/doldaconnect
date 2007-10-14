@@ -1,0 +1,18 @@
+# -*-shell-script-*-
+
+[Meta]
+RootName: @dolda2000.com/fredrik/doldaconnect/doldacond
+DisplayName: Dolda Connect daemon
+ShortName: doldaconnect-daemon
+Skeleton-Author: Fredrik Tolf <fredrik@dolda2000.com>
+Skeleton-Version: 1
+Repository: http://www.dolda2000.com/~fredrik/doldaconnect/ap/doldaconnect-daemon.xml
+
+[Test]
+SOFTWARE_VERSIONS=
+if which doldacond >/dev/null 2>&1; then
+    SOFTWARE_VERSIONS="$(doldacond -V | sed -n 's/^relver \(.*\)$/\1/p')"
+fi
+if [ -n "$SOFTWARE_VERSIONS" ]; then
+    INTERFACE_VERSIONS=1.0
+fi
