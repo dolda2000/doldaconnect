@@ -3,15 +3,15 @@
 ;hasaccels: y
 :wnd name: wnd title: "Dolda Connect configurator" var: y sig(delete_event): astcancel
 	:vbox
-		:menubar
-			:menuitem label: _Main
-				:menu
-					$smenuitem name: save stock: SAVE sig: activate
-					$menuitem name: hup label: "_Apply settings now" sig: activate accel: "CONTROL+A"
-					$smenuitem name: quit stock: QUIT sig: activate
-				end
-			end
-		end
+# 		:menubar
+# 			:menuitem label: _Main
+# 				:menu
+# 					$smenuitem name: save stock: SAVE sig: activate
+# 					$menuitem name: hup label: "_Apply settings now" sig: activate accel: "CONTROL+A"
+# 					$smenuitem name: quit stock: QUIT sig: activate
+# 				end
+# 			end
+# 		end
 		:notebook pos: LEFT fill: y expand: y
 			:table rows: 4 cols: 2 nblabel: "_Published info"
 				$mlbl label: "Screen _name" mwidget: nick tx: 0 ty: 0
@@ -59,6 +59,11 @@
 					$lbl markup: "<i>Important: The above option is a security hole. It allows you to connect without a password, but it also allows everyone else to do the same, so you should absolutely not use it unless you are sure that everyone who can connect to your computer is trusted.</i>" wrap: y
 				end
 			end
+		end
+		:hbtnbox layout: END
+			 $sbtn name: ok stock: OK sig: activate
+			 $sbtn name: cancel stock: CANCEL sig: activate accel: Escape
+			 $sbtn name: apply stock: APPLY sig: activate
 		end
 	end
 end
