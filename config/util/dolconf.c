@@ -233,7 +233,7 @@ char *getword(char **p)
 	p2 = *p + strlen(*p);
     len = p2 - *p - ((*p2 == '\"')?1:0);
     buf = smalloc(len + 1);
-    memcpy(buf, *p, len);
+    memcpy(buf, *p + ((delim == '\"')?1:0), len);
     buf[len] = 0;
     *p = p2 + ((*p2 == '\"')?1:0);
     for(p2 = buf; *p2; p2++, len--) {
@@ -739,11 +739,11 @@ int saveconfig(void)
 {
     struct cfvar *cv;
     
+    cfw2conf();
     if((cv = cfwvalid()) != NULL) {
 	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, cv->vld->invmsg, cv->rname);
 	return(-1);
     }
-    cfw2conf();
     return(writeconfig());
 }
 
@@ -777,7 +777,7 @@ void cb_cfw_quit_activate(GtkWidget *widget, gpointer uudata)
 }
 */
 
-void cb_cfw_ok_activate(GtkWidget *widget, gpointer uudata)
+void cb_cfw_ok_clicked(GtkWidget *widget, gpointer uudata)
 {
     if(saveconfig())
 	return;
@@ -786,13 +786,13 @@ void cb_cfw_ok_activate(GtkWidget *widget, gpointer uudata)
     state = -1;
 }
 
-void cb_cfw_cancel_activate(GtkWidget *widget, gpointer uudata)
+void cb_cfw_cancel_clicked(GtkWidget *widget, gpointer uudata)
 {
     gtk_main_quit();
     state = -1;
 }
 
-void cb_cfw_apply_activate(GtkWidget *widget, gpointer uudata)
+void cb_cfw_apply_clicked(GtkWidget *widget, gpointer uudata)
 {
     if(saveconfig())
 	return;

@@ -61,9 +61,9 @@
 			end
 		end
 		:hbtnbox layout: END
-			 $sbtn name: ok stock: OK sig: activate
-			 $sbtn name: cancel stock: CANCEL sig: activate accel: Escape
-			 $sbtn name: apply stock: APPLY sig: activate
+			 $sbtn name: ok stock: OK sig: clicked
+			 $sbtn name: cancel stock: CANCEL sig: clicked accel: Escape
+			 $sbtn name: apply stock: APPLY sig: clicked
 		end
 	end
 end
