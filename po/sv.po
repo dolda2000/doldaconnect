@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2007-10-13 21:46+0200\n"
+"POT-Creation-Date: 2007-10-15 02:19+0200\n"
 "PO-Revision-Date: 2007-08-31 03:37+0200\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -17,84 +17,84 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: clients/gtk2/dolcon.c:245 clients/gtk2/dolcon.c:268
-#: clients/gtk2/dolcon.c:317 clients/gtk2/dolcon.c:332
-#: clients/gtk2/dolcon.c:366 clients/gtk2/dolcon.c:511
-#: clients/gtk2/dolcon.c:534
+#: clients/gtk2/dolcon.c:244 clients/gtk2/dolcon.c:267
+#: clients/gtk2/dolcon.c:337 clients/gtk2/dolcon.c:352
+#: clients/gtk2/dolcon.c:386 clients/gtk2/dolcon.c:531
+#: clients/gtk2/dolcon.c:554
 msgid "Unknown"
 msgstr "Okänt"
 
-#: clients/gtk2/dolcon.c:408
+#: clients/gtk2/dolcon.c:428
 msgid "Not found"
 msgstr "Kunde inte hittas"
 
-#: clients/gtk2/dolcon.c:410
+#: clients/gtk2/dolcon.c:430
 msgid "No slots"
 msgstr "Inga kanaler lediga"
 
-#: clients/gtk2/dolcon.c:411
+#: clients/gtk2/dolcon.c:431
 msgid "%H:%M:%S"
 msgstr "%H:%M:%S"
 
-#: clients/gtk2/dolcon.c:412
+#: clients/gtk2/dolcon.c:432
 #, c-format
 msgid "%s (reported at %s)"
 msgstr "%s (rapporterades kl. %s)"
 
-#: clients/gtk2/dolcon.c:604 clients/gtk2/dolcon.c:2292
+#: clients/gtk2/dolcon.c:624 clients/gtk2/dolcon.c:2312
 msgid "Disconnected"
 msgstr "Frånkopplad"
 
-#: clients/gtk2/dolcon.c:727 config/util/dolconf.c:804
+#: clients/gtk2/dolcon.c:747 config/util/dolconf.c:853
 msgid "Could not get your home directory!"
 msgstr "Kunde inte hitta din hemkatalog!"
 
-#: clients/gtk2/dolcon.c:734
+#: clients/gtk2/dolcon.c:754
 #, c-format
 msgid "Could not open configuration file for writing: %s"
 msgstr "Kunde inte skriva till konfigurationsfilen: %s"
 
-#: clients/gtk2/dolcon.c:775 clients/gtk2/dolcon.c:779
+#: clients/gtk2/dolcon.c:795 clients/gtk2/dolcon.c:799
 msgid "Login"
 msgstr "Logga in"
 
-#: clients/gtk2/dolcon.c:815
+#: clients/gtk2/dolcon.c:835
 msgid "Could not negotiate an acceptable authentication mechanism"
 msgstr "Kunde inte förhandla fram en acceptabel autentiseringsmekanism"
 
-#: clients/gtk2/dolcon.c:820
+#: clients/gtk2/dolcon.c:840
 msgid "The server has encountered an error"
 msgstr "Servern har råkat ut för ett fel"
 
-#: clients/gtk2/dolcon.c:825
+#: clients/gtk2/dolcon.c:845
 msgid "Internal client error"
 msgstr "Internt fel i klienten"
 
-#: clients/gtk2/dolcon.c:834
+#: clients/gtk2/dolcon.c:854
 msgid "Login attempt failed!"
 msgstr "Inloggningsförsöket misslyckades!"
 
-#: clients/gtk2/dolcon.c:880
+#: clients/gtk2/dolcon.c:900
 msgid "Discrete sizes"
 msgstr "Enskilda storlekar"
 
-#: clients/gtk2/dolcon.c:1007 clients/gui-shell/dsh.c:351
+#: clients/gtk2/dolcon.c:1027 clients/gui-shell/dsh.c:351
 msgid "The server refused the connection"
 msgstr "Servern vägrade förbindelsen"
 
-#: clients/gtk2/dolcon.c:1011 clients/gui-shell/dsh.c:354
+#: clients/gtk2/dolcon.c:1031 clients/gui-shell/dsh.c:354
 msgid "Server protocol revision mismatch"
 msgstr "Fel protokoll-revision hos servern"
 
-#: clients/gtk2/dolcon.c:1017
+#: clients/gtk2/dolcon.c:1037
 msgid "Connected"
 msgstr "Ansluten"
 
-#: clients/gtk2/dolcon.c:1245
+#: clients/gtk2/dolcon.c:1265
 msgid "The server has closed the connection"
 msgstr "Servern har stängt förbindelsen"
 
-#: clients/gtk2/dolcon.c:1247
+#: clients/gtk2/dolcon.c:1267
 #, c-format
 msgid ""
 "The connection to the server failed:\n"
@@ -105,11 +105,11 @@ msgstr ""
 "\n"
 "%s"
 
-#: clients/gtk2/dolcon.c:1267
+#: clients/gtk2/dolcon.c:1287
 msgid "Preferences"
 msgstr "Inställningar"
 
-#: clients/gtk2/dolcon.c:1306
+#: clients/gtk2/dolcon.c:1326
 #, c-format
 msgid ""
 "Could not connect:\n"
@@ -120,107 +120,107 @@ msgstr ""
 "\n"
 "%s"
 
-#: clients/gtk2/dolcon.c:1313 clients/gtk2/hublist.c:206
+#: clients/gtk2/dolcon.c:1333 clients/gtk2/hublist.c:206
 #: clients/gnome-trans-applet/dolcon-trans-applet.c:113
 msgid "Connecting..."
 msgstr "Ansluter..."
 
-#: clients/gtk2/dolcon.c:1322
+#: clients/gtk2/dolcon.c:1342
 msgid "Connect"
 msgstr "Anslut"
 
-#: clients/gtk2/dolcon.c:1322
+#: clients/gtk2/dolcon.c:1342
 msgid "Server address:"
 msgstr "Serverns adress:"
 
-#: clients/gtk2/dolcon.c:1335 clients/gtk2/dolcon.c:1356
-#: clients/gtk2/dolcon.c:1454 clients/gtk2/dolcon.c:1496
-#: clients/gtk2/dolcon.c:1560 clients/gtk2/dolcon.c:1648
-#: clients/gtk2/dolcon.c:1745
+#: clients/gtk2/dolcon.c:1355 clients/gtk2/dolcon.c:1376
+#: clients/gtk2/dolcon.c:1474 clients/gtk2/dolcon.c:1516
+#: clients/gtk2/dolcon.c:1580 clients/gtk2/dolcon.c:1668
+#: clients/gtk2/dolcon.c:1765
 msgid "Not connected to DC server"
 msgstr "Ej ansluten till DC-servern"
 
-#: clients/gtk2/dolcon.c:1342 clients/gtk2/dolcon.c:1375
-#: clients/gtk2/dolcon.c:1467 clients/gtk2/dolcon.c:1514
-#: clients/gtk2/dolcon.c:1573 clients/gtk2/dolcon.c:1666
-#: clients/gtk2/dolcon.c:1721 clients/gtk2/dolcon.c:1792
-#: clients/gtk2/dolcon.c:1917 clients/gtk2/dolcon.c:1944
+#: clients/gtk2/dolcon.c:1362 clients/gtk2/dolcon.c:1395
+#: clients/gtk2/dolcon.c:1487 clients/gtk2/dolcon.c:1534
+#: clients/gtk2/dolcon.c:1593 clients/gtk2/dolcon.c:1686
+#: clients/gtk2/dolcon.c:1741 clients/gtk2/dolcon.c:1812
+#: clients/gtk2/dolcon.c:1937 clients/gtk2/dolcon.c:1964
 msgid "You do not have permission to do that"
 msgstr "Du har inte tillstånd att göra det"
 
-#: clients/gtk2/dolcon.c:1362
+#: clients/gtk2/dolcon.c:1382
 msgid "Illegal address entered"
 msgstr "Ogiltig adress"
 
-#: clients/gtk2/dolcon.c:1377 clients/gtk2/dolcon.c:1516
+#: clients/gtk2/dolcon.c:1397 clients/gtk2/dolcon.c:1536
 msgid "The server could not parse that address"
 msgstr "Servern kunde inte tolka den adressen"
 
-#: clients/gtk2/dolcon.c:1379 clients/gtk2/dolcon.c:1518
+#: clients/gtk2/dolcon.c:1399 clients/gtk2/dolcon.c:1538
 msgid "There are too many hubs connected"
 msgstr "För många hubbar är anslutna"
 
-#: clients/gtk2/dolcon.c:1459 clients/gtk2/dolcon.c:1565
+#: clients/gtk2/dolcon.c:1479 clients/gtk2/dolcon.c:1585
 msgid "No hub selected"
 msgstr "Ingen hub vald"
 
-#: clients/gtk2/dolcon.c:1575
+#: clients/gtk2/dolcon.c:1595
 msgid ""
 "This hub could not support all the types of characters in your chat message"
 msgstr "Den här hubben klarar inte av alla sorters bokstäver i ditt meddelande"
 
-#: clients/gtk2/dolcon.c:1577
+#: clients/gtk2/dolcon.c:1597
 msgid "This hub does not support chatting"
 msgstr "Den här hubben klarar inte av att chatta"
 
-#: clients/gtk2/dolcon.c:1579
+#: clients/gtk2/dolcon.c:1599
 #, c-format
 msgid "An error occurred while trying to chat (%i)"
 msgstr "Ett fel uppstod under försöket att chatta (%i)"
 
-#: clients/gtk2/dolcon.c:1656
+#: clients/gtk2/dolcon.c:1676
 msgid "Please enter a search expression before searching"
 msgstr "Skriv in ett sökuttryck först"
 
-#: clients/gtk2/dolcon.c:1664
+#: clients/gtk2/dolcon.c:1684
 msgid "Could not find any hubs to search on"
 msgstr "Kunde inte hitta någon hub att söka på"
 
-#: clients/gtk2/dolcon.c:1668
+#: clients/gtk2/dolcon.c:1688
 msgid "The server could not parse your search expression"
 msgstr "Servern kunde inte tolka ditt sökuttryck"
 
-#: clients/gtk2/dolcon.c:1670
+#: clients/gtk2/dolcon.c:1690
 #, c-format
 msgid "An error occurred while trying to search (%i)"
 msgstr "Ett fel uppstod under försöket att söka (%i)"
 
-#: clients/gtk2/dolcon.c:1723 clients/gtk2/dolcon.c:1946
+#: clients/gtk2/dolcon.c:1743 clients/gtk2/dolcon.c:1966
 #, c-format
 msgid "An error occurred while trying to cancel (%i)"
 msgstr "Ett fel uppstod under försöket att avbryta (%i)"
 
-#: clients/gtk2/dolcon.c:1794
+#: clients/gtk2/dolcon.c:1814
 #, c-format
 msgid "An error occurred while trying to queue the download (%i)"
 msgstr "Ett fel uppstod under försöket att lägga till nerladdningen (%i)"
 
-#: clients/gtk2/dolcon.c:1919
+#: clients/gtk2/dolcon.c:1939
 #, c-format
 msgid "An error occurred while trying to reset (%i)"
 msgstr "Ett fel uppstod under försöket att återställa (%i)"
 
-#: clients/gtk2/dolcon.c:2054
+#: clients/gtk2/dolcon.c:2074
 #, c-format
 msgid "An error occurred (%ls)"
 msgstr "Ett fel uppstod (%ls)"
 
-#: clients/gtk2/dolcon.c:2172 clients/gtk2/mainwnd.gtk:470
+#: clients/gtk2/dolcon.c:2192 clients/gtk2/mainwnd.gtk:470
 #, c-format
 msgid "Ready to search"
 msgstr "Redo att söka"
 
-#: clients/gtk2/dolcon.c:2174
+#: clients/gtk2/dolcon.c:2194
 #, c-format
 msgid "Search scheduled and will be submitted in %i seconds"
 msgstr "Sökningen är schemalagd och kommer genomföras om %i sekunder"
@@ -309,7 +309,7 @@ msgstr "Återställ överföringen"
 msgid "Cancel transfer"
 msgstr "Avbryt överföringen"
 
-#: clients/gtk2/mainwnd.gtk:97 config/util/dolconf-wnd.gtk:38
+#: clients/gtk2/mainwnd.gtk:97
 msgid "_Main"
 msgstr "Huvud_meny"
 
@@ -430,7 +430,7 @@ msgid "File name"
 msgstr "Filnamn"
 
 #: clients/gtk2/mainwnd.gtk:518 clients/gtk2/mainwnd.gtk:601
-#: clients/gtk2/mainwnd.gtk:683
+#: clients/gtk2/mainwnd.gtk:679
 msgid "Size"
 msgstr "Storlek"
 
@@ -446,7 +446,7 @@ msgstr "Känd hastighet"
 msgid "Rsp. time"
 msgstr "Svarstid"
 
-#: clients/gtk2/mainwnd.gtk:549 clients/gtk2/mainwnd.gtk:640
+#: clients/gtk2/mainwnd.gtk:549 clients/gtk2/mainwnd.gtk:636
 msgid "Hash"
 msgstr "Hash"
 
@@ -458,35 +458,35 @@ msgstr "_Sök"
 msgid "_List of downloads:"
 msgstr "_Lista över nerladdningar:"
 
-#: clients/gtk2/mainwnd.gtk:585 clients/gtk2/mainwnd.gtk:667
+#: clients/gtk2/mainwnd.gtk:585 clients/gtk2/mainwnd.gtk:663
 msgid "User Name"
 msgstr "Användarnamn"
 
-#: clients/gtk2/mainwnd.gtk:597 clients/gtk2/mainwnd.gtk:679
+#: clients/gtk2/mainwnd.gtk:597 clients/gtk2/mainwnd.gtk:675
 msgid "File Name"
 msgstr "Filenamn"
 
-#: clients/gtk2/mainwnd.gtk:610 clients/gtk2/mainwnd.gtk:692
+#: clients/gtk2/mainwnd.gtk:610 clients/gtk2/mainwnd.gtk:688
 msgid "Position"
 msgstr "Position"
 
-#: clients/gtk2/mainwnd.gtk:623 clients/gtk2/mainwnd.gtk:705
+#: clients/gtk2/mainwnd.gtk:619 clients/gtk2/mainwnd.gtk:697
 msgid "Speed"
 msgstr "Hast."
 
-#: clients/gtk2/mainwnd.gtk:632
+#: clients/gtk2/mainwnd.gtk:628
 msgid "Error"
 msgstr "Felmeddelande"
 
-#: clients/gtk2/mainwnd.gtk:650
+#: clients/gtk2/mainwnd.gtk:646
 msgid "_Downloads"
 msgstr "_Nerladdningar"
 
-#: clients/gtk2/mainwnd.gtk:655
+#: clients/gtk2/mainwnd.gtk:651
 msgid "_List of uploads:"
 msgstr "_Lista över uppladdningar:"
 
-#: clients/gtk2/mainwnd.gtk:720
+#: clients/gtk2/mainwnd.gtk:712
 msgid "_Uploads"
 msgstr "_Uppladdningar"
 
@@ -567,8 +567,8 @@ msgstr "Stillastående överföring"
 msgid "The transfer of %ls from %ls has not made progress for 10 minutes"
 msgstr "Överföringen av %ls från %ls har inte kommit någonstans på 10 minuter"
 
-#: clients/gui-shell/dsh.c:326 config/util/dolconf.c:713
-#: config/util/dolconf.c:718 config/util/dolconf.c:724
+#: clients/gui-shell/dsh.c:326 config/util/dolconf.c:715
+#: config/util/dolconf.c:721 config/util/dolconf.c:729
 msgid "Could not connect to server"
 msgstr "Kunde inte ansluta till servern"
 
@@ -694,29 +694,21 @@ msgstr "Kunde inte läsa konfigurationsfilen: %s"
 msgid "Could not open the configuration file for writing: %s"
 msgstr "Kunde inte skriva till konfigurationsfilen: %s"
 
-#: config/util/dolconf.c:495
+#: config/util/dolconf.c:496
 #, c-format
 msgid "Internal error (Auto-generated variable %s has an invalid value \"%s\")"
 msgstr ""
 "Internt fel (Autogenererade variabeln %s har det ogiltiga värdet \"%s\")"
 
-#: config/util/dolconf.c:533
+#: config/util/dolconf.c:534
 msgid "Shares:\n"
 msgstr "Utdelningar:\n"
 
-#: config/util/dolconf.c:594 config/util/dolconf-assistant.gtk:128
+#: config/util/dolconf.c:595 config/util/dolconf-assistant.gtk:128
 msgid "Shared directories"
 msgstr "Delade kataloger"
 
-#: config/util/dolconf.c:746
-msgid ""
-"There are unsaved changes. Do you wish to discard the changes and exit "
-"anyway?"
-msgstr ""
-"Vissa ändringar har inte ännu sparats. Vill du låta bli att spara dem och "
-"avsluta i alla fall?"
-
-#: config/util/dolconf.c:811
+#: config/util/dolconf.c:860
 msgid ""
 "It appears that you have not run this setup program before. Would you like "
 "to run the first-time setup assistant?"
@@ -724,7 +716,7 @@ msgstr ""
 "Du tycks inte ha kört det här inställningsprogrammet tidigare. Vill du köra "
 "förstagångs-assistenten?"
 
-#: config/util/dolconf.c:822
+#: config/util/dolconf.c:871
 msgid ""
 "The configuration file appears to have been edited outside the control of "
 "this program. If you continue using this program, all settings not handled "
@@ -734,7 +726,7 @@ msgstr ""
 "kontroll. Om du fortsätter använda det här programmet, kommer inställningar "
 "som det inte hanterar förloras. Vill du fortsätta?"
 
-#: config/util/dolconf.c:851
+#: config/util/dolconf.c:900
 msgid "Internal error (Unknown state)"
 msgstr "Internt fel (Okänt läge)"
 
@@ -766,7 +758,7 @@ msgstr "Ange hur du vill presentera dig själv för andra användare:"
 msgid "_Screen name"
 msgstr "_Användarnamn"
 
-#: config/util/dolconf-assistant.gtk:66 config/util/dolconf-wnd.gtk:82
+#: config/util/dolconf-assistant.gtk:66 config/util/dolconf-wnd.gtk:51
 msgid "_Description"
 msgstr "_Beskrivning"
 
@@ -778,7 +770,7 @@ msgstr "Publicerad info"
 msgid "Please choose the directories that you wish to share:"
 msgstr "Välj de kataloger du vill dela ut:"
 
-#: config/util/dolconf-assistant.gtk:99 config/util/dolconf-wnd.gtk:126
+#: config/util/dolconf-assistant.gtk:99 config/util/dolconf-wnd.gtk:95
 msgid "Path"
 msgstr "Sökväg"
 
@@ -786,7 +778,7 @@ msgstr "Sökväg"
 msgid "Please choose the network mode to use"
 msgstr "Välj det nätverksläge som ska användas:"
 
-#: config/util/dolconf-assistant.gtk:138 config/util/dolconf-wnd.gtk:156
+#: config/util/dolconf-assistant.gtk:138 config/util/dolconf-wnd.gtk:125
 msgid "_Active mode"
 msgstr "_Aktivt läge"
 
@@ -802,15 +794,15 @@ msgstr ""
 msgid "Active with specified _port"
 msgstr "Aktivt läge med specifik _port"
 
-#: config/util/dolconf-assistant.gtk:163 config/util/dolconf-wnd.gtk:175
+#: config/util/dolconf-assistant.gtk:163 config/util/dolconf-wnd.gtk:144
 msgid "_TCP port:"
 msgstr "_TCP-port:"
 
-#: config/util/dolconf-assistant.gtk:174 config/util/dolconf-wnd.gtk:185
+#: config/util/dolconf-assistant.gtk:174 config/util/dolconf-wnd.gtk:154
 msgid "_UDP port:"
 msgstr "_UDP-port:"
 
-#: config/util/dolconf-assistant.gtk:192 config/util/dolconf-wnd.gtk:210
+#: config/util/dolconf-assistant.gtk:192 config/util/dolconf-wnd.gtk:179
 msgid "_IP address:"
 msgstr "_IP-adress:"
 
@@ -827,7 +819,7 @@ msgstr ""
 "vilken extern IP-adress som ska användas. Notera även att portarna behöver "
 "vara 1024 eller högre.</i>"
 
-#: config/util/dolconf-assistant.gtk:218 config/util/dolconf-wnd.gtk:227
+#: config/util/dolconf-assistant.gtk:218 config/util/dolconf-wnd.gtk:196
 msgid "Passi_ve mode"
 msgstr "Passi_vt läge"
 
@@ -869,51 +861,47 @@ msgstr "_Öppna det kompletta inställningsformuläret"
 msgid "Confirmation"
 msgstr "Bekräftelse"
 
-#: config/util/dolconf-wnd.gtk:48
-msgid "_Apply settings now"
-msgstr "_Verkställ inställningar nu"
-
-#: config/util/dolconf-wnd.gtk:72
+#: config/util/dolconf-wnd.gtk:41
 msgid "Screen _name"
 msgstr "_Användarnamn"
 
-#: config/util/dolconf-wnd.gtk:92
+#: config/util/dolconf-wnd.gtk:61
 msgid "_Connection type"
 msgstr "Anslutningstyp"
 
-#: config/util/dolconf-wnd.gtk:102
+#: config/util/dolconf-wnd.gtk:71
 msgid "_E-mail address"
 msgstr "_E-post-adress"
 
-#: config/util/dolconf-wnd.gtk:116
+#: config/util/dolconf-wnd.gtk:85
 msgid "_Published info"
 msgstr "_Publicerad info"
 
-#: config/util/dolconf-wnd.gtk:151
+#: config/util/dolconf-wnd.gtk:120
 msgid "S_hared directories"
 msgstr "_Delade kataloger"
 
-#: config/util/dolconf-wnd.gtk:165
+#: config/util/dolconf-wnd.gtk:134
 msgid "Spe_cify ports"
 msgstr "Spe_cificera portar"
 
-#: config/util/dolconf-wnd.gtk:200
+#: config/util/dolconf-wnd.gtk:169
 msgid "_Override IP address"
 msgstr "Ange IP-adress"
 
-#: config/util/dolconf-wnd.gtk:232
+#: config/util/dolconf-wnd.gtk:201
 msgid "Net_work"
 msgstr "N_ätverk"
 
-#: config/util/dolconf-wnd.gtk:237
+#: config/util/dolconf-wnd.gtk:206
 msgid "_Allow user interfaces to connect remotely"
 msgstr "_Tillåt användargränssnitt att ansluta från andra datorer"
 
-#: config/util/dolconf-wnd.gtk:247
+#: config/util/dolconf-wnd.gtk:216
 msgid "_Trust connections without a password"
 msgstr "_Lita på anslutningar utan lösenord"
 
-#: config/util/dolconf-wnd.gtk:253
+#: config/util/dolconf-wnd.gtk:222
 msgid ""
 "<i>Important: The above option is a security hole. It allows you to connect "
 "without a password, but it also allows everyone else to do the same, so you "
@@ -925,6 +913,16 @@ msgstr ""
 "så du bör absolut inte använda den om du inte är säker på att du kan lita på "
 "alla som kan ansluta till din dator.</i>"
 
-#: config/util/dolconf-wnd.gtk:261
+#: config/util/dolconf-wnd.gtk:230
 msgid "_Remoting"
 msgstr "Fj_ärranvändning"
+
+#~ msgid ""
+#~ "There are unsaved changes. Do you wish to discard the changes and exit "
+#~ "anyway?"
+#~ msgstr ""
+#~ "Vissa ändringar har inte ännu sparats. Vill du låta bli att spara dem och "
+#~ "avsluta i alla fall?"
+
+#~ msgid "_Apply settings now"
+#~ msgstr "_Verkställ inställningar nu"
