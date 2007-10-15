@@ -15,7 +15,7 @@ realdesktop=none
 endif
 endif
 
-EXTRA_DIST=hellodolda.png dolda-icon.png dolcon-gtk.desktop dolcon-shell.desktop
+EXTRA_DIST=hellodolda.png dolcon.png dolcon-gtk.desktop dolcon-shell.desktop
 
 install-data-local:
 	if [ "$(realdesktop)" != none ]; then \
