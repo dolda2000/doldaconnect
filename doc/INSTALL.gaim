@@ -30,7 +30,7 @@ ln -s /usr/local/lib/gaim/libdolcon-gaim.so $HOME/.gaim/plugins
 			     About Pidgin
 
 Because of AOL,  Gaim had to switch name to Pidgin  in 2007, which has
-some effects on  the above discussion. As of Dolda  Connect 0.5, it is
+some effects on  the above discussion. As of Dolda  Connect 1.0, it is
 possible to  compile the plugin for  Pidgin as well as  for Gaim. Most
 things still  apply as they are, but  some care must be  taken. If you
 decide  to install  the plugin  in your  home directory,  the relevant
@@ -39,5 +39,5 @@ plugin is called libdolcon-purple.so, instead of libdolcon-gaim.so.
 
 
 
-This document  was last updated 2007-07-18, reflecting  release 0.5 of
+This document  was last updated 2007-10-15, reflecting  release 1.0 of
 Dolda Connect.

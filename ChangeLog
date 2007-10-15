@@ -1,6 +1,8 @@
-Version 0.5:
+Version 1.0:
 
 	* Added a GUI shell to integrate the whole system
+	* Fixed autopackages for the GUI shell and related components.
+	* Improved the build system a great deal.
 	* Improved hublist fetching
 	* Ported the Gaim plugin to Pidgin
 	

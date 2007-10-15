@@ -83,7 +83,7 @@ server will still read the system-wide  file, but it will be easier to
 edit a local copy, as you need not be root to do so).
 
 Edit the configuration file. If you  do no other changes, make sure to
-at  least change the  "cli.defnick" and  "share". Most  directives are
+at  least  change  "cli.defnick"  and  "share".  Most  directives  are
 explained  in  comments  in  the  shipped file  and  need  no  further
 explanation here. However, there are a few points to note.
 
@@ -140,16 +140,17 @@ normal users, there are two choices:
    a better option where all users are trusted and/or Kerberos is not
    available.
 
-PAM  authentication  is   always  enabled.   To  enable  password-less
-authentication, set  the "auth.authless" setting  in the configuration
-file to "1". If your network is not completely trusted (especially the
-host running  doldacond is globally accessible via  the Internet), you
-really should  make sure to set  up some firewalling  rules.
+PAM  authentication is  always enabled  as long  as Dolda  Connect was
+compiled  with PAM support.   To enable  password-less authentication,
+set the "auth.authless"  setting in the configuration file  to "1". If
+your network  is not completely  trusted (especially the  host running
+doldacond is globally accessible  via the Internet), you really should
+make sure to set up some firewalling rules.
 
 Note  that doldacond  does  *not* support  tcp-wrappers,  but it  does
 support  very   simple  internal  firewalling  in  the   form  of  the
-"ui.onlylocal" options. When "ui.onlylocal" is set to true, the daemon
-will  only  accept UI  connections  over  a  loopback interface.  That
+"ui.onlylocal" option. When "ui.onlylocal"  is set to true, the daemon
+will  only accept  UI  connections over  a  loopback interface.   That
 includes 127.0.0.1, ::ffff:127.0.0.1, ::1 and Unix sockets.
 
 			 Starting the daemon
@@ -177,5 +178,5 @@ allow you in if not all TTH hashes are calculated.
 
 
 
-This document  was last updated 2007-07-18, reflecting  release 0.5 of
+This document  was last updated 2007-10-15, reflecting  release 1.0 of
 Dolda Connect.

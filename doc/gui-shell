@@ -10,7 +10,7 @@ used  to  traditional Direct  Connect  clients,  such  as DC++,  where
 everything is done by one, monolithic program.
 
 In order to make life a bit easier for those people, Dolda Connect, as
-of 0.5, comes with a number  of wrapper programs, which should be able
+of 1.0, comes with a number  of wrapper programs, which should be able
 to  provide  the  illusion  of  Dolda Connect  being  one,  integrated
 environment. For  those wishing  to hack on  them or those  just being
 curious  about how everything  works together,  this file  attempts to
