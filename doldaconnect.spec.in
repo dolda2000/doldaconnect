@@ -1,0 +1,105 @@
+# RPC specfile for Fedora
+Name:		doldaconnect
+Version:	@VERSION@
+Release:	1
+License:	GPL v2+
+Group:		Productivity/Networking/Other
+Summary:	Direct Connect client
+Source0:	http://www.dolda2000.com/~fredrik/doldaconnect/%{name}-%{version}.tar.gz
+URL:		http://www.dolda2000.com/~fredrik/doldaconnect/
+BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+%description
+Dolda Connect is a client program for the Direct Connect peer-to-peer
+filesharing network. It is written so that the user interface is
+separated from the actual filesharing program, so that the user
+interface can run on a different computer over the network, and can be
+shut down temporarily (or only started temporarily), and can be
+replaced altogether.
+
+The protocol with which the user interface talks with the actual
+client is also quite well defined, so that other kinds of clients can
+be written as well, such as an automatic downloader, a chatbot,
+etc. It can also be used in secure multiuser operation.
+
+%package libs
+Summary:	%{name} libraries
+Group:		Libraries
+
+%description libs
+Shared libraries for %{name}.
+
+%package devel
+Summary:	Development files for %{name}.
+Group:		Development/Libraries
+
+%description devel
+Header files and development libraries for %{name}.
+
+%package -n doldacond
+Summary:	The daemon in %{name}.
+Group:		Daemons
+Requires(post,preun):	/sbin/chkconfig
+Requires:	rc-scripts
+
+%description -n doldacond
+Daemon for %{name} that does all the actual work of filesharing.
+
+%prep
+%setup
+
+%build
+%configure --sysconfdir=%{_appconfdir} --disable-rpath --with-guile \
+		--enable-gtk2ui --enable-guishell --with-pam \
+		--with-krb5 --enable-gnomeapplet
+%{__make}
+
+%install
+rm -rf "$RPM_BUILD_ROOT"
+mkdir "$RPM_BUILD_ROOT"
+make install DESTDIR="$RPM_BUILD_ROOT"
+rm -f "$RPM_BUILD_ROOT"%{_libdir}/gaim/*.a
+
+%find_lang %{name}
+
+%clean
+rm -rf "$RPM_BUILD_ROOT"
+
+%post	libs -p /sbin/ldconfig
+%postun	libs -p /sbin/ldconfig
+
+%files
+%defattr(-,root,root)
+%{_bindir}/dolcon
+%{_bindir}/dolconf
+%{_bindir}/dolcon-launch
+%{_bindir}/doldacond-shell
+%{_libdir}/bonobo/servers/*.server
+%{_libexecdir}/dolcon-trans-applet
+%{_desktopdir}/dolcon.desktop
+%{_iconsdir}/*
+%doc AUTHORS ChangeLog README doc/INSTALL doc/gui-shell doc/TODO doc/protorev
+
+%files libs
+%defattr(-,root,root)
+%{_libdir}/libdcui.so.1
+%{_libdir}/libdcui.so.1.1.0
+
+%files devel
+%defattr(-,root,root)
+${_libdir}/libdcui.so
+${_libdir}/libdcui.la
+%dir %{_includedir}/doldaconnect
+%{_includedir}/doldaconnect/*.h
+
+%files -n doldacond
+%dir %{_appconfdir}
+%config(noreplace) %{_appconfdir}/*
+%{_bindir}/doldacond
+%{_bindir}/locktouch
+%{_bindir}/tthsum
+%{_libexecdir}/speedrec
+
+%changelog
+* Tue Oct 16 2007 Fredrik Tolf <fredrik@dolda2000.com>
+- Initial spec files. Quite a lot taken from the PLD specfile.
