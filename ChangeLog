@@ -1,3 +1,7 @@
+Version 1.1:
+
+	* Ported the Guile plugin to Guile 1.8
+	
 Version 1.0:
 
 	* Added a GUI shell to integrate the whole system
