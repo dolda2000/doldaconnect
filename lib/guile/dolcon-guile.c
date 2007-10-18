@@ -52,18 +52,21 @@ static SCM scm_dc_connect(SCM host)
     {
 	chost = NULL;
     } else {
-	SCM_ASSERT(SCM_STRINGP(host), host, SCM_ARG1, "dc-connect");
-	chost = SCM_STRING_CHARS(host);
+	SCM_ASSERT(scm_is_string(host), host, SCM_ARG1, "dc-connect");
+	chost = scm_to_locale_string(host);
     }
-    if((fd = dc_connect(chost)) < 0)
+    fd = dc_connect(chost);
+    if(chost != NULL)
+	free(chost);
+    if(fd < 0)
 	scm_syserror("dc-connect");
-    return(SCM_MAKINUM(fd));
+    return(scm_from_int(fd));
 }
 
 static SCM scm_dc_disconnect(void)
 {
     dc_disconnect();
-    return(SCM_MAKINUM(0));
+    return(scm_from_int(0));
 }
 
 static SCM scm_dc_connected(void)
@@ -80,8 +83,8 @@ static SCM scm_dc_select(SCM timeout)
     {
 	cto = -1;
     } else {
-	SCM_ASSERT(SCM_INUMP(timeout), timeout, SCM_ARG1, "dc-select");
-	cto = SCM_INUM(timeout);
+	SCM_ASSERT(scm_is_integer(timeout), timeout, SCM_ARG1, "dc-select");
+	cto = scm_to_int(timeout);
     }
     if(fd < 0)
 	scm_syserror_msg("dc-select", "Not connected", SCM_EOL, ENOTCONN);
@@ -114,7 +117,7 @@ static SCM makerespsmob(struct dc_response *resp)
 {
     struct respsmob *data;
     
-    data = scm_must_malloc(sizeof(*data), "respsmob");
+    data = scm_gc_malloc(sizeof(*data), "respsmob");
     data->resp = resp;
     SCM_RETURN_NEWSMOB(resptype, data);
 }
@@ -129,8 +132,8 @@ static SCM scm_dc_getresp(SCM tag)
 	if((resp = dc_getresp()) == NULL)
 	    return(SCM_BOOL_F);
     } else {
-	SCM_ASSERT(SCM_INUMP(tag), tag, SCM_ARG1, "dc-getresp");
-	if((resp = dc_gettaggedresp(SCM_INUM(tag))) == NULL)
+	SCM_ASSERT(scm_is_integer(tag), tag, SCM_ARG1, "dc-getresp");
+	if((resp = dc_gettaggedresp(scm_to_int(tag))) == NULL)
 	    return(SCM_BOOL_F);
     }
     ret = makerespsmob(resp);
@@ -147,8 +150,8 @@ static SCM scm_dc_extract(SCM scm_resp)
     resp = ((struct respsmob *)SCM_SMOB_DATA(scm_resp))->resp;
     ret = SCM_EOL;
     ret = scm_cons(scm_cons(scm_str2symbol("cmd"), scm_makfrom0str(icswcstombs(resp->cmdname, "UTF-8", NULL))), ret);
-    ret = scm_cons(scm_cons(scm_str2symbol("code"), SCM_MAKINUM(resp->code)), ret);
-    ret = scm_cons(scm_cons(scm_str2symbol("tag"), SCM_MAKINUM(resp->tag)), ret);
+    ret = scm_cons(scm_cons(scm_str2symbol("code"), scm_from_int(resp->code)), ret);
+    ret = scm_cons(scm_cons(scm_str2symbol("tag"), scm_from_int(resp->tag)), ret);
     l = SCM_EOL;
     for(i = resp->numlines - 1; i >= 0; i--)
     {
@@ -203,6 +206,17 @@ static int qcmd_scmcb(struct dc_response *resp)
     return(2);
 }
 
+static wchar_t *scm_string_to_wcs(SCM str)
+{
+    char *buf;
+    wchar_t *ret;
+    
+    buf = scm_to_locale_string(str);
+    ret = icmbstowcs(buf, NULL);
+    free(buf);
+    return(ret);
+}
+
 static SCM scm_dc_qcmd(SCM argv, SCM callback)
 {
     int tag, enob;
@@ -221,7 +235,7 @@ static SCM scm_dc_qcmd(SCM argv, SCM callback)
     {
 	port = scm_open_output_string();
 	scm_display(SCM_CAR(argv), port);
-	if((tok = icmbstowcs(SCM_STRING_CHARS(scm_get_output_string(port)), "UTF-8")) == NULL)
+	if((tok = scm_string_to_wcs(scm_get_output_string(port))) == NULL)
 	{
 	    enob = errno;
 	    addtobuf(toks, NULL);
@@ -241,14 +255,14 @@ static SCM scm_dc_qcmd(SCM argv, SCM callback)
     {
 	tag = dc_queuecmd(NULL, NULL, cmd, L"%a", toks, NULL);
     } else {
-	scmcb = scm_must_malloc(sizeof(*scmcb), "scmcb");
+	scmcb = scm_malloc(sizeof(*scmcb));
 	scm_gc_protect_object(scmcb->subr = callback);
 	tag = dc_queuecmd(qcmd_scmcb, scmcb, cmd, L"%a", toks, NULL);
     }
     dc_freewcsarr(toks);
     if(cmd != NULL)
 	free(cmd);
-    return(SCM_MAKINUM(tag));
+    return(scm_from_int(tag));
 }
 
 static void login_scmcb(int err, wchar_t *reason, struct scmcb *scmcb)
@@ -284,11 +298,18 @@ static void login_scmcb(int err, wchar_t *reason, struct scmcb *scmcb)
 static SCM scm_dc_loginasync(SCM callback, SCM useauthless, SCM username)
 {
     struct scmcb *scmcb;
+    char *un;
     
     SCM_ASSERT(SCM_CLOSUREP(callback), callback, SCM_ARG1, "dc-loginasync");
-    scmcb = scm_must_malloc(sizeof(*scmcb), "scmcb");
+    scmcb = scm_malloc(sizeof(*scmcb));
     scm_gc_protect_object(scmcb->subr = callback);
-    dc_loginasync(SCM_STRINGP(username)?SCM_STRING_CHARS(username):NULL, SCM_NFALSEP(useauthless), NULL, (void (*)(int, wchar_t *, void *))login_scmcb, scmcb);
+    if(scm_is_string(username))
+	un = scm_to_locale_string(username);
+    else
+	un = NULL;
+    dc_loginasync(un, SCM_NFALSEP(useauthless), NULL, (void (*)(int, wchar_t *, void *))login_scmcb, scmcb);
+    if(un != NULL)
+	free(un);
     return(SCM_BOOL_T);
 }
 
@@ -297,8 +318,8 @@ static SCM scm_dc_lexsexpr(SCM sexpr)
     SCM ret;
     wchar_t **arr, **ap, *buf;
     
-    SCM_ASSERT(SCM_STRINGP(sexpr), sexpr, SCM_ARG1, "dc-lexsexpr");
-    if((buf = icmbstowcs(SCM_STRING_CHARS(sexpr), NULL)) == NULL)
+    SCM_ASSERT(scm_is_string(sexpr), sexpr, SCM_ARG1, "dc-lexsexpr");
+    if((buf = scm_string_to_wcs(sexpr)) == NULL)
 	scm_syserror("dc-lexsexpr");
     arr = dc_lexsexpr(buf);
     free(buf);
@@ -321,8 +342,8 @@ static SCM scm_dc_checkproto(SCM resp, SCM version)
     {
 	ver = DC_LATEST;
     } else {
-	SCM_ASSERT(SCM_INUMP(version), version, SCM_ARG2, "dc-checkproto");
-	ver = SCM_INUM(version);
+	SCM_ASSERT(scm_is_integer(version), version, SCM_ARG2, "dc-checkproto");
+	ver = scm_to_int(version);
     }
     if(dc_checkprotocol(((struct respsmob *)SCM_SMOB_DATA(resp))->resp, ver))
 	return(SCM_BOOL_F);
@@ -336,8 +357,8 @@ static size_t resp_free(SCM respsmob)
     
     data = (struct respsmob *)SCM_SMOB_DATA(respsmob);
     dc_freeresp(data->resp);
-    free(data);
-    return(sizeof(*data));
+    scm_gc_free(data, sizeof(*data), "respsmob");
+    return(0);
 }
 
 static int resp_print(SCM respsmob, SCM port, scm_print_state *pstate)
@@ -346,11 +367,11 @@ static int resp_print(SCM respsmob, SCM port, scm_print_state *pstate)
     
     data = (struct respsmob *)SCM_SMOB_DATA(respsmob);
     scm_puts("#<dc-response ", port);
-    scm_display(SCM_MAKINUM(data->resp->tag), port);
+    scm_display(scm_from_int(data->resp->tag), port);
     scm_puts(" ", port);
     scm_puts(icswcstombs(data->resp->cmdname, "UTF-8", NULL), port);
     scm_puts(" ", port);
-    scm_display(SCM_MAKINUM(data->resp->code), port);
+    scm_display(scm_from_int(data->resp->code), port);
     scm_puts(">", port);
     return(1);
 }
@@ -368,7 +389,7 @@ void init_guiledc(void)
     scm_c_define_gsubr("dc-loginasync", 2, 1, 0, scm_dc_loginasync);
     scm_c_define_gsubr("dc-lexsexpr", 1, 0, 0, scm_dc_lexsexpr);
     scm_c_define_gsubr("dc-checkproto", 1, 1, 0, scm_dc_checkproto);
-    scm_c_define("dc-latest", SCM_MAKINUM(DC_LATEST));
+    scm_c_define("dc-latest", scm_from_int(DC_LATEST));
     resptype = scm_make_smob_type("dc-resp", sizeof(struct respsmob));
     scm_set_smob_free(resptype, resp_free);
     scm_set_smob_print(resptype, resp_print);
