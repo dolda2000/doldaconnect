@@ -1001,6 +1001,7 @@ gint ksupdatecb(gpointer data)
 	ksquerytag = dc_queuecmd(NULL, NULL, L"filtercmd", L"userspeeda", L"%a", users, NULL);
 	dc_freewcsarr(users);
     }
+    updatewrite();
     return(TRUE);
 }
 
@@ -1316,6 +1317,7 @@ void cb_main_lsres_activate(GtkWidget *widget, gpointer data)
 	lsrestag = dc_queuecmd(NULL, NULL, L"filtercmd", L"lsres", NULL);
 	gtk_widget_set_sensitive(reslist_reload, FALSE);
     }
+    updatewrite();
 }
 
 void dcconnect(char *host)
@@ -2055,6 +2057,7 @@ void cb_reslist_reload_clicked(GtkWidget *widget, gpointer data)
     gtk_list_store_clear(reslist);
     lsrestag = dc_queuecmd(NULL, NULL, L"filtercmd", L"lsres", NULL);
     gtk_widget_set_sensitive(reslist_reload, FALSE);
+    updatewrite();
 }
 
 int rmres(char *id)
