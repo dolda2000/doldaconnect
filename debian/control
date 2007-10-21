@@ -1,0 +1,6 @@
+Source: doldaconnect
+Section: network
+Priority: optional
+Maintainer: Fredrik Tolf <fredrik@dolda2000.com>
+Standards-Version: 3.6.1
+
