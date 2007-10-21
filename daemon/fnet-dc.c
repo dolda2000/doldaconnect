@@ -101,6 +101,7 @@ struct qcommand
 
 struct dchub
 {
+    struct socket *sk;
     char *inbuf;
     size_t inbufdata, inbufsize;
     struct qcommand *queue;
@@ -1127,7 +1128,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	    goto out;
 	prefix = sprintf2("$SR %s ", hub->nativenick);
 	infix = sprintf2(" %i/%i\005", slotsleft(), confgetint("transfer", "slots"));
-	postfix = sprintf2(" (%s)\005%s|", formataddress(fn->sk->remote, fn->sk->remotelen), args + 4);
+	postfix = sprintf2(" (%s)\005%s|", formataddress(hub->sk->remote, hub->sk->remotelen), args + 4);
 	dsk = sk;
 	getsock(dsk);
     } else {
@@ -1140,7 +1141,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	addr.sin_port = htons(atoi(p2));
 	prefix = sprintf2("$SR %s ", hub->nativenick);
 	infix = sprintf2(" %i/%i\005", slotsleft(), confgetint("transfer", "slots"));
-	postfix = sprintf2(" (%s)|", formataddress(fn->sk->remote, fn->sk->remotelen));
+	postfix = sprintf2(" (%s)|", formataddress(hub->sk->remote, hub->sk->remotelen));
 	netdgramconn(dsk = netdupsock(udpsock), (struct sockaddr *)&addr, sizeof(addr));
     }
     
@@ -1392,7 +1393,7 @@ static void cmd_to(struct socket *sk, struct fnetnode *fn, char *cmd, char *args
 	return;
     *p2 = 0;
     p2 += 2;
-    hubrecvchat(fn->sk, fn, p, p2);
+    hubrecvchat(hub->sk, fn, p, p2);
     hubhandleaction(sk, fn, cmd, args);
 }
 
@@ -2339,10 +2340,10 @@ static int hubreqconn(struct fnetpeer *peer)
 	return(1); /* Shouldn't happen, of course, but who knows... */
     if(tcpsock != NULL)
     {
-	sendctm(peer->fn->sk, mbsnick);
+	sendctm(hub->sk, mbsnick);
 	expectpeer(mbsnick, peer->fn);
     } else {
-	qstrf(peer->fn->sk, "$RevConnectToMe %s %s|", hub->nativenick, mbsnick);
+	qstrf(hub->sk, "$RevConnectToMe %s %s|", hub->nativenick, mbsnick);
     }
     free(mbsnick);
     return(0);
@@ -2382,12 +2383,12 @@ static int hubsendchat(struct fnetnode *fn, int public, wchar_t *to, wchar_t *st
     {
 	if(*to == L'\0')
 	{
-	    qstrf(fn->sk, "<%s> %s|", hub->nativenick, mbsstring);
+	    qstrf(hub->sk, "<%s> %s|", hub->nativenick, mbsstring);
 	} else {
-	    qstrf(fn->sk, "$To: %s From: %s $<%s> %s|", mbsto, hub->nativenick, hub->nativenick, mbsstring);
+	    qstrf(hub->sk, "$To: %s From: %s $<%s> %s|", mbsto, hub->nativenick, hub->nativenick, mbsstring);
 	}
     } else {
-	qstrf(fn->sk, "$To: %s From: %s $<%s> %s|", mbsto, hub->nativenick, hub->nativenick, mbsstring);
+	qstrf(hub->sk, "$To: %s From: %s $<%s> %s|", mbsto, hub->nativenick, hub->nativenick, mbsstring);
     }
     free(mbsto);
     free(mbsstring);
@@ -2502,7 +2503,7 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
     struct hash *hash;
     
     hub = fn->data;
-    if((fn->state != FNN_EST) || (fn->sk == NULL) || (fn->sk->state != SOCK_EST))
+    if((fn->state != FNN_EST) || (hub->sk == NULL) || (hub->sk->state != SOCK_EST))
 	return(1);
     list = findsexprstrs(srch->sexpr);
     findsizelimit(srch->sexpr, &minsize, &maxsize);
@@ -2580,15 +2581,15 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
     addtobuf(sstr, 0);
     if(tcpsock != NULL)
     {
-	if(sockgetremotename2(udpsock, fn->sk, &name, &namelen) < 0)
+	if(sockgetremotename2(udpsock, hub->sk, &name, &namelen) < 0)
 	{
 	    flog(LOG_WARNING, "cannot get address of UDP socket");
 	} else {
-	    qstrf(fn->sk, "$Search %s %s|", formataddress(name, namelen), sstr);
+	    qstrf(hub->sk, "$Search %s %s|", formataddress(name, namelen), sstr);
 	    free(name);
 	}
     } else {
-	qstrf(fn->sk, "$Search Hub:%s %s|", hub->nativenick, sstr);
+	qstrf(hub->sk, "$Search Hub:%s %s|", hub->nativenick, sstr);
     }
     free(sstr);
     freesl(&list);
@@ -2920,10 +2921,13 @@ static void udpread(struct socket *sk, void *data)
 	{
 	    for(fn = fnetnodes; fn != NULL; fn = fn->next)
 	    {
-		if((fn->fnet == &dcnet) && (fn->sk != NULL) && addreq(fn->sk->remote, (struct sockaddr *)&hubaddr))
+		if((fn->fnet == &dcnet) && ((hub = fn->data) != NULL))
 		{
-		    myfn = fn;
-		    break;
+		    if((hub->sk != NULL) && addreq(hub->sk->remote, (struct sockaddr *)&hubaddr))
+		    {
+			myfn = fn;
+			break;
+		    }
 		}
 	    }
 	}
@@ -3123,13 +3127,15 @@ static void freedcpeer(struct dcpeer *peer)
     numdcpeers--;
 }
 
-static void hubconnect(struct fnetnode *fn)
+static void hubconnect(struct fnetnode *fn, struct socket *sk)
 {
-    fn->sk->readcb = (void (*)(struct socket *, void *))hubread;
-    fn->sk->errcb = (void (*)(struct socket *, int, void *))huberr;
-    getfnetnode(fn);
-    fn->data = newdchub(fn);
-    fn->sk->data = fn;
+    struct dchub *hub;
+    
+    sk->readcb = (void (*)(struct socket *, void *))hubread;
+    sk->errcb = (void (*)(struct socket *, int, void *))huberr;
+    fn->data = hub = newdchub(fn);
+    sk->data = fn;
+    getsock(hub->sk = sk);
     return;
 }
 
@@ -3140,15 +3146,7 @@ static void hubdestroy(struct fnetnode *fn)
     struct qcommand *qcmd;
     
     hub = (struct dchub *)fn->data;
-    if((fn->sk != NULL) && (fn->sk->data == fn))
-    {
-	fn->sk->data = NULL;
-	fn->sk->readcb = NULL;
-	fn->sk->errcb = NULL;
-	putfnetnode(fn);
-    }
-    if(hub == NULL)
-	return;
+    putsock(hub->sk);
     while((qcmd = ulqcmd(&hub->queue)) != NULL)
 	freeqcmd(qcmd);
     if(hub->supports != NULL)
@@ -3166,6 +3164,14 @@ static void hubdestroy(struct fnetnode *fn)
     if(hub->inbuf != NULL)
 	free(hub->inbuf);
     free(hub);
+}
+
+static void hubkill(struct fnetnode *fn)
+{
+    struct dchub *hub;
+    
+    hub = (struct dchub *)fn->data;
+    hub->sk->close = 1;
 }
 
 static wchar_t *dcbasename(wchar_t *filename)
@@ -3190,6 +3196,7 @@ static struct fnet dcnet =
     .name = L"dc",
     .connect = hubconnect,
     .destroy = hubdestroy,
+    .kill = hubkill,
     .setnick = hubsetnick,
     .reqconn = hubreqconn,
     .sendchat = hubsendchat,
@@ -3721,10 +3728,10 @@ static int run(void)
 	{
 	    if(*qcmd->string == '$')
 	    {
-		if((fn->sk != NULL) && (fn->sk->state == SOCK_EST))
-		    dispatchcommand(qcmd, hubcmds, fn->sk, fn);
+		if((hub->sk != NULL) && (hub->sk->state == SOCK_EST))
+		    dispatchcommand(qcmd, hubcmds, hub->sk, fn);
 	    } else if(*qcmd->string != 0) {
-		hubrecvchat(fn->sk, fn, NULL, qcmd->string);
+		hubrecvchat(hub->sk, fn, NULL, qcmd->string);
 	    }
 	    freeqcmd(qcmd);
 	    ret = 1;

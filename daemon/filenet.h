@@ -44,8 +44,9 @@ struct fnet
 {
     struct fnet *next;
     wchar_t *name;
-    void (*connect)(struct fnetnode *fn);
+    void (*connect)(struct fnetnode *fn, struct socket *sk);
     void (*destroy)(struct fnetnode *fn);
+    void (*kill)(struct fnetnode *fn);
     int (*setnick)(struct fnetnode *fn, wchar_t *newnick);
     int (*reqconn)(struct fnetpeer *peer);
     int (*sendchat)(struct fnetnode *fn, int public, wchar_t *to, wchar_t *string);
@@ -99,12 +100,12 @@ struct fnetnode
     int state;
     int linked;
     int regstatus;
+    int connected;
     time_t srchwait, lastsrch;
     wchar_t *name, *pubid;
     wchar_t *mynick;
     wchar_t *owner;
     struct fnet *fnet;
-    struct socket *sk;
     struct fnetpeerdatum *peerdata;
     struct fnetpeer *peers;
     struct wcspair *args;
