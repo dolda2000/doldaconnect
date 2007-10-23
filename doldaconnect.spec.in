@@ -49,7 +49,7 @@ Daemon for %{name} that does all the actual work of filesharing.
 %setup
 
 %build
-%configure --sysconfdir=%{_appconfdir} --disable-rpath --with-guile \
+%configure --disable-rpath --with-guile \
 		--enable-gtk2ui --enable-guishell --with-pam \
 		--with-krb5 --enable-gnomeapplet
 %{__make}
@@ -93,8 +93,8 @@ ${_libdir}/libdcui.la
 %{_includedir}/doldaconnect/*.h
 
 %files -n doldacond
-%dir %{_appconfdir}
-%config(noreplace) %{_appconfdir}/*
+%dir %{_sysconfdir}
+%config(noreplace) %{_sysconfdir}/*
 %{_bindir}/doldacond
 %{_bindir}/locktouch
 %{_bindir}/tthsum
