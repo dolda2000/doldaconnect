@@ -4,3 +4,17 @@ Priority: optional
 Maintainer: Fredrik Tolf <fredrik@dolda2000.com>
 Standards-Version: 3.6.1
 
+Package: doldaconnect
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Dolda Connect is a client program for the Direct Connect peer-to-peer
+ filesharing network. It is written so that the user interface is
+ separated from the actual filesharing program, so that the user
+ interface can run on a different computer over the network, and can be
+ shut down temporarily (or only started temporarily), and can be
+ replaced altogether.
+ .
+ The protocol with which the user interface talks with the actual
+ client is also quite well defined, so that other kinds of clients can
+ be written as well, such as an automatic downloader, a chatbot,
+ etc. It can also be used in secure multiuser operation.
