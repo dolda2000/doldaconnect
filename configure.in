@@ -270,6 +270,7 @@ config/Makefile
 config/cmd/Makefile
 config/util/Makefile
 contrib/Makefile
+contrib/doldaconnect.spec
 share/Makefile
 autopackage/doldacond.apspec
 autopackage/dolcon.apspec
