@@ -28,6 +28,7 @@ Note that, unless you really want to talk to the daemon using telnet,
 you will also want a user interface program to control it.
 
 [BuildPrepare]
+echo "apkg" >source
 prepareBuild --without-gtk2 --without-krb5 --without-keyutils --without-pam
 
 [BuildUnprepare]

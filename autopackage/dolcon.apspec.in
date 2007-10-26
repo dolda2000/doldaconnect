@@ -30,6 +30,7 @@ it is the daemon that does that. This program only controls the
 daemon.
 
 [BuildPrepare]
+echo "apkg" >source
 prepareBuild --enable-gtk2ui --disable-daemon --disable-dolconf --disable-guishell
 
 [BuildUnprepare]

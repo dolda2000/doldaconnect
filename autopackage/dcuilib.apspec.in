@@ -20,6 +20,7 @@ The Dolda Connect interface library is used by programs for talking
 with the Dolda Connect daemon.
 
 [BuildPrepare]
+echo "apkg" >source
 prepareBuild --without-krb5 --disable-daemon --without-gtk2
 
 [BuildUnprepare]

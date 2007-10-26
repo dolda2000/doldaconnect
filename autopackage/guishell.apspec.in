@@ -15,6 +15,7 @@ AutopackageTarget: 1.2
 PackageFileName: doldaconnect-guishell-@VERSION@.package
 
 [BuildPrepare]
+echo "apkg" >source
 prepareBuild --enable-dolconf --enable-guishell --disable-gtk2ui --disable-daemon
 
 [BuildUnprepare]
