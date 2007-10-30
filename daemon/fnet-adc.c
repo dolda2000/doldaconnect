@@ -59,6 +59,7 @@ struct qcmd {
 };
 
 struct adchub {
+    struct socket *sk;
     char *inbuf;
     size_t inbufdata, inbufsize;
     wchar_t *sid;
@@ -198,8 +199,8 @@ static void freeqcmd(struct qcmd *qcmd)
 #define UNUSED
 #endif
 #define ADC_CMDCOM \
-	struct socket *sk UNUSED = fn->sk; \
-	struct adchub *hub UNUSED = fn->data;
+	struct adchub *hub UNUSED = fn->data; \
+	struct socket *sk UNUSED = hub->sk;
 
 ADC_CMDFN(cmd_sup)
 {
@@ -351,14 +352,14 @@ static void huberr(struct socket *sk, int err, struct fnetnode *fn)
     killfnetnode(fn);
 }
 
-static void hubconnect(struct fnetnode *fn)
+static void hubconnect(struct fnetnode *fn, struct socket *sk)
 {
     struct adchub *hub;
     
-    fn->sk->readcb = (void (*)(struct socket *, void *))hubread;
-    fn->sk->errcb = (void (*)(struct socket *, int, void *))huberr;
-    fn->sk->data = fn;
-    getfnetnode(fn);
+    getsock(hub->sk = sk);
+    sk->readcb = (void (*)(struct socket *, void *))hubread;
+    sk->errcb = (void (*)(struct socket *, int, void *))huberr;
+    sk->data = fn;
     
     hub = smalloc(sizeof(*hub));
     memset(hub, 0, sizeof(*hub));
@@ -368,21 +369,28 @@ static void hubconnect(struct fnetnode *fn)
 	return;
     }
     fn->data = hub;
-    sendadc(fn->sk, 0, L"HSUP", L"ADBASE", eoc, NULL);
+    sendadc(sk, 0, L"HSUP", L"ADBASE", eoc, NULL);
 }
 
 static void hubdestroy(struct fnetnode *fn)
 {
     struct adchub *hub;
     
-    if((hub = fn->data) == NULL)
-	return;
+    hub = fn->data;
     iconv_close(hub->ich);
     if(hub->inbuf != NULL)
 	free(hub->inbuf);
     if(hub->sup != NULL)
 	freeparr(hub->sup);
     free(hub);
+}
+
+static void hubkill(struct fnetnode *fn)
+{
+    struct adchub *hub;
+    
+    hub = fn->data;
+    hub->sk->close = 1;
 }
 
 static int hubsetnick(struct fnetnode *fn, wchar_t *newnick)
@@ -398,6 +406,7 @@ static int hubreqconn(struct fnetpeer *peer)
 static struct fnet adcnet_store = {
     .connect = hubconnect,
     .destroy = hubdestroy,
+    .kill = hubkill,
     .setnick = hubsetnick,
     .reqconn = hubreqconn,
     .name = L"adc"
@@ -420,7 +429,7 @@ static int run(void)
 	if((hub = fn->data) == NULL)
 	    continue;
 	if((qcmd = ulqcmd(&hub->queue)) != NULL) {
-	    if((fn->sk != NULL) && (fn->sk->state == SOCK_EST))
+	    if((hub->sk != NULL) && (hub->sk->state == SOCK_EST))
 		dispatch(qcmd, fn);
 	    freeqcmd(qcmd);
 	    ret = 1;

@@ -64,17 +64,8 @@ static struct fnetnode *newfn(struct fnet *fnet)
 void killfnetnode(struct fnetnode *fn)
 {
     fnetsetstate(fn, FNN_DEAD);
-    if(fn->sk != NULL)
-    {
-	fn->sk->close = 1;
-	if(fn->sk->data == fn)
-	{
-	    fn->sk->data = NULL;
-	    putfnetnode(fn);
-	}
-	putsock(fn->sk);
-	fn->sk = NULL;
-    }
+    if(fn->connected)
+	fn->fnet->kill(fn);
 }
 
 void getfnetnode(struct fnetnode *fn)
@@ -107,7 +98,7 @@ void putfnetnode(struct fnetnode *fn)
     CBCHAINFREE(fn, fnetpeer_new);
     CBCHAINFREE(fn, fnetpeer_del);
     CBCHAINFREE(fn, fnetpeer_chdi);
-    if(fn->fnet->destroy != NULL)
+    if((fn->fnet->destroy != NULL) && fn->connected)
 	fn->fnet->destroy(fn);
     while(fn->args != NULL)
 	freewcspair(fn->args, &fn->args);
@@ -119,8 +110,6 @@ void putfnetnode(struct fnetnode *fn)
 	free(fn->pubid);
     if(fn->name != NULL)
 	free(fn->name);
-    if(fn->sk != NULL)
-	putsock(fn->sk);
     if(fn->owner != NULL)
 	free(fn->owner);
     free(fn);
@@ -171,11 +160,12 @@ static void conncb(struct socket *sk, int err, struct fnetnode *data)
 	putfnetnode(data);
 	return;
     }
-    data->sk = sk;
     fnetsetstate(data, FNN_HS);
     socksettos(sk, confgetint("fnet", "fntos"));
-    data->fnet->connect(data);
+    data->fnet->connect(data, sk);
+    data->connected = 1;
     putfnetnode(data);
+    putsock(sk);
 }
 
 static void resolvecb(struct sockaddr *addr, int addrlen, struct fnetnode *data)
@@ -387,7 +377,7 @@ int fnetsetnick(struct fnetnode *fn, wchar_t *newnick)
 {
     int ret;
     
-    if(fn->fnet->setnick != NULL)
+    if((fn->fnet->setnick != NULL) && fn->connected)
 	ret = fn->fnet->setnick(fn, newnick);
     else
 	ret = 0;
@@ -402,7 +392,7 @@ int fnetsetnick(struct fnetnode *fn, wchar_t *newnick)
 
 int fnetsendchat(struct fnetnode *fn, int public, wchar_t *to, wchar_t *string)
 {
-    if(fn->fnet->sendchat == NULL)
+    if((fn->fnet->sendchat == NULL) || !fn->connected)
     {
 	errno = ENOTSUP;
 	return(-1);
