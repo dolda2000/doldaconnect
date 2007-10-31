@@ -70,12 +70,6 @@ extern struct cbchain_ ## name { \
     void *data; \
 } * name
 
-extern int vswprintf (wchar_t *__restrict __s, size_t __n,
-		      __const wchar_t *__restrict __format,
-		      __gnuc_va_list __arg);
-extern int swprintf (wchar_t *__restrict __s, size_t __n,
-		     __const wchar_t *__restrict __format, ...);
-
 char *vsprintf2(char *format, va_list al);
 char *sprintf2(char *format, ...)
 #if defined(__GNUC__)

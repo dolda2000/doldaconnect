@@ -30,6 +30,7 @@
 #include <sys/wait.h>
 #include <stdarg.h>
 #include <fcntl.h>
+#include <sys/select.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

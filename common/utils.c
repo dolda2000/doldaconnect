@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <netinet/in.h>
+#include <alloca.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
