@@ -107,18 +107,18 @@ struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list);
 void freewcspair(struct wcspair *pair, struct wcspair **list);
 wchar_t *wpfind(struct wcspair *list, wchar_t *key);
 
-#define sizebuf(b, bs, rs, es, a) _sizebuf((void **)(b), (bs), (rs), (es), (a))
-#define sizebuf2(b, rs, a) _sizebuf((void **)(&(b)), &(b ## size), (rs), sizeof(*(b)), (a))
+#define sizebuf(b, bs, rs, es, a) _sizebuf((void **)(void *)(b), (bs), (rs), (es), (a))
+#define sizebuf2(b, rs, a) _sizebuf((void **)(void *)(&(b)), &(b ## size), (rs), sizeof(*(b)), (a))
 #define addtobuf(b, c) \
 do { \
-    _sizebuf((void **)(&(b)), &(b ## size), (b ## data) + 1, sizeof(*(b)), 1); \
+    _sizebuf((void **)(void *)(&(b)), &(b ## size), (b ## data) + 1, sizeof(*(b)), 1); \
     (b)[(b ## data)++] = (c); \
 } while(0)
 #define bufcat(d, s, n) \
 do { \
     size_t __bufcat_size__; \
     __bufcat_size__ = (n); \
-    _sizebuf((void **)(&(d)), &(d ## size), (d ## data) + __bufcat_size__, sizeof(*(d)), 1); \
+    _sizebuf((void **)(void *)(&(d)), &(d ## size), (d ## data) + __bufcat_size__, sizeof(*(d)), 1); \
     memcpy((d) + (d ## data), (s), sizeof(*(d)) * __bufcat_size__); \
     (d ## data) += __bufcat_size__; \
 } while (0)

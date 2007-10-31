@@ -549,7 +549,7 @@ void closesock(struct socket *sk)
 {
     struct sockaddr_un *un;
     
-    if((sk->family == AF_UNIX) && !sockgetlocalname(sk, (struct sockaddr **)&un, NULL) && (un->sun_family == PF_UNIX))
+    if((sk->family == AF_UNIX) && !sockgetlocalname(sk, (struct sockaddr **)(void *)&un, NULL) && (un->sun_family == PF_UNIX))
     {
 	if((sk->state == SOCK_LST) && strchr(un->sun_path, '/'))
 	{
