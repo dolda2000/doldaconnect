@@ -3,11 +3,14 @@ Name:		doldaconnect
 Version:	@VERSION@
 Release:	1
 License:	GPL v2+
-Group:		Productivity/Networking/Other
+Group:		Applications/Internet
 Summary:	Direct Connect client
 Source0:	http://www.dolda2000.com/~fredrik/doldaconnect/%{name}-%{version}.tar.gz
 URL:		http://www.dolda2000.com/~fredrik/doldaconnect/
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Requires:	%{name}-libs = %{version}-%{release}
+Requires:	%{name}-data = %{version}-%{release}
+Requires:	doldacond = %{version}-%{release}
 
 %description
 Dolda Connect is a client program for the Direct Connect peer-to-peer
@@ -25,6 +28,7 @@ etc. It can also be used in secure multiuser operation.
 %package libs
 Summary:	%{name} libraries
 Group:		Libraries
+Requires:	krb5-libs >= 1.5
 
 %description libs
 Shared libraries for %{name}.
@@ -32,6 +36,7 @@ Shared libraries for %{name}.
 %package devel
 Summary:	Development files for %{name}.
 Group:		Development/Libraries
+Requires:	%{name}-libs = %{version}-%{release}
 
 %description devel
 Header files and development libraries for %{name}.
@@ -39,15 +44,46 @@ Header files and development libraries for %{name}.
 %package guile
 Summary:	Guile module for %{name}.
 Group:		Libraries
+Requires:	%{name}-libs = %{version}-%{release}
+Requires:	guile >= 1.8.0
 
 %description guile
 Guile module for using the %{name} library in Scheme programs.
+
+%package applet
+Summary:	GNOME applet for %{name}
+Group:		Applications/Internet
+Requires:	%{name}-libs = %{version}-%{release}
+Requires:	%{name}-data = %{version}-%{release}
+
+%description applet
+A GNOME applet for checking the status of transfers in %{name}.
+
+%package data
+Summary:	Common data files for %{name}
+Group:		Applications/Internet
+
+%description data
+This package contains common data files for other %{name} packages.
+
+%package -n dolcon
+Summary:	The Gtk client in %{name}.
+Group:		Applications/Internet
+Requires:	%{name}-libs = %{version}-%{release}
+Requires:	%{name}-data = %{version}-%{release}
+Conflicts:	%{name}
+
+%description -n dolcon
+This package contains only the Gtk client for %{name}, so that it can
+be used without using a local server.
 
 %package -n doldacond
 Summary:	The daemon in %{name}.
 Group:		Daemons
 Requires(post,preun):	/sbin/chkconfig
-Requires:	rc-scripts
+Requires:	initscripts
+Requires:	krb5-libs >= 1.5
+Requires:	gdbm >= 1.8.0
 
 %description -n doldacond
 Daemon for %{name} that does all the actual work of filesharing.
@@ -56,16 +92,18 @@ Daemon for %{name} that does all the actual work of filesharing.
 %setup
 
 %build
-echo "rpm" >source
+echo "rpm" %{release} >source
 %configure --disable-rpath --with-guile \
 		--enable-gtk2ui --enable-guishell --with-pam \
-		--with-krb5 --enable-gnomeapplet
+		--with-krb5 --enable-gnomeapplet --without-keyutils
 %{__make}
 
 %install
 rm -rf "$RPM_BUILD_ROOT"
 mkdir "$RPM_BUILD_ROOT"
 make install DESTDIR="$RPM_BUILD_ROOT"
+install -D -m 644 contrib/pam.d-doldacond "$RPM_BUILD_ROOT"%{_sysconfdir}/pam.d/doldacond
+install -D contrib/fedora-init.d-doldacond "$RPM_BUILD_ROOT"%{_initrddir}/doldacond
 rm -f "$RPM_BUILD_ROOT"%{_libdir}/gaim/*.a
 rm -f "$RPM_BUILD_ROOT"%{_libdir}/libdolcon-guile.a
 rm -f "$RPM_BUILD_ROOT"%{_libdir}/libdolcon-guile.la
@@ -84,12 +122,16 @@ rm -rf "$RPM_BUILD_ROOT"
 %{_bindir}/dolconf
 %{_bindir}/dolcon-launch
 %{_bindir}/doldacond-shell
+%{_desktopdir}/dolcon.desktop
+%{_mandir}/man1/dolcon.1.gz
+
+%files applet
 %{_libdir}/bonobo/servers/*.server
 %{_libexecdir}/dolcon-trans-applet
-%{_desktopdir}/dolcon.desktop
+
+%files data
 %{_iconsdir}/*
 %{_datadir}/locale/*/LC_MESSAGES/doldaconnect.mo
-%{_mandir}/man1/dolcon.1.gz
 %doc AUTHORS ChangeLog README doc/INSTALL doc/gui-shell doc/TODO doc/protorev
 
 %files libs
@@ -126,6 +168,17 @@ rm -rf "$RPM_BUILD_ROOT"
 %{_mandir}/man5/doldacond.conf.5.gz
 %{_mandir}/man8/doldacond.8.gz
 
+%post -n doldacond
+/sbin/chkconfig --add doldacond
+
+%preun -n doldacond
+%service doldacond stop
+/sbin/chkconfig --del doldacond
+
+%files -n dolcon
+%{_bindir}/dolcon
+%{_mandir}/man1/dolcon.1.gz
+
 %changelog
 * Tue Oct 16 2007 Fredrik Tolf <fredrik@dolda2000.com>
-- Initial spec files. Quite a lot taken from the PLD specfile.
+- Initial spec file. Quite a lot taken from the PLD specfile.

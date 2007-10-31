@@ -1,0 +1,71 @@
+#!/bin/sh
+# Stolen from PLD Linux
+#
+# doldacond:	Direct Connect client as daemon
+#
+#
+# chkconfig:    345 91 09
+# description:  doldacond
+#
+# config:       /etc/sysconfig/doldacond
+
+# Source function library
+. /etc/rc.d/init.d/functions
+
+# Get service config
+if [ -f /etc/sysconfig/doldacond ]; then
+	. /etc/sysconfig/doldacond
+fi
+
+# Check that networking is up.
+if [ ! -f /var/lock/subsys/network -a "$1" != stop -a "$1" != status ]; then
+	msg_network_down doldacon
+	exit 1
+fi
+
+# See how we were called.
+case "$1" in
+	start)
+		# Check if service is already running?
+		if [ ! -f /var/lock/subsys/doldacond ]; then
+			msg_starting doldacond
+			daemon doldacond -C /etc/doldaconnect/doldacond.conf -p /var/run/doldacond.pid ${ADD_OPT}
+			RETVAL=$?
+			[ $RETVAL -eq 0 ] && touch /var/lock/subsys/doldacond
+		else
+			msg_already_running doldacond
+		fi
+		;;
+	stop)
+		if [ -f /var/lock/subsys/doldacond ]; then
+			msg_stopping doldacond
+			killproc --pidfile /var/run/doldacond.pid doldacond
+			rm -f /var/lock/subsys/doldacond
+		else
+			msg_not_running doldacond
+		fi
+		;;
+	status)
+		status doldacond
+		RESULT=$?
+		;;
+	reload)
+		if [ -f /var/lock/subsys/doldacond ]; then
+			msg_reloading doldacond
+			killproc --pidfile /var/run/doldacond.pid doldacond -HUP
+			RETVAL=$?
+		else
+			msg_not_running doldacond
+			exit 7
+		fi
+		;;
+	restart|force-reload)
+		$0 stop
+		$0 start
+		;;
+	*)
+		msg_usage "$0 {start|stop|restart|force-reload|status}"
+	 	exit 3
+esac
+
+exit 0
