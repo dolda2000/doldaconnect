@@ -468,7 +468,7 @@ static int opensess(struct authhandle *auth)
 	    }
 	    if((ret = krb5_cc_resolve(k5context, buf, &data->ccache)) != 0)
 	    {
-		flog(LOG_ERR, "could not resolve ccache name \"%s\": %s", buf2, error_message(ret));
+		flog(LOG_ERR, "could not resolve ccache name \"%s\": %s", buf, error_message(ret));
 		return(AUTH_ERR);
 	    }
 	    setenv("KRB5CCNAME", buf, 1);

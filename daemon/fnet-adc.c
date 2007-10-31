@@ -356,13 +356,13 @@ static void hubconnect(struct fnetnode *fn, struct socket *sk)
 {
     struct adchub *hub;
     
-    getsock(hub->sk = sk);
     sk->readcb = (void (*)(struct socket *, void *))hubread;
     sk->errcb = (void (*)(struct socket *, int, void *))huberr;
     sk->data = fn;
     
     hub = smalloc(sizeof(*hub));
     memset(hub, 0, sizeof(*hub));
+    getsock(hub->sk = sk);
     if((hub->ich = iconv_open("wchar_t", "utf-8")) == (iconv_t)-1) {
 	flog(LOG_CRIT, "iconv cannot handle UTF-8: %s", strerror(errno));
 	killfnetnode(fn);
