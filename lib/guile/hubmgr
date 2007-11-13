@@ -19,7 +19,7 @@
 ;  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 (use-modules (dolcon ui) (dolcon util))
-(use-modules (ice-9 format) (ice-9 rdelim))
+(use-modules (ice-9 format) (ice-9 rdelim) (ice-9 getopt-long))
 
 (define max-hubs 6)
 (define hub-list '())
@@ -27,10 +27,12 @@
 (define hublist '())
 (define connlist '())
 (define statelist '())
+(define logdest #t)
 
 (define (logf . args)
   (let ((fmt (car args)) (args (cdr args)))
-    (apply format (cons* #t (string-append fmt "~%") args))))
+    (if logdest
+	(apply format (cons* logdest (string-append fmt "~%") args)))))
 
 (define (list-delta l1 l2)
   (let ((r1 '()) (r2 '()))
@@ -90,11 +92,14 @@
 	    hublist))
 
 (define (hubmgr-main args)
-  (let ((dc-server #f))
+  (let ((opts (getopt-long args '((daemon (single-char #\d) (value #f))
+				  (server (single-char #\s) (value #t))))))
+    
     (set! hublist (read-hl))
     (logf "read ~a hubs" (length hublist))
-    (dc-c&l #t dc-server #t)
+    (dc-c&l #t (option-ref opts 'server #f) #t)
     (dc-ecmd-assert 200 "notify" "fn:act" "on")
+    (dc-ecmd-assert 200 "register" "hubmgr")
     (dc-handle-fn)
     (dc-fnproc-reg 'state (lambda (fn)
 			    (if (and (eq? (cdr (assq 'state fn)) 'dead)
@@ -111,6 +116,11 @@
 				   (set! statelist (cons (list hlf (current-time) 10) statelist)))))
 			   (cklist)))
     (dc-loop-reg ".periodic" #f cklist)
+    
+    (if (and (option-ref opts 'daemon #f)
+	     (not (= (primitive-fork) 0)))
+	(primitive-exit 0)
+	(set! logdest #f))
     
     (cklist)
     (dc-loop)))
