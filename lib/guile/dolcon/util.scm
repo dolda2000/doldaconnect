@@ -21,6 +21,7 @@
 (define fnetnodes '())
 (define loop-procs '())
 (define fn-procs '())
+(define msg-procs '())
 
 (define-public dc-fn-update
   (lambda ()
@@ -71,7 +72,7 @@
     (set! fn-procs (cons (list event proc)
 			 fn-procs))))
 
-(define-public dc-handle-fn
+(define dc-handle-fn
   (lambda ()
     (dc-fn-update)
     (let* ((notify (lambda (event data) (for-each (lambda (o) (if (eq? event (car o)) ((cadr o) data))) fn-procs)))
@@ -102,6 +103,26 @@
 				   (let* ((ires (dc-intresp r)) (nform (assq (car ires) fnetnodes)))
 				     (notify 'dstr (cdr nform))
 				     (set! fnetnodes (delq nform fnetnodes))))))))
+
+(define-public dc-msgproc-reg
+  (lambda (proc)
+    (set! msg-procs (cons proc msg-procs))))
+
+(define dc-handle-msg
+  (lambda ()
+    (dc-loop-reg ".notify" 640 (lambda (r er)
+				 (let ((sender (cadadr (assq 'resp er)))
+				       (message (cddadr (assq 'resp er))))
+				   (for-each (lambda (o) (o sender message))
+					     msg-procs))))))
+
+(define-public dc-util-handle
+  (lambda what
+    (for-each (lambda (o)
+		(case o
+		  ((fn) (dc-handle-fn))
+		  ((msg) (dc-handle-msg))))
+	      what)))
 
 (define-public dc-loop-reg
   (lambda (cmd code proc)
