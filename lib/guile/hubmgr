@@ -50,22 +50,18 @@
     (list r1 r2 l2)))
 
 (define (read-hl)
-  (catch 'system-error
-	 (lambda () 
-	   (let ((p (open-input-file hl-file)))
-	     (catch 'eof
-		    (lambda ()
-		      (let ((lines '()))
-			(while #t
-			       (let ((line (read-line p)))
-				 (if (eof-object? line)
-				     (throw 'eof lines)
-				     (let ((lexed (dc-lexsexpr line)))
-				       (if (> (length lexed) 0)
-					   (set! lines (append lines (list lexed))))))))))
-		    (lambda (s a) (close-port p) a))))
-	 (lambda (key . args)
-	   '())))
+  (letrec ((read-lines (lambda (lines p)
+			 (let ((line (read-line p)))
+			   (if (eof-object? line)
+			       (begin (close-port p)
+				      lines)
+			       (read-lines (let ((lexed (dc-lexsexpr line)))
+					     (if (> (length lexed) 0)
+						 (append lines (list lexed))
+						 lines)) p))))))
+    (catch 'system-error
+	   (lambda () (read-lines '() (open-input-file hl-file)))
+	   (lambda (key . args) '()))))
 
 (define (cklist)
   (set! statelist (let ((nl '()) (ct (current-time)))
