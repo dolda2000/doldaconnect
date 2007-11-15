@@ -22,6 +22,7 @@
 (define loop-procs '())
 (define fn-procs '())
 (define msg-procs '())
+(define timeouts '())
 
 (define-public dc-fn-update
   (lambda ()
@@ -124,6 +125,13 @@
 		  ((msg) (dc-handle-msg))))
 	      what)))
 
+(define-public dc-timeout
+  (lambda (rel timeout proc)
+    (let* ((tf (gettimeofday))
+	   (t (+ (car tf) (/ (cdr tf) 1000000))))
+      (set! timeouts (merge timeouts (list (cons (if rel (+ timeout t) timeout) proc))
+			    (lambda (a b) (< (car a) (car b))))))))
+
 (define-public dc-loop-reg
   (lambda (cmd code proc)
     (set! loop-procs (cons (cons (cons cmd code) proc)
@@ -132,7 +140,12 @@
 (define-public dc-loop
   (lambda ()
     (while #t
-	   (dc-select 10000)
+	   (dc-select (if (eq? timeouts '())
+			  10000
+			  (let* ((tf (gettimeofday))
+				 (t (+ (car tf) (/ (cdr tf) 1000000)))
+				 (dt (- (caar timeouts) t)))
+			    (if (< dt 0) 0 (truncate (inexact->exact (* dt 1000)))))))
 	   (while (let ((resp (dc-getresp)))
 		    (if resp
 			(let* ((er (dc-extract resp)) (code (cdr (assq 'code er))) (cmd (cdr (assq 'cmd er))))
@@ -144,6 +157,12 @@
 			   loop-procs))
 			#f))
 		  #f)
+	   (while (and (not (eq? timeouts '()))
+		       (let* ((tf (gettimeofday))
+			     (t (+ (car tf) (/ (cdr tf) 1000000))))
+			 (>= t (caar timeouts))))
+		  ((cdar timeouts))
+		  (set! timeouts (cdr timeouts)))
 	   (for-each (lambda (o)
 		       (if (equal? (caar o) ".periodic")
 			   ((cdr o))))
