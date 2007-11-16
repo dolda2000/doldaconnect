@@ -50,7 +50,10 @@ def mustconnect(host, revision = latest):
     any of these steps fail, an exception is raised. If successful,
     the file descriptor for the server connection is returned.
     """
-    fd = connect(host)
+    if host is None:
+        fd = connect()
+    else:
+        fd = connect(host)
     while True:
         resp = getresp()
         if resp is not None and resp.getcmd() == u".connect":
@@ -65,15 +68,10 @@ def mustconnect(host, revision = latest):
 def cnl(host = None, useauthless = True, revision = latest, **kw):
     """A convenience function for connect and loginasync.
 
-    This function will connect to the given server, or the server in
-    the environment variable $DCSERVER if none is given, or, if that
-    fails, localhost, and authenticate to the server. If any of the
-    steps fail, an exception is raised.
+    This function will connect to the given server, or try the default
+    servers if none given, and authenticate to the server. If any of
+    the steps fail, an exception is raised.
     """
-    if host is None:
-        host = os.getenv("DCSERVER")
-    if host is None:
-        host = "localhost"
     fd = mustconnect(host, revision)
     err, reason = login(useauthless, **kw)
     if err != "success":
