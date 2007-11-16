@@ -189,11 +189,11 @@ static PyObject *mod_select(PyObject *self, PyObject *args)
 	return(NULL);
     }
     if(((pfd.revents & POLLIN) && dc_handleread()) || ((pfd.revents & POLLOUT) && dc_handlewrite())) {
-	if(errno == 0) {
-	    fd = -1;
+	fd = -1;
+	if(errno == 0)
 	    Py_RETURN_FALSE;
-	}
 	PyErr_SetFromErrno(PyExc_OSError);
+	return(NULL);
     }
     if(ret > 0)
 	Py_RETURN_TRUE;
