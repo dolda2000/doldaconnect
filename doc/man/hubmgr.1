@@ -1,0 +1,110 @@
+.\"
+.\" Copyright (C) 2007 Fredrik Tolf <fredrik@dolda2000.com>
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License as
+.\" published by the Free Software Foundation; either version 2 of
+.\" the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111,
+.\" USA.
+.\"
+.TH HUBMGR 1 "2007-11-18" "" "Dolda Connect manual"
+.SH NAME
+hubmgr \- Automatic hub manager for Dolda Connect
+.SH SYNOPSIS
+.B hubmgr
+[ \fB-dq\fP ] [ \fB-s\fP \fIserver\fP ]
+.SH DESCRIPTION
+The \fBhubmgr\fP program will read a list of Direct Connect hubs, and
+try to ensure that they are connected to at all times. That involves
+both connecting to them initially, and reconnecting to them, should
+they later disconnect for any reason. If a hub is unreachable,
+\fBhubmgr\fP will keep trying to connect to it in intervals until
+successful.
+.P
+\fBhubmgr\fP handles the SIGINT, SIGHUP and SIGTERM signals and exit
+upon receipt of either one of them. It will also listen for messages
+on the name \fBhubmgr\fP and exit if it receives a message with the
+first token being \fBexit\fP. Upon exit, it will disconnect all
+managed hubs.
+.SH OPTIONS
+.TP
+.B -d
+Normally, \fBhubmgr\fP will daemonize after it has connected and
+authenticated to the daemon successfully. Giving the -d option will
+cause it to continue running in the foreground instead.
+.TP
+.B -q
+Signals more quiet operation. Only error messages will be displayed.
+.TP
+.BI -s " server"
+Connect to \fIserver\fP instead of the default server.
+.SH FILES
+The configuration file for \fBhubmgr\fP is named ~/.hublist. It needs
+to be formatted as follows:
+.P
+The file format is line oriented. A line may be empty, causing it to
+be ignored. There is no syntax for comments. Each non-empty line will
+be divided into words, separated by spaces. Spaces within a word may
+be quoted by enclosing the word in citation marks. The first word on
+each line is the protocol the hub uses. Currently, only the \fBdc\fP
+protocol is supported, signalling a normal Direct Connect hub. The
+second word is the address to the hub, using either a domain name or
+an IP address, followed by a colon, followed by the port number of the
+hub. The port number must always be specified.
+.P
+After the protocol and address words, an arbitrary number of optional
+arguments may follow, to specify such things as the nickname to use,
+or a password to supply to the hub. An argument is two words; one word
+to specify what argument it is, and another for the actual value. The
+following arguments are currently available:
+.TP
+.BI nick " nickname"
+Use \fInickname\fP instead of the server-wide default nickname when
+connecting to the hub.
+.TP
+.BI password " password"
+If the hub requests a password when connecting, use the given
+\fIpassword\fP for that purpose.
+.TP
+.BI charset " charset"
+Use the given charset when communicating with the hub. If this
+argument is not given, the Microsoft CP1252 charset will be used. Most
+hubs will expect the default charset. This option is somewhat
+experimental, and, due to the inherent non-internationalized nature of
+the Direct Connect protocol, may not work quite as one would expect.
+.TP
+.BI dcppemu " emulation"
+Override the \fBdc.dcppemu\fP option configured in the daemon for this
+specific hub, if \fIemulation\fP is \fBy\fP or \fBn\fP. See the
+\fBdoldacond.conf\fP(5) manual page for further information about
+\fBdc.dcppemu\fP.
+.SS Examples
+The following example, if copied into the ~/.hublist file, will
+connect to three hubs. The first one will be connected to normally,
+without any special processing. The second one requires a
+password. The third one requires both a special nickname and a
+password, which contains a space.
+.P
+.nf
+dc hub1.somenet.org:411
+dc dc.someother.net:555 password s3cr3t
+dc a.thirdnet.com:411 nick Cooldude password "Very Secret"
+.fi
+.SH AUTHOR
+Fredrik Tolf <fredrik@dolda2000.com>
+.SH SEE ALSO
+\fBdoldacond.conf\fP(5), \fBdoldacond\fP(8)
