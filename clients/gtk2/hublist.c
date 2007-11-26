@@ -210,6 +210,7 @@ void fetchhublist(char *url, regex_t *flt)
     len = strlen(url);
     p = url + len;
     if((len > 4) && !strncmp(p - 4, ".bz2", 4)) {
+	/* Because using Transfer-Encoding would just be too good! */
 	p -= 4;
 	len -= 4;
 	bzs = memset(smalloc(sizeof(*bzs)), 0, sizeof(*bzs));
@@ -222,6 +223,7 @@ void fetchhublist(char *url, regex_t *flt)
 	}
     }
     if((len > 4) && !strncmp(p - 4, ".xml", 4)) {
+	/* Because using Content-Type would just be too good! */
 	p -= 4;
 	len -= 4;
 	handler = pubhubxmlhandler;
