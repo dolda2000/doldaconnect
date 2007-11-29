@@ -292,8 +292,12 @@ void *transfergetdata(struct transfer *transfer, size_t *size)
 	return(NULL);
     if((transfer->endpos >= 0) && (transfer->curpos + *size >= transfer->endpos))
     {
-	*size = transfer->endpos - transfer->curpos;
-	buf = srealloc(buf, *size);
+	if((*size = transfer->endpos - transfer->curpos) == 0) {
+	    free(buf);
+	    buf = NULL;
+	} else {
+	    buf = srealloc(buf, *size);
+	}
     }
     transfer->curpos += *size;
     bytesupload += *size;
