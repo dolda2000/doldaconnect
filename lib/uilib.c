@@ -212,8 +212,10 @@ static struct qcmd *makeqcmd(wchar_t *name)
 	    if((cmd->name != NULL) && !wcscmp(cmd->name, name))
 		break;
 	}
-	if(cmd == NULL)
+	if(cmd == NULL) {
+	    errno = ENOSYS; /* Bleh */
 	    return(NULL);
+	}
     }
     new = smalloc(sizeof(*new));
     new->tag = tag++;
@@ -497,6 +499,7 @@ int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...)
 		} else {
 		    if(buf != NULL)
 			free(buf);
+		    errno = EINVAL;
 		    return(-1);
 		}
 	    } else {

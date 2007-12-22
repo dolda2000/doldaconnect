@@ -262,7 +262,17 @@ static SCM scm_dc_qcmd(SCM argv, SCM callback)
     dc_freewcsarr(toks);
     if(cmd != NULL)
 	free(cmd);
-    return(scm_from_int(tag));
+    if(tag == -1) {
+	if(errno == ENOSYS) {
+	    scm_error(scm_str2symbol("no-such-cmd"), "dc-qcmd", "Invalid command name", SCM_EOL, SCM_BOOL_F);
+	} else if(errno == EINVAL) {
+	    scm_error(scm_str2symbol("illegal-escape"), "dc-qcmd", "Invalid escape sequence", SCM_EOL, SCM_BOOL_F);
+	} else {
+	    scm_syserror("dc-qcmd");
+	}
+    } else {
+	return(scm_from_int(tag));
+    }
 }
 
 static void login_scmcb(int err, wchar_t *reason, struct scmcb *scmcb)
