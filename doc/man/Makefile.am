@@ -5,6 +5,9 @@ endif
 if CLI_GTK2
 man_MANS += dolcon.1
 endif
+if ELIB_GUILE
+man_MANS += hubmgr.1
+endif
 BUILT_SOURCES = doldacond.conf.5
 
 doldacond.conf.5: doldacond.conf.5.in ../../daemon/*.c mkcvman
