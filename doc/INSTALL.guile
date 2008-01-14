@@ -1,0 +1,21 @@
+		     Guile extension installation
+
+The Guile  extension library for  Dolda Connect requires  some special
+attention when installing, because of  how Guile looks for modules. If
+Dolda Connect  is installed into the  prefix /usr, there  should be no
+problem  and  everything  should  work automatically.   However,  when
+installing into any  other prefix, such as /usr/local,  Guile needs to
+be  told to  look for  modules  there.  That  is done  by setting  the
+environment  variable  GUILE_LOAD_PATH   to  include  the  directories
+$PREFIX/share/guile and $PREFIX/share/guile/site.
+
+Some versions  of Guile,  but not all,  are compiled against  a custom
+dynamic linker  as well, which also  needs to be told  where to locate
+the shared  libraries also required  for the Dolda Connect  module. If
+this is the case for your version  of Guile, you will also need to set
+the environment variable LTDL_LIBRARY_PATH to $PREFIX/lib.
+
+
+
+This document was last updated 2008-01-14, reflecting release 1.1 of
+Dolda Connect.
