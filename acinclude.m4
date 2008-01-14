@@ -30,6 +30,22 @@ AC_CHECK_HEADER($1, $2, $3)
 CPPFLAGS="$cpp_bak"
 ])
 
+# DOLDA_CHECK_FUNC(FUNCTION, ACTION-IF-FOUND, ACTION-IF-NOT-FOUND,
+#       [EXTRA-CFLAGS], [EXTRA-LDFLAGS])
+#
+# Augmented version of AC_CHECK_HEADER that overrides CPPFLAGS and
+# LDFLAGS
+
+AC_DEFUN([DOLDA_CHECK_FUNC],[dnl
+cpp_bak="$CPPFLAGS"
+ld_bak="$LDFLAGS"
+ifelse([$4], , , [CPPFLAGS="$CPPFLAGS $4"])
+ifelse([$5], , , [LDFLAGS="$LDFLAGS $5"])
+AC_CHECK_FUNC($1, $2, $3)
+CPPFLAGS="$cpp_bak"
+LDFLAGS="$ldflags"
+])
+
 # DOLDA_ENABLE(NAME, HELP, DEFAULT, DEPS)
 #
 # DEPS is a space-separated listing of required variables that must be

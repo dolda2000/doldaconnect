@@ -56,6 +56,10 @@ DOLDA_PKG([HAS_GTK2], [test "$with_gtk2" = no && HAS_GTK2=no],
 if test "$with_gtk2" = yes -a "$HAS_GTK2" = no; then
 	AC_MSG_ERROR([*** cannot find GTK2 on this system])
 fi
+DOLDA_PKG([HAS_GTK2SI], [test "$HAS_GTK2" = no && HAS_GTK2SI=no],
+			[DOLDA_CHECK_FUNC(gtk_status_icon_new_from_pixbuf, [], [HAS_GTK2SI=no], $GTK2_CFLAGS, $GTK2_LIBS)])
+DOLDA_PKG([HAS_GTK2ASS], [test "$HAS_GTK2" = no && HAS_GTK2ASS=no],
+			 [DOLDA_CHECK_FUNC(gtk_assistant_new, [], [HAS_GTK2ASS=no], $GTK2_CFLAGS, $GTK2_LIBS)])
 
 # libxml2 check
 AC_ARG_WITH(libxml2, [  --with-libxml2          Enable libxml2 support])
@@ -100,12 +104,12 @@ AM_CONDITIONAL(CLI_GTK2, test "$enable_gtk2ui" = yes)
 
 # Dolconf check
 DOLDA_ENABLE(dolconf, [  --enable-dolconf        Build the configuration helper], yes,
-		      [HAS_GTK2])
+		      [HAS_GTK2], [HAS_GTK2ASS])
 AM_CONDITIONAL(DOLCONF, test "$enable_dolconf" = yes)
 
 # GUI shell check
 DOLDA_ENABLE(guishell, [  --enable-guishell       Build the GUI shell programs], yes,
-		       [HAS_GTK2])
+		       [HAS_GTK2], [HAS_GTK2SI])
 AM_CONDITIONAL(GUISHELL, test "$enable_guishell" = yes)
 
 # Gnome applet check
