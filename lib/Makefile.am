@@ -1,6 +1,6 @@
 EXTRA_DIST = makecmds uicmds
 
-SUBDIRS = guile
+SUBDIRS = . guile
 
 lib_LTLIBRARIES = libdcui.la
 
