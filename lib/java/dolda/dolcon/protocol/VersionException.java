@@ -1,4 +1,4 @@
-package dolda.dolcon;
+package dolda.dolcon.protocol;
 
 public class VersionException extends Exception {
     public final int r, l, h;

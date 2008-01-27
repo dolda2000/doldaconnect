@@ -1,4 +1,4 @@
-package dolda.dolcon;
+package dolda.dolcon.protocol;
 
 public class ClosedException extends Exception {
     public ClosedException(Throwable cause) {

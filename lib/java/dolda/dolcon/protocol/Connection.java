@@ -1,4 +1,4 @@
-package dolda.dolcon;
+package dolda.dolcon.protocol;
 
 import java.io.*;
 import java.net.Socket;
