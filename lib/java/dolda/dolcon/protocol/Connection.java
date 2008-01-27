@@ -212,6 +212,7 @@ public class Connection {
 		    notifyAll();
 		}
 	    };
+	qcmd(cmd);
 	synchronized(l) {
 	    while(!donep[0]) {
 		l.wait();
@@ -284,7 +285,9 @@ public class Connection {
 			    out.append(' ');
 			out.append(quote(s));
 		    }
+		    out.append("\r\n");
 		    w.write(out.toString());
+		    w.flush();
 		}
 	    } catch(IOException e) {
 		throw(new StopCondition(e, false));
