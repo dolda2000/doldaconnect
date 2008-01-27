@@ -19,8 +19,10 @@
 (use-modules (dolcon ui))
 
 (define fnetnodes '())
+(define transfers '())
 (define loop-procs '())
 (define fn-procs '())
+(define trn-procs '())
 (define msg-procs '())
 (define timeouts '())
 
@@ -42,6 +44,28 @@
 		     (dc-intall resp))
 		'())))
     fnetnodes))
+
+(define-public dc-tr-update
+  (lambda ()
+    (set! transfers
+	  (let* ((resp (dc-ecmd "lstrans")) (er (dc-extract resp)))
+	    (if (= (cdr (assq 'code er)) 200)
+		(map (lambda (o)
+		       (apply (lambda (id dir state peerid peernick path size curpos hash)
+				(cons id
+				      (list (cons 'id id)
+					    (cons 'dir (if (= dir 1) 'up 'down))
+					    (cons 'state (list-ref '(wait hs main done) state))
+					    (cons 'peer peerid)
+					    (cons 'nick peernick)
+					    (cons 'path path)
+					    (cons 'size size)
+					    (cons 'pos curpos)
+					    (cons 'hash hash))))
+			      o))
+		     (dc-intall resp))
+		'())))
+    transfers))
 
 (define-public dc-fn-getattrib
   (lambda (id attrib)
@@ -105,6 +129,12 @@
 				     (notify 'dstr (cdr nform))
 				     (set! fnetnodes (delq nform fnetnodes))))))))
 
+(define dc-handle-trn
+  (lambda ()
+    (dc-tr-update)
+    (let* ((notify (lambda (event data) (for-each (lambda (o) (if (eq? event (car o)) ((cadr o) data))) trn-procs)))
+	   (update (lambda (tf attr val)))))))
+
 (define-public dc-msgproc-reg
   (lambda (proc)
     (set! msg-procs (cons proc msg-procs))))
@@ -122,7 +152,8 @@
     (for-each (lambda (o)
 		(case o
 		  ((fn) (dc-handle-fn))
-		  ((msg) (dc-handle-msg))))
+		  ((msg) (dc-handle-msg))
+		  ((trn) (dc-handle-trn))))
 	      what)))
 
 (define-public dc-timeout
