@@ -14,13 +14,14 @@ public class Connection {
     private String aspec;
     private String state;
     private Set<ConnectListener> connls = new HashSet<ConnectListener>();
+    private Set<NotifyListener> notls = new HashSet<NotifyListener>();
     private Exception error;
     
     public interface ConnectListener {
 	public void connected() throws Exception;
 	public void error(Exception cause);
     }
-
+    
     public Connection(String aspec) {
 	this.aspec = aspec;
 	state = "idle";
@@ -162,6 +163,18 @@ public class Connection {
 	return(error);
     }
 
+    public void addNotifyListener(NotifyListener l) {
+	synchronized(notls) {
+	    notls.add(l);
+	}
+    }
+
+    public void removeNotifyListener(NotifyListener l) {
+	synchronized(notls) {
+	    notls.remove(l);
+	}
+    }
+
     public synchronized void addConnectListener(ConnectListener l) {
 	if((state != "idle") && (state != "connecting"))
 	    throw(new IllegalStateException("Already connected"));
@@ -299,6 +312,12 @@ public class Connection {
 		    queue.notifyAll();
 		}
 		resp.cmd.done(resp);
+	    } else {
+		synchronized(notls) {
+		    for(NotifyListener l : notls) {
+			l.notified(resp);
+		    }
+		}
 	    }
 	}
 
