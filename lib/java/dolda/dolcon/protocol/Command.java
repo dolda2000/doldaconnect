@@ -7,9 +7,13 @@ public class Command {
     Set<Listener> listeners = new HashSet<Listener>();
     Response resp;
     
-    public interface Listener {
-	public void done(Response resp) throws Exception;
-	public void error(Exception cause);
+    public abstract class Listener {
+	public Listener() {
+	    addlst(this);
+	}
+	
+	public abstract void done(Response resp) throws Exception;
+	public abstract void error(Exception cause);
     }
 
     public Command(List<String> tokens) {
@@ -20,17 +24,17 @@ public class Command {
 	this(Arrays.asList(tokens));
     }
     
-    public void addListener(Listener l) {
+    private synchronized void addlst(Listener l) {
 	listeners.add(l);
     }
     
-    public void done(Response resp) throws Exception {
+    public synchronized void done(Response resp) throws Exception {
 	this.resp = resp;
 	for(Listener l : listeners)
 	    l.done(resp);
     }
     
-    public void error(Exception cause) {
+    public synchronized void error(Exception cause) {
 	for(Listener l : listeners)
 	    l.error(cause);
     }

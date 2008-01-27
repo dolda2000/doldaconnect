@@ -41,7 +41,7 @@ public class Connection {
 	}
 	pending = new LinkedList<Command>();
 	Command ccmd = new Command(".connect");
-	ccmd.addListener(new Command.Listener() {
+	ccmd.new Listener() {
 		public void done(Response resp) throws Exception {
 		    try {
 			checkver(resp);
@@ -72,7 +72,7 @@ public class Connection {
 			}
 		    }
 		}
-	    });
+	    };
 	pending.offer(ccmd);
 	reader = new Reader();
 	writer = new Writer();
@@ -112,7 +112,7 @@ public class Connection {
 	    throw(new RuntimeException("Cannot call synchronous method with dispatch thread!"));
     }
         
-    public void syncConnect() throws ConnectException, ClosedException, InterruptedException {
+    public void syncConnect() throws ConnectException, InterruptedException {
 	checkthread();
 	final boolean[] donep = new boolean[] {false};
 	final Exception[] errp = new Exception[] {null};
@@ -140,7 +140,7 @@ public class Connection {
 	    }
 	}
 	if(errp[0] != null)
-	    throw(new ClosedException(errp[0]));
+	    throw(new ConnectException("DC connection has been closed", errp[0]));
     }
 
     public void expectVersion(int reqver) {
@@ -170,11 +170,47 @@ public class Connection {
 	}
     }
 
-    private void qcmd(Command cmd) {
+    public void qcmd(Command cmd) {
 	synchronized(queue) {
 	    queue.offer(cmd);
 	    queue.notifyAll();
 	}
+    }
+    
+    public void qcmd(String... tokens) {
+	qcmd(new Command(tokens));
+    }
+    
+    public Response ecmd(Command cmd) throws ClosedException, InterruptedException {
+	checkthread();
+	final boolean[] donep = new boolean[] {false};
+	final Response[] resp = new Response[] {null};
+	final Exception[] errp = new Exception[] {null};
+	Object l = cmd.new Listener() {
+		public synchronized void done(Response rsp) {
+		    resp[0] = rsp;
+		    donep[0] = true;
+		    notifyAll();
+		}
+		
+		public synchronized void error(Exception e) {
+		    errp[0] = e;
+		    donep[0] = true;
+		    notifyAll();
+		}
+	    };
+	synchronized(l) {
+	    while(!donep[0]) {
+		l.wait();
+	    }
+	}
+	if(errp[0] != null)
+	    throw(new ClosedException(errp[0]));
+	return(resp[0]);
+    }
+    
+    public Response ecmd(String... tokens) throws ClosedException, InterruptedException {
+	return(ecmd(new Command(tokens)));
     }
     
     static private class StopCondition extends Error {
