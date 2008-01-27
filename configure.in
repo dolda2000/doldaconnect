@@ -21,15 +21,14 @@ m4_defun([_LT_AC_LANG_CXX_CONFIG], true)
 m4_defun([_LT_AC_LANG_F77_CONFIG], true)
 AC_PROG_LIBTOOL
 
-DOLDA_AC_GROUP([Checking required libraries])
-
-AC_CHECK_LIB(z, deflate, [:], AC_MSG_ERROR([*** must have zlib]))
-AC_CHECK_LIB(bz2, BZ2_bzWriteOpen, [:], AC_MSG_ERROR([*** must have bzlib]))
-AC_CHECK_LIB(gdbm, gdbm_open, [:], AC_MSG_ERROR([*** must have gdbm]))
-
 experimental=no
 
 DOLDA_AC_GROUP([Checking optional libraries])
+
+# Standard libraries
+AC_CHECK_LIB(z, deflate, [HAS_LIBZ=yes], [HAS_LIBZ=no])
+AC_CHECK_LIB(bz2, BZ2_bzWriteOpen, [HAS_LIBBZ2=yes], [HAS_LIBBZ2=no])
+AC_CHECK_LIB(gdbm, gdbm_open, [HAS_GDBM=yes], [HAS_GDBM=no])
 
 # PAM check
 pam_msg=no
@@ -94,12 +93,13 @@ DOLDA_PKG([HAS_LIBPURPLE], [PKG_CHECK_MODULES(PURPLE, purple, [], [HAS_LIBPURPLE
 			   [DOLDA_CHECK_HEADER(plugin.h, [], [HAS_LIBPURPLE=no], $PURPLE_CFLAGS)])
 
 # Daemon check
-DOLDA_ENABLE(daemon, [  --enable-daemon         Enable the daemon], yes, [])
+DOLDA_ENABLE(daemon, [  --enable-daemon         Enable the daemon], yes,
+		     [HAS_LIBZ HAS_LIBBZ2 HAS_GDBM])
 AM_CONDITIONAL(DAEMON, test "$enable_daemon" = yes)
 
 # Gtk GUI check
 DOLDA_ENABLE(gtk2ui, [  --enable-gtk2ui         Enable the GTK2 user interface], yes,
-		     [HAS_GTK2 HAS_LIBXML])
+		     [HAS_GTK2 HAS_LIBBZ2 HAS_LIBXML])
 AM_CONDITIONAL(CLI_GTK2, test "$enable_gtk2ui" = yes)
 
 # Dolconf check
