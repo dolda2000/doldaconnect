@@ -57,4 +57,8 @@ public class Session {
 	    throw(new ProtocolException(e));
 	}
     }
+    
+    public void close() {
+	conn.close();
+    }
 }
