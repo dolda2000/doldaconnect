@@ -3,9 +3,9 @@ package dolda.dolcon.protocol;
 import java.util.*;
 
 public class Response {
-    List<List<String>> lines;
-    Command cmd;
-    int code;
+    public List<List<String>> lines;
+    public Command cmd;
+    public int code;
     
     public Response(int code, List<List<String>> lines) {
 	this.code = code;
@@ -18,5 +18,9 @@ public class Response {
     
     public String token(int line, int token) {
 	return(lines.get(line).get(token));
+    }
+    
+    public List<String> line(int line) {
+	return(lines.get(line));
     }
 }

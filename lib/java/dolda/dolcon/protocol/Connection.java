@@ -381,7 +381,6 @@ public class Connection {
 				code = Integer.parseInt(ct.toString());
 				ct.setLength(0);
 				state = "start";
-				continue eat;
 			    } else {
 				ct.append(c);
 			    }
