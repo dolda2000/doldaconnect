@@ -667,10 +667,14 @@ static void sendpeerlock(struct dcpeer *peer)
 
 static void sendsupports(struct dcpeer *peer)
 {
-    if(peer->dcppemu)
+    if(peer->dcppemu) {
 	qstr(peer->sk, "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG |");
-    else
-	qstr(peer->sk, "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG|");
+    } else {
+	qstr(peer->sk, "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF");
+	if(!confgetint("dc", "hidedeflate"))
+	    qstr(peer->sk, " GetZBlock ZLIG");
+	qstr(peer->sk, "|");
+    }
 }
 
 static void requestfile(struct dcpeer *peer)
@@ -832,10 +836,14 @@ static void cmd_lock(struct socket *sk, struct fnetnode *fn, char *cmd, char *ar
 	*(p++) = 0;
     if(hub->extended)
     {
-	if(hub->dcppemu)
+	if(hub->dcppemu) {
 	    qstrf(sk, "$Supports UserCommand NoGetINFO NoHello UserIP2 TTHSearch GetZBlock |");
-	else
-	    qstrf(sk, "$Supports UserCommand NoGetINFO NoHello UserIP2 TTHSearch GetZBlock|");
+	} else {
+	    qstrf(sk, "$Supports UserCommand NoGetINFO NoHello UserIP2 TTHSearch");
+	    if(!confgetint("dc", "hidedeflate"))
+		qstr(sk, " GetZBlock");
+	    qstr(sk, "|");
+	}
     }
     key = dcmakekey(args);
     qstrf(sk, "$Key %s|", key);
@@ -3880,6 +3888,11 @@ static struct configvar myvars[] =
      * unknown commands it receives, and their arguments, to
      * /tmp/dc-unimpl. */
     {CONF_VAR_BOOL, "logunimpl", {.num = 0}},
+    /** If set to true, doldacond will hide its support for deflate
+     * compression of transfers from other clients, so that they will
+     * not request compressed uploads. Compressed transfers may
+     * consume a non-trivial amount of CPU time on slower machines. */
+    {CONF_VAR_BOOL, "hidedeflate", {.num = 0}},
     {CONF_VAR_END}
 };
 
