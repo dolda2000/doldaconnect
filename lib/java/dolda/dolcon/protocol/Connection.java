@@ -183,9 +183,10 @@ public class Connection {
 	}
     }
 
-    public void qcmd(Command cmd) {
+    public void qcmd(Command... cmds) {
 	synchronized(queue) {
-	    queue.offer(cmd);
+	    for(Command cmd : cmds)
+		queue.offer(cmd);
 	    queue.notifyAll();
 	}
     }
