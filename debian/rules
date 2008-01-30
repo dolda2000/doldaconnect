@@ -5,4 +5,5 @@ include /usr/share/cdbs/1/class/autotools.mk
 
 DEB_CONFIGURE_EXTRA_FLAGS = \
 	--enable-daemon --enable-gtk2ui --enable-guishell \
-	 --enable-dolconf --enable-gnomeapplet --enable-pidginplugin
+	--enable-dolconf --enable-gnomeapplet --enable-pidginplugin \
+	--with-guile
