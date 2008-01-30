@@ -1,0 +1,6 @@
+bin/doldacond
+bin/locktouch
+bin/tthsum
+libexec/speedrec
+share/man/man5/doldacond.conf.5
+share/man/man8/doldacond.8
