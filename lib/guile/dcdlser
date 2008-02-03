@@ -1,0 +1,48 @@
+#!/usr/bin/guile -s
+!#
+
+;  Dolda Connect - Modular multiuser Direct Connect-style client
+;  Copyright (C) 2007 Fredrik Tolf <fredrik@dolda2000.com>
+;  
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;  
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;  
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+(use-modules (dolcon ui) (dolcon util))
+(use-modules (ice-9 pretty-print) (ice-9 rdelim) (ice-9 getopt-long))
+
+(define logdest #t)
+(define pstate '())
+
+(define (logf . args)
+  (let ((fmt (car args)) (args (cdr args)))
+    (if logdest
+	(apply format (cons* logdest (string-append fmt "~%") args)))))
+
+(define (main args)
+  (let ((opts (getopt-long args '((server (single-char #\s) (value #t))
+				  (pfile (single-char #\f) (value #f))))))
+    (dc-c&l #t (option-ref opts 'server #f) #t)
+    (dc-ecmd-assert 200 "notify" "trans:act" "on" "trans:prog" "on" "srch:act" "on")
+    
+    (for-each (lambda (sig) (sigaction sig (lambda (sig) (throw 'quit 0)))) (list SIGINT SIGTERM SIGHUP))
+    (catch 'quit dc-loop
+	   (lambda (sig ret)
+	     (catch 'quit
+		    (lambda ()
+		      #t)
+		    (lambda (sig ret) ret))
+	     ret))))
+
+(setlocale LC_ALL "")
+(main (command-line))
