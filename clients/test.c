@@ -5,15 +5,18 @@
 #include <doldaconnect/uilib.h>
 #include <doldaconnect/uimisc.h>
 
+int done;
+
 void authcallback(int err, wchar_t *reason, void *data)
 {
     printf("Logged in: %i\n", err);
+    dc_queuecmd(NULL, NULL, L"quit", NULL);
 }
 
 int main(int argc, char **argv)
 {
     struct pollfd pfd;
-    int fd, done;
+    int fd;
     struct dc_response *resp;
     
     dc_init();
