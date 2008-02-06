@@ -12,7 +12,6 @@ public class PasswordAuth implements Authenticator {
     }
     
     public String handles(List<String> name) {
-	System.out.println(name);
 	if(name.contains("pam"))
 	    return("pam");
 	return(null);
