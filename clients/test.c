@@ -1,15 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/poll.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include <doldaconnect/uilib.h>
 #include <doldaconnect/uimisc.h>
+#include <doldaconnect/utils.h>
 
 int done;
+double btime;
 
 void authcallback(int err, wchar_t *reason, void *data)
 {
+    printf("auth: %f\n", ntime() - btime);
     printf("Logged in: %i\n", err);
+    exit(0);
     dc_queuecmd(NULL, NULL, L"quit", NULL);
 }
 
@@ -19,7 +25,9 @@ int main(int argc, char **argv)
     int fd;
     struct dc_response *resp;
     
+    btime = ntime();
     dc_init();
+    printf("init: %f\n", ntime() - btime);
     fd = dc_connect(NULL);
     done = 0;
     while(!done)
@@ -41,6 +49,7 @@ int main(int argc, char **argv)
 	{
 	    if(!wcscmp(resp->cmdname, L".connect"))
 	    {
+		printf("conn: %f\n", ntime() - btime);
 		printf("Connected: %i\n", resp->code);
 		if(resp->code == 201)
 		    dc_loginasync(NULL, 1, NULL, authcallback, NULL);
@@ -48,6 +57,8 @@ int main(int argc, char **argv)
 	    dc_freeresp(resp);
 	}
     }
+    printf("fini: %f\n", ntime() - btime);
     dc_cleanup();
+    printf("exit: %f\n", ntime() - btime);
     return(0);
 }
