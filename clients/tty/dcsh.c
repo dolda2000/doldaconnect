@@ -33,6 +33,7 @@
 #include <doldaconnect/uimisc.h>
 #include <doldaconnect/utils.h>
 
+int interactive = 0;
 int verbose = 0;
 int dcfd;
 
@@ -41,21 +42,30 @@ struct cmd {
     int (*handler)(int argc, wchar_t **argv);
 };
 
+void wcslimit(wchar_t *wcs, int limit) {
+    int i;
+    
+    if(wcslen(wcs) > limit) {
+	for(i = limit - 3; i < limit; i++)
+	    wcs[i] = L'.';
+	wcs[i] = L'\0';
+    }
+}
+
 int cmd_lsnodes(int argc, wchar_t **argv)
 {
-    int i;
     struct dc_response *resp;
     struct dc_intresp *ires;
     
     resp = dc_gettaggedrespsync(dc_queuecmd(NULL, NULL, L"lsnodes", NULL));
     if(resp->code == 200) {
-	printf("   ID  NET  USERS S NAME\n");
+	if(interactive) {
+	    printf("   ID  NET  USERS S NAME\n");
+	    printf("----- ---- ------ - ----------------------------------------------------------\n");
+	}
 	while((ires = dc_interpret(resp)) != NULL) {
-	    if(wcslen(ires->argv[2].val.str) > 58) {
-		for(i = 55; i < 58; i++)
-		    ires->argv[2].val.str[i] = L'.';
-		ires->argv[2].val.str[i] = L'\0';
-	    }
+	    if(interactive)
+		wcslimit(ires->argv[2].val.str, 58);
 	    printf("%5i %4ls %6i %c %ls\n", ires->argv[0].val.num, ires->argv[1].val.str, ires->argv[3].val.num, "SHED"[ires->argv[4].val.num], ires->argv[2].val.str);
 	    dc_freeires(ires);
 	}
@@ -115,6 +125,10 @@ int shell(void)
     int cmddata;
     struct pollfd pfd[2];
 
+    if(interactive) {
+	fprintf(stderr, "dcsh> ");
+	fflush(stderr);
+    }
     cmddata = 0;
     while(1) {
 	pfd[0].fd = dcfd;
@@ -138,6 +152,8 @@ int shell(void)
 		fprintf(stderr, "dcsh: stdin: %s\n", strerror(errno));
 		return(1);
 	    } else if(ret == 0) {
+		if(interactive)
+		    fprintf(stderr, "\n");
 		return(0);
 	    }
 	    cmddata += ret;
@@ -154,6 +170,10 @@ int shell(void)
 		    dc_freewcsarr(argv);
 		}
 		memmove(cmdbuf, p, cmddata -= (p - cmdbuf));
+		if(interactive) {
+		    fprintf(stderr, "dcsh> ");
+		    fflush(stderr);
+		}
 	    }
 	}
     }
@@ -207,9 +227,12 @@ int main(int argc, char **argv)
     }
     if(verbose)
 	fprintf(stderr, "done\n");
-    if(optind < argc)
+    if(optind < argc) {
+	interactive = isatty(1);
 	rv = runchar(argc - optind, argv + optind);
-    else
+    } else {
+	interactive = isatty(0);
 	rv = shell();
+    }
     return(rv);
 }
