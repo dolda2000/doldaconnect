@@ -58,6 +58,7 @@
 #define RESP_STR 1
 #define RESP_INT 2
 #define RESP_FLOAT 3
+#define RESP_LNUM 4
 
 struct respclass
 {
@@ -1369,6 +1370,12 @@ struct dc_intresp *dc_interpret(struct dc_response *resp)
 	case RESP_FLOAT:
 	    sizebuf(&(iresp->argv), &args, iresp->argc + 1, sizeof(*(iresp->argv)), 1);
 	    iresp->argv[iresp->argc].val.flnum = wcstod(resp->rlines[resp->curline].argv[i + 1], NULL);
+	    iresp->argv[iresp->argc].type = cls->wordt[i];
+	    iresp->argc++;
+	    break;
+	case RESP_LNUM:
+	    sizebuf(&(iresp->argv), &args, iresp->argc + 1, sizeof(*(iresp->argv)), 1);
+	    iresp->argv[iresp->argc].val.lnum = wcstoll(resp->rlines[resp->curline].argv[i + 1], NULL, 0);
 	    iresp->argv[iresp->argc].type = cls->wordt[i];
 	    iresp->argc++;
 	    break;

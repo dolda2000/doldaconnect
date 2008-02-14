@@ -5,6 +5,8 @@
 
 #define DC_LATEST 2
 
+typedef long long dc_lnum_t;
+
 struct dc_response
 {
     struct dc_response *next, *prev;
@@ -32,6 +34,7 @@ struct dc_intresp
 	union
 	{
 	    int num;
+	    dc_lnum_t lnum;
 	    wchar_t *str;
 	    double flnum;
 	} val;

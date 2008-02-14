@@ -5,6 +5,7 @@
      "s" => "RESP_STR",
      "d" => "RESP_DSC",
      "i" => "RESP_INT",
+     "I" => "RESP_LNUM",
      "f" => "RESP_FLOAT"
      );
 

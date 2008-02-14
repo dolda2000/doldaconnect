@@ -19,10 +19,6 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-/* I'm very unsure about this, but for now it defines wcstoll (which
- * should be defined anyway) and doesn't break anything... let's keep
- * two eyes wide open, though. */
-#define __USE_ISOC99
 #include <wchar.h>
 #include <wctype.h>
 #include <pwd.h>
@@ -969,8 +965,8 @@ static int gettrlistcallback(struct dc_response *resp)
 		}
 		transfer->dir = ires->argv[1].val.num;
 		transfer->state = ires->argv[2].val.num;
-		transfer->size = ires->argv[6].val.num;
-		transfer->curpos = ires->argv[7].val.num;
+		transfer->size = ires->argv[6].val.lnum;
+		transfer->curpos = ires->argv[7].val.lnum;
 		if(transfer->hash != NULL)
 		{
 		    free(transfer->hash);
@@ -986,8 +982,8 @@ static int gettrlistcallback(struct dc_response *resp)
 		transfer->peerid = swcsdup(ires->argv[3].val.str);
 		transfer->peernick = swcsdup(ires->argv[4].val.str);
 		transfer->path = swcsdup(ires->argv[5].val.str);
-		transfer->size = ires->argv[6].val.num;
-		transfer->curpos = ires->argv[7].val.num;
+		transfer->size = ires->argv[6].val.lnum;
+		transfer->curpos = ires->argv[7].val.lnum;
 		if(wcslen(ires->argv[8].val.str) > 0)
 		    transfer->hash = swcsdup(ires->argv[8].val.str);
 		transfer->found = 1;
@@ -1249,7 +1245,7 @@ void dc_uimisc_handlenotify(struct dc_response *resp)
 	break;
     case 613:
 	if((transfer = dc_findtransfer(ires->argv[0].val.num)) != NULL)
-	    transfer->size = ires->argv[1].val.num;
+	    transfer->size = ires->argv[1].val.lnum;
 	break;
     case 614:
 	if((transfer = dc_findtransfer(ires->argv[0].val.num)) != NULL)
@@ -1260,7 +1256,7 @@ void dc_uimisc_handlenotify(struct dc_response *resp)
 	break;
     case 615:
 	if((transfer = dc_findtransfer(ires->argv[0].val.num)) != NULL)
-	    transfer->curpos = ires->argv[1].val.num;
+	    transfer->curpos = ires->argv[1].val.lnum;
 	break;
     case 616:
 	if((transfer = dc_findtransfer(ires->argv[0].val.num)) != NULL)
