@@ -1,0 +1,47 @@
+		      Server address resolution
+
+The libdcui library implements  a rather flexible scheme for resolving
+the adress of the server to connect to. In order for you to be able to
+create  the  setup  you  would  like best,  this  file  documents  the
+scheme.  It is  worth noting  that it  is implemented  in  the library
+itself,  and so  is  automatically  shared by  any  program using  it,
+including  (but not  limited  to) dolcon,  autodl,  hubmgr, the  panel
+applet, Pidgin plugin and others.
+
+The server address  is specified as a single string.  If no server has
+been  explicity specified,  the library  first checks  the environment
+variable DCSERVER, and uses its value  if set. If it is unset as well,
+the library attempts the following connections, in order:
+
+ * The Unix socket /tmp/doldacond-$USERNAME
+ * The Unix socket /var/run/doldacond.sock
+ * TCP port 1500 on localhost
+ * If compiled with DNS support and getdomainname(2) does not return
+   `(none)' or nothing, the address indicated by the _dolcon._tcp SRV
+   record on that domain, if one exists.
+
+If a  server is  specified, either explicity  or through  the DCSERVER
+environment variable, it is resolved as follows:
+
+ * If the address contains a slash character, it is assumed to be the
+   name of a Unix socket.
+ * If the address does not contain a colon, and the library has been
+   compiled with DNS support, and the address specifies a domain name
+   with a _dolcon._tcp SRV record, the address of that SRV record is
+   used.
+ * If the address matches the regexp `^\[(.*)\]:([0-9]+)$', the string
+   in the first subgroup is resolved by the system's getaddrinfo(3),
+   and the port set to the second subgroup, and the result is
+   connected to. This is mostly intended for connecting to literal
+   IPv6 addresses.
+ * If none of the above rules have been matched, the address
+   specification is resolved using the system's getaddrinfo(3)
+   implementation, and connected to. A port number can be specified by
+   appending a colon and the port number to the address specification,
+   such as in `localhost:1500'.
+ * If none of the above rules are successful, the connection fails.
+
+
+
+This document  was last updated 2008-02-14, reflecting  release 1.1 of
+Dolda Connect.
