@@ -38,7 +38,7 @@ struct conduitiface
 struct transfer *findtransferbytag(struct conduit *conduit, char *tag);
 void transfersetsize(struct transfer *transfer, intmax_t size);
 void transfersetpos(struct transfer *transfer, intmax_t pos);
-struct transfer *newtransfer(struct conduit *conduit, char *tag, int size, int pos);
+struct transfer *newtransfer(struct conduit *conduit, char *tag, intmax_t size, intmax_t pos);
 void freetransfer(struct transfer *transfer);
 struct conduit *newconduit(struct conduitiface *iface, void *udata);
 void freeconduit(struct conduit *conduit);

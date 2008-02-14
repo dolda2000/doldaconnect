@@ -61,7 +61,7 @@ static gboolean trupdatetime(struct transfer *transfer)
     return(TRUE);
 }
 
-struct transfer *newtransfer(struct conduit *conduit, char *tag, int size, int pos)
+struct transfer *newtransfer(struct conduit *conduit, char *tag, intmax_t size, intmax_t pos)
 {
     struct transfer *transfer;
     
