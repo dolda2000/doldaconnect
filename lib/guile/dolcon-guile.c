@@ -184,10 +184,13 @@ static SCM scm_dc_intresp(SCM scm_resp)
 	    ret = scm_cons(scm_makfrom0str(icswcstombs(ires->argv[i].val.str, "UTF-8", NULL)), ret);
 	    break;
 	case 2:
-	    ret = scm_cons(scm_int2num(ires->argv[i].val.num), ret);
+	    ret = scm_cons(scm_from_int(ires->argv[i].val.num), ret);
 	    break;
 	case 3:
-	    ret = scm_cons(scm_double2num(ires->argv[i].val.flnum), ret);
+	    ret = scm_cons(scm_from_double(ires->argv[i].val.flnum), ret);
+	    break;
+	case 4:
+	    ret = scm_cons(scm_from_int64(ires->argv[i].val.num), ret);
 	    break;
 	}
     }
