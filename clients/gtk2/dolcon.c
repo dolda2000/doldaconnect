@@ -52,7 +52,7 @@
 
 struct trdata
 {
-    size_t poshist[TRHISTSIZE];
+    dc_lnum_t poshist[TRHISTSIZE];
     double timehist[TRHISTSIZE];
     int hc;
 };
@@ -64,7 +64,7 @@ struct fndata
 
 struct srchsize
 {
-    int size;
+    gint64 size;
     int num;
     int slots;
     double resptime;
@@ -294,7 +294,7 @@ char *bytes2si(long long bytes)
 void progressfunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)
 {
     int totalc, curc;
-    int total, cur;
+    gint64 total, cur;
     char buf[64];
     
     totalc = (GPOINTER_TO_INT(data) & 0xff00) >> 8;
@@ -307,7 +307,7 @@ void progressfunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *m
     if(cur < 0) {
 	g_object_set(rend, "text", "", NULL);
     } else {
-	snprintf(buf, 64, "%'i", cur);
+	snprintf(buf, 64, "%'ji", (intmax_t)cur);
 	g_object_set(rend, "text", buf, NULL);
     }
 }
@@ -326,13 +326,14 @@ void percentagefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel 
 
 void transnicebytefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)
 {
-    int colnum, val;
+    int colnum;
+    gint64 val;
     char buf[64];
     
     colnum = GPOINTER_TO_INT(data);
     gtk_tree_model_get(model, iter, colnum, &val, -1);
     if(val >= 0)
-	snprintf(buf, 64, "%'i", val);
+	snprintf(buf, 64, "%'ji", (intmax_t)val);
     else
 	strcpy(buf, _("Unknown"));
     g_object_set(rend, "text", buf, NULL);
@@ -341,7 +342,7 @@ void transnicebytefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeMod
 void transnicebytefunc2(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)
 {
     int colnum;
-    long long val;
+    gint64 val;
     char buf[64];
     
     colnum = GPOINTER_TO_INT(data);
@@ -369,7 +370,8 @@ void hidezerofunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *m
 
 void speedtimefunc(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)
 {
-    int speed, size, time;
+    int speed, time;
+    gint64 size;
     char buf[64];
     
     gtk_tree_model_get(model, iter, 4, &size, 8, &speed, -1);
@@ -476,7 +478,8 @@ void updatetransferlists(void)
     int id;
     char *buf;
     char *peerid, *peernick, *path, *hash;
-    int state, dir, size, curpos, error;
+    int state, dir, error;
+    gint64 size, curpos;
     time_t errortime;
     GtkListStore *stores[3];
     
@@ -509,10 +512,10 @@ void updatetransferlists(void)
 			if(state != transfer->state)
 			    gtk_list_store_set(stores[i], &iter, 2, transfer->state, 8, gettrstatestock(transfer->state), -1);
 			if(size != transfer->size)
-			    gtk_list_store_set(stores[i], &iter, 6, transfer->size, -1);
+			    gtk_list_store_set(stores[i], &iter, 6, (gint64)transfer->size, -1);
 			if(curpos != transfer->curpos)
 			{
-			    gtk_list_store_set(stores[i], &iter, 7, transfer->curpos, -1);
+			    gtk_list_store_set(stores[i], &iter, 7, (gint64)transfer->curpos, -1);
 			    if(transfer->udata != NULL)
 				updatetrdata(transfer);
 			}
@@ -561,8 +564,8 @@ void updatetransferlists(void)
 				   3, peerid,
 				   4, peernick,
 				   5, path,
-				   6, transfer->size,
-				   7, transfer->curpos,
+				   6, (gint64)transfer->size,
+				   7, (gint64)transfer->curpos,
 				   8, gettrstatestock(transfer->state),
 				   9, 0.0,
 				   10, transfer->error,
@@ -1124,13 +1127,13 @@ void handleresps(void)
 		    {
 			for(i = 0; i < numsizes; i++)
 			{
-			    if(srchsizes[i].size == ires->argv[4].val.num)
+			    if(srchsizes[i].size == ires->argv[4].val.lnum)
 				break;
 			}
 			if(i == numsizes)
 			{
 			    srchsizes = srealloc(srchsizes, sizeof(*srchsizes) * ++numsizes);
-			    srchsizes[i].size = ires->argv[4].val.num;
+			    srchsizes[i].size = (gint64)ires->argv[4].val.lnum;
 			    srchsizes[i].num = 1;
 			    srchsizes[i].slots = ires->argv[5].val.num;
 			    srchsizes[i].resptime = ires->argv[7].val.flnum;
@@ -1202,7 +1205,7 @@ void handleresps(void)
 			    gtk_tree_store_set(srchmodel, &titer, 9, buf, -1);
 			    free(buf);
 			}
-			gtk_tree_store_set(srchmodel, &titer, 4, ires->argv[4].val.num, 5, ires->argv[5].val.num, 6, ires->argv[7].val.flnum, 8, -1, -1);
+			gtk_tree_store_set(srchmodel, &titer, 4, (gint64)ires->argv[4].val.lnum, 5, ires->argv[5].val.num, 6, ires->argv[7].val.flnum, 8, -1, -1);
 		    }
 		    dc_freeires(ires);
 		}
@@ -1230,9 +1233,9 @@ void handleresps(void)
 			gtk_list_store_append(reslist, &titer);
 			gtk_list_store_set(reslist, &titer, 0, icswcstombs(resp->rlines[i].argv[1] + 3, "UTF-8", NULL), -1);
 		    } else if(!wcsncmp(resp->rlines[i].argv[1], L"size:", 5)) {
-			gtk_list_store_set(reslist, &titer, 1, wcstol(resp->rlines[i].argv[1] + 5, NULL, 10), -1);
+			gtk_list_store_set(reslist, &titer, 1, (gint64)wcstoll(resp->rlines[i].argv[1] + 5, NULL, 10), -1);
 		    } else if(!wcsncmp(resp->rlines[i].argv[1], L"prog:", 5)) {
-			gtk_list_store_set(reslist, &titer, 2, wcstol(resp->rlines[i].argv[1] + 5, NULL, 10), -1);
+			gtk_list_store_set(reslist, &titer, 2, (gint64)wcstoll(resp->rlines[i].argv[1] + 5, NULL, 10), -1);
 		    } else if(!wcsncmp(resp->rlines[i].argv[1], L"name:", 5)) {
 			gtk_list_store_set(reslist, &titer, 3, icswcstombs(resp->rlines[i].argv[1] + 5, "UTF-8", NULL), -1);
 		    } else if(!wcsncmp(resp->rlines[i].argv[1], L"lock:", 5)) {
@@ -1758,7 +1761,8 @@ void cb_main_srchres_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewC
     struct dc_response *resp;
     GtkTreeIter iter;
     GtkTreeModel *model;
-    int size, num;
+    int num;
+    gint64 size;
     char *tfnet, *tpeerid, *tfilename, *thash, *arg;
     wchar_t *fnet, *peerid, *filename, *hash;
     
@@ -1800,9 +1804,9 @@ void cb_main_srchres_activate(GtkWidget *widget, GtkTreePath *path, GtkTreeViewC
     g_free(tfilename);
     arg = (char *)gtk_entry_get_text(GTK_ENTRY(main_dlarg));
     if(*arg)
-	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%ls", peerid, L"%ls", filename, L"%i", size, L"hash", L"%ls", (hash == NULL)?L"":hash, L"user", L"%s", arg, NULL);
+	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%ls", peerid, L"%ls", filename, L"%li", (dc_lnum_t)size, L"hash", L"%ls", (hash == NULL)?L"":hash, L"user", L"%s", arg, NULL);
     else
-	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%ls", peerid, L"%ls", filename, L"%i", size, L"hash", L"%ls", (hash == NULL)?L"":hash, NULL);
+	tag = dc_queuecmd(NULL, NULL, L"download", fnet, L"%ls", peerid, L"%ls", filename, L"%li", (dc_lnum_t)size, L"hash", L"%ls", (hash == NULL)?L"":hash, NULL);
     free(fnet);
     free(peerid);
     free(filename);
@@ -2270,7 +2274,7 @@ int main(int argc, char **argv)
     gtk_tree_view_set_model(GTK_TREE_VIEW(main_fnetnodes), GTK_TREE_MODEL(fnmodel));
     gtk_tree_view_set_model(GTK_TREE_VIEW(main_chatnodes), GTK_TREE_MODEL(fnmodel));
     
-    reslist = gtk_list_store_new(6, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_STRING);
+    reslist = gtk_list_store_new(6, G_TYPE_STRING, G_TYPE_INT64, G_TYPE_INT64, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(reslist_list), GTK_TREE_MODEL(reslist));
     
     dlmodel = gtk_list_store_new(13, G_TYPE_INT, /* id */
@@ -2279,8 +2283,8 @@ int main(int argc, char **argv)
 				 G_TYPE_STRING,  /* peerid */
 				 G_TYPE_STRING,  /* peernick */
 				 G_TYPE_STRING,  /* path */
-				 G_TYPE_INT,     /* size */
-				 G_TYPE_INT,     /* curpos */
+				 G_TYPE_INT64,   /* size */
+				 G_TYPE_INT64,   /* curpos */
 				 G_TYPE_STRING,  /* stock */
 				 G_TYPE_FLOAT,   /* percentage */
 				 G_TYPE_INT,     /* error */
@@ -2288,14 +2292,14 @@ int main(int argc, char **argv)
 				 G_TYPE_STRING); /* hash */
     gtk_tree_view_set_model(GTK_TREE_VIEW(main_downloads), GTK_TREE_MODEL(dlmodel));
 
-    ulmodel = gtk_list_store_new(13, G_TYPE_INT, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_FLOAT, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING);
+    ulmodel = gtk_list_store_new(13, G_TYPE_INT, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT64, G_TYPE_INT64, G_TYPE_STRING, G_TYPE_FLOAT, G_TYPE_INT, G_TYPE_INT, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(main_uploads), GTK_TREE_MODEL(ulmodel));
 
     srchmodel = gtk_tree_store_new(10, G_TYPE_STRING, /* fnetname */
 				   G_TYPE_STRING,     /* peerid */
 				   G_TYPE_STRING,     /* peername */
 				   G_TYPE_STRING,     /* filename */
-				   G_TYPE_INT,        /* size */
+				   G_TYPE_INT64,      /* size */
 				   G_TYPE_INT,        /* slots */
 				   G_TYPE_DOUBLE,     /* resptime */
 				   G_TYPE_INT,        /* sizenum */
