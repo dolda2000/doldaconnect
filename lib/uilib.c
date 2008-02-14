@@ -477,6 +477,9 @@ int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...)
 		{
 		    freepart = 1;
 		    part = swprintf2(L"%i", va_arg(al, int));
+		} else if(!wcscmp(tpart, L"li")) {
+		    freepart = 1;
+		    part = swprintf2(L"%ji", (intmax_t)va_arg(al, dc_lnum_t));
 		} else if(!wcscmp(tpart, L"s")) {
 		    freepart = 1;
 		    part = icmbstowcs(sarg = va_arg(al, char *), NULL);
