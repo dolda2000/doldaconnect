@@ -30,6 +30,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <doldaconnect/uilib.h>
 #include <doldaconnect/uimisc.h>
 #include <doldaconnect/utils.h>
@@ -46,7 +47,8 @@
 
 struct trinfo {
     int ostate;
-    int opos, spos, speed;
+    intmax_t opos, spos;
+    int speed;
     time_t lastprog;
     int warned;
     double sprog;
@@ -202,7 +204,8 @@ void updatetooltip(void)
 {
     struct dc_transfer *tr;
     struct trinfo *tri;
-    int t, i, a, st, bc, bt;
+    int t, i, a, st;
+    intmax_t bc, bt;
     char *buf;
     size_t bufsize, bufdata;
     
