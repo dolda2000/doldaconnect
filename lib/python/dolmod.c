@@ -235,7 +235,7 @@ static int qcmd_cb(struct dc_response *resp)
 
 static PyObject *mod_qcmd(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-    int i, tag;
+    int i;
     wchar_t **toks, *tok, *cmd;
     size_t tokssize, toksdata, toksize;
     PyObject *c, *n, *cb, *ret;
@@ -309,6 +309,9 @@ static void login_cb(int err, wchar_t *reason, PyObject *cb)
 	break;
     case DC_LOGIN_ERR_AUTHFAIL:
 	errstr = "authfail";
+	break;
+    default:
+	errstr = "unknown";
 	break;
     }
     pyerr = PyString_FromString(errstr);
