@@ -21,12 +21,12 @@
 .\" Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111,
 .\" USA.
 .\"
-.TH DOLDACOND 8 "2007-09-30" "" "Dolda Connect manual"
+.TH DOLDACOND 8 "2008-02-14" "" "Dolda Connect manual"
 .SH NAME
 doldacond \- Dolda Connect daemon
 .SH SYNOPSIS
 .B doldacond
-[ \fB-hns\fP ] [ \fB-C\fP \fIconfigfile\fP ]
+[ \fB-hnsV\fP ] [ \fB-C\fP \fIconfigfile\fP ]
 [ \fB-p\fP \fIpidfile\fP ] [ \fB-f\fP \fIfacility\fP ]
 .SH DESCRIPTION
 The \fBdoldacond\fP program is the primary part of the collection of
@@ -55,6 +55,9 @@ Causes \fBdoldacond\fP to not daemonize. As a side-effect of avoiding
 daemonization, log messages will be printed to stderr rather than to
 syslog even after the point where the daemon would normally have
 daemonized (unless the -s option is also specified).
+.TP
+.B -V
+Displays version and build information on stdout and exits.
 .TP
 .BI -C " configfile"
 Use \fIconfigfile\fP instead of the normal search list for
