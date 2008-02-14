@@ -1,5 +1,6 @@
 Version 1.1:
 
+	* Handles file sizes larger than 2 GiB
 	* Ported the Guile plugin to Guile 1.8
 	
 Version 1.0:
