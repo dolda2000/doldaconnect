@@ -1559,6 +1559,7 @@ static void freeuidata(struct uidata *data)
 	actives = data->next;
     data->sk->readcb = NULL;
     data->sk->errcb = NULL;
+    closesock(data->sk);
     putsock(data->sk);
     while((qcmd = unlinkqcmd(data)) != NULL)
 	freequeuecmd(qcmd);
