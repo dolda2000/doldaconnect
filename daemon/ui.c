@@ -62,6 +62,7 @@
 #define NOTIF_STR 2
 #define NOTIF_FLOAT 3
 #define NOTIF_ID 4
+#define NOTIF_OFF 5
 #define NOTIF_PEND 0
 #define NOTIF_WAIT 1
 
@@ -105,6 +106,7 @@ struct notif
 	union
 	{
 	    int n;
+	    off_t o;
 	    wchar_t *s;
 	    double d;
 	} d;
@@ -232,6 +234,12 @@ static void sq(struct socket *sk, int cont, ...)
 	    {
 		freepart = 1;
 		part = swprintf2(L"%i", va_arg(al, int));
+	    } else if(!wcscmp(tpart, L"zi")) {
+		freepart = 1;
+		part = swprintf2(L"%zi", va_arg(al, size_t));
+	    } else if(!wcscmp(tpart, L"oi")) {
+		freepart = 1;
+		part = swprintf2(L"%ji", (intmax_t)va_arg(al, off_t));
 	    } else if(!wcscmp(tpart, L"s")) {
 		freepart = 1;
 		part = icmbstowcs(sarg = va_arg(al, char *), NULL);
@@ -764,7 +772,7 @@ static void cmd_download(struct socket *sk, struct uidata *data, int argc, wchar
 	linktransfer(transfer);
     }
     if(argc > 4)
-	transfersetsize(transfer, wcstol(argv[4], NULL, 0));
+	transfersetsize(transfer, wcstoll(argv[4], NULL, 0));
     if(argc > 5)
     {
 	for(i = 5; i < argc; i += 2)
@@ -796,7 +804,7 @@ static void cmd_lstrans(struct socket *sk, struct uidata *data, int argc, wchar_
 		   L"%i", pt->state, pt->peerid,
 		   (pt->peernick == NULL)?L"":(pt->peernick),
 		   (pt->path == NULL)?L"":(pt->path),
-		   L"%i", pt->size, L"%i", pt->curpos,
+		   L"%oi", pt->size, L"%oi", pt->curpos,
 		   (pt->hash == NULL)?L"":unparsehash(pt->hash),
 		   NULL);
 	    pt = transfer;
@@ -809,7 +817,7 @@ static void cmd_lstrans(struct socket *sk, struct uidata *data, int argc, wchar_
 	   L"%i", pt->state, pt->peerid,
 	   (pt->peernick == NULL)?L"":(pt->peernick),
 	   (pt->path == NULL)?L"":(pt->path),
-	   L"%i", pt->size, L"%i", pt->curpos,
+	   L"%oi", pt->size, L"%oi", pt->curpos,
 	   (pt->hash == NULL)?L"":unparsehash(pt->hash),
 	   NULL);
 }
@@ -1048,7 +1056,7 @@ static void cmd_lssr(struct socket *sk, struct uidata *data, int argc, wchar_t *
 	for(sr = srch->results; sr != NULL; sr = sr->next)
 	{
 	    sq(sk, (sr->next != NULL)?1:0, L"200", L"%ls", sr->filename,
-	       sr->fnet->name, L"%ls", sr->peerid, L"%i", sr->size,
+	       sr->fnet->name, L"%ls", sr->peerid, L"%oi", sr->size,
 	       L"%i", sr->slots, L"%i", (sr->fn == NULL)?-1:(sr->fn->id),
 	       L"%f", sr->time,
 	       L"%ls", (sr->hash == NULL)?L"":unparsehash(sr->hash), NULL);
@@ -1433,6 +1441,9 @@ static void notifappendv(struct notif *notif, va_list args)
 	case NOTIF_INT:
 	case NOTIF_ID:
 	    notif->argv[ca].d.n = va_arg(args, int);
+	    break;
+	case NOTIF_OFF:
+	    notif->argv[ca].d.o = va_arg(args, off_t);
 	    break;
 	case NOTIF_STR:
 	    notif->argv[ca].d.s = swcsdup(va_arg(args, wchar_t *));
@@ -1844,7 +1855,7 @@ static int srchres(struct search *srch, struct srchres *sr, void *uudata)
     {
 	if(haspriv(data, PERM_SRCH) && data->notify.b.srch && !wcscmp(srch->owner, data->username))
 	{
-	    newnotif(data, 622, NOTIF_ID, srch->id, NOTIF_STR, sr->filename, NOTIF_STR, sr->fnet->name, NOTIF_STR, sr->peerid, NOTIF_INT, sr->size,
+	    newnotif(data, 622, NOTIF_ID, srch->id, NOTIF_STR, sr->filename, NOTIF_STR, sr->fnet->name, NOTIF_STR, sr->peerid, NOTIF_OFF, sr->size,
 		     NOTIF_INT, sr->slots, NOTIF_INT, (sr->fn == NULL)?-1:(sr->fn->id), NOTIF_FLOAT, sr->time, NOTIF_STR, (sr->hash == NULL)?L"":unparsehash(sr->hash), NOTIF_END);
 	}
     }
@@ -2007,7 +2018,7 @@ static int transferchattr(struct transfer *transfer, wchar_t *attrib, void *uuda
 	for(data = actives; data != NULL; data = data->next)
 	{
 	    if(haspriv(data, PERM_TRANS) && data->notify.b.tract && ((transfer->owner == 0) || (transfer->owner == data->uid)))
-		newnotif(data, 613, NOTIF_ID, transfer->id, NOTIF_INT, transfer->size, NOTIF_END);
+		newnotif(data, 613, NOTIF_ID, transfer->id, NOTIF_OFF, transfer->size, NOTIF_END);
 	}
     } else if(!wcscmp(attrib, L"error")) {
 	for(data = actives; data != NULL; data = data->next)
@@ -2041,9 +2052,9 @@ static int transferprog(struct transfer *transfer, void *uudata)
 	if(haspriv(data, PERM_TRANS) && data->notify.b.trprog && ((transfer->owner == 0) || (transfer->owner == data->uid)))
 	{
 	    if((notif = findnotif(data->fnotif, 1, NOTIF_PEND, 615, transfer->id)) != NULL)
-		notif->argv[1].d.n = transfer->curpos;
+		notif->argv[1].d.o = transfer->curpos;
 	    else
-		newnotif(data, 615, NOTIF_ID, transfer->id, NOTIF_INT, transfer->curpos, NOTIF_END)->rlimit = 0.5;
+		newnotif(data, 615, NOTIF_ID, transfer->id, NOTIF_OFF, transfer->curpos, NOTIF_END)->rlimit = 0.5;
 	}
     }
     return(0);
@@ -2357,6 +2368,9 @@ static int run(void)
 		case NOTIF_INT:
 		case NOTIF_ID:
 		    sq(data->sk, 2, L"%i", notif->argv[i].d.n, NULL);
+		    break;
+		case NOTIF_OFF:
+		    sq(data->sk, 2, L"%oi", notif->argv[i].d.o, NULL);
 		    break;
 		case NOTIF_STR:
 		    if(notif->argv[i].d.s[0] == L'%')

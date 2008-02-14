@@ -127,7 +127,7 @@ struct dcpeer
     struct fnetnode *fn;
     char *inbuf;
     size_t inbufdata, inbufsize;
-    size_t curread, totalsize;
+    off_t curread, totalsize;
     int freeing;
     struct timer *timeout;
     struct qcommand *queue;
@@ -502,7 +502,11 @@ static void sendadc(struct socket *sk, char *arg)
     free(buf);
 }
 
-static void sendadcf(struct socket *sk, char *arg, ...)
+#if defined(__GNUC__)
+static void __attribute__ ((format (printf, 2, 3))) sendadcf(struct socket *sk, char *arg, ...) 
+#else
+static void sendadcf(struct socket *sk, char *arg, ...) 
+#endif
 {
     char *buf;
     va_list args;
@@ -740,8 +744,8 @@ static void requestfile(struct dcpeer *peer)
 	}
 	sendadc(peer->sk, buf);
 	free(buf);
-	sendadcf(peer->sk, "%i", peer->transfer->curpos);
-	sendadcf(peer->sk, "%i", peer->transfer->size - peer->transfer->curpos);
+	sendadcf(peer->sk, "%ji", (intmax_t)peer->transfer->curpos);
+	sendadcf(peer->sk, "%ji", (intmax_t)(peer->transfer->size - peer->transfer->curpos));
 	qstr(peer->sk, "|");
     } else if(supports(peer, "xmlbzlist")) {
 	if((buf = icswcstombs(peer->transfer->path, "UTF-8", NULL)) == NULL)
@@ -750,7 +754,7 @@ static void requestfile(struct dcpeer *peer)
 	    freedcpeer(peer);
 	    return;
 	}
-	qstrf(peer->sk, "$UGetBlock %zi %zi %s|", peer->transfer->curpos, peer->transfer->size - peer->transfer->curpos, buf);
+	qstrf(peer->sk, "$UGetBlock %ji %ji %s|", (intmax_t)peer->transfer->curpos, (intmax_t)(peer->transfer->size - peer->transfer->curpos), buf);
     } else {
 	/* Use DCCHARSET for $Get paths until further researched... */
 	if((buf = icswcstombs(peer->transfer->path, DCCHARSET, NULL)) == NULL)
@@ -759,7 +763,7 @@ static void requestfile(struct dcpeer *peer)
 	    freedcpeer(peer);
 	    return;
 	}
-	qstrf(peer->sk, "$Get %s$%zi|", buf, peer->transfer->curpos + 1);
+	qstrf(peer->sk, "$Get %s$%ji|", buf, (intmax_t)peer->transfer->curpos + 1);
     }
 }
 
@@ -1257,10 +1261,10 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		if(node->f.b.hastth)
 		{
 		    buf2 = base32encode(node->hashtth, 24);
-		    qstrf(dsk, "%s%s\005%zi%sTTH:%.39s%s", prefix, buf, node->size, infix, buf2, postfix);
+		    qstrf(dsk, "%s%s\005%ji%sTTH:%.39s%s", prefix, buf, (intmax_t)node->size, infix, buf2, postfix);
 		    free(buf2);
 		} else {
-		    qstrf(dsk, "%s%s\005%zi%s%s%s", prefix, buf, node->size, infix, hub->nativename, postfix);
+		    qstrf(dsk, "%s%s\005%ji%s%s%s", prefix, buf, (intmax_t)node->size, infix, hub->nativename, postfix);
 		}
 		free(buf);
 	    }
@@ -1410,7 +1414,8 @@ static void cmd_sr(struct socket *sk, struct fnetnode *fn, char *cmd, char *args
     struct dchub *hub;
     char *p, *p2, *buf;
     char *nick, *filename, *hubname;
-    int size, slots;
+    off_t size;
+    int slots;
     size_t buflen;
     struct srchres *sr;
     wchar_t *wnick, *wfile;
@@ -1429,7 +1434,7 @@ static void cmd_sr(struct socket *sk, struct fnetnode *fn, char *cmd, char *args
     if((p2 = strchr(p, ' ')) == NULL)
 	return;
     *p2 = 0;
-    size = atoi(p);
+    size = strtoll(p, NULL, 10);
     p = p2 + 1;
     if((p2 = strchr(p, '/')) == NULL)
 	return;
@@ -1704,7 +1709,7 @@ static void startul(struct dcpeer *peer)
 
 static void cmd_filelength(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
-    int size;
+    off_t size;
     struct transfer *transfer;
     
     if(peer->transfer == NULL)
@@ -1712,7 +1717,7 @@ static void cmd_filelength(struct socket *sk, struct dcpeer *peer, char *cmd, ch
 	freedcpeer(peer);
 	return;
     }
-    size = atoi(args);
+    size = strtoll(args, NULL, 10);
     if(peer->transfer->size != size)
     {
 	transfersetsize(peer->transfer, size);
@@ -1835,7 +1840,7 @@ static struct sharecache *resdcpath(char *path, char *charset, char sep)
 
 static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
-    int offset;
+    off_t offset;
     char *p, *buf;
     wchar_t *buf2;
     struct sharecache *node;
@@ -1854,7 +1859,7 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
 	return;
     }
     *(p++) = 0;
-    if((offset = (atoi(p) - 1)) < 0)
+    if((offset = (strtoll(p, NULL, 10) - 1)) < 0)
     {
 	freedcpeer(peer);
 	return;
@@ -1917,7 +1922,7 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
     lesk = wrapsock(fd);
     transferprepul(peer->transfer, sb.st_size, offset, -1, lesk);
     putsock(lesk);
-    qstrf(sk, "$FileLength %zi|", peer->transfer->size);
+    qstrf(sk, "$FileLength %ji|", (intmax_t)peer->transfer->size);
 }
 
 static void cmd_send(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
@@ -1968,7 +1973,7 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 {
     int fd;
     char *p, *p2;
-    int start, numbytes;
+    off_t start, numbytes;
     char *charset, *buf;
     wchar_t *buf2;
     struct sharecache *node;
@@ -1987,7 +1992,7 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	return;
     }
     *(p2++) = 0;
-    start = atoi(p);
+    start = strtoll(p, NULL, 10);
     p = p2;
     if((p2 = strchr(p, ' ')) == NULL)
     {
@@ -1995,7 +2000,7 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	return;
     }
     *(p2++) = 0;
-    numbytes = atoi(p);
+    numbytes = strtoll(p, NULL, 10);
     p = p2;
     if(!strcmp(cmd, "$UGetBlock") || !strcmp(cmd, "$UGetZBlock"))
 	charset = "UTF-8";
@@ -2057,7 +2062,7 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
     lesk = wrapsock(fd);
     transferprepul(peer->transfer, sb.st_size, start, start + numbytes, lesk);
     putsock(lesk);
-    qstrf(sk, "$Sending %i|", numbytes);
+    qstrf(sk, "$Sending %ji|", (intmax_t)numbytes);
     startul(peer);
 }
 
@@ -2065,7 +2070,7 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 {
     int i;
     char **argv, *buf;
-    int start, numbytes;
+    off_t start, numbytes;
     struct sharecache *node;
     struct stat sb;
     struct socket *lesk;
@@ -2087,8 +2092,8 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	freedcpeer(peer);
 	goto out;
     }
-    start = atoi(argv[2]);
-    numbytes = atoi(argv[3]);
+    start = strtoll(argv[2], NULL, 10);
+    numbytes = strtoll(argv[3], NULL, 10);
     node = NULL;
     fd = -1;
     if(((fd = openfilelist(argv[1])) < 0) && (errno != 0))
@@ -2161,8 +2166,8 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	qstr(sk, "$ADCSND");
 	sendadc(sk, "file");
 	sendadc(sk, argv[1]);
-	sendadcf(sk, "%i", start);
-	sendadcf(sk, "%i", numbytes);
+	sendadcf(sk, "%ji", (intmax_t)start);
+	sendadcf(sk, "%ji", (intmax_t)numbytes);
 	if(peer->compress == CPRS_ZLIB)
 	    sendadc(sk, "ZL1");
 	qstr(sk, "|");
@@ -2223,7 +2228,7 @@ static void handletthl(struct dcpeer *peer)
 static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
     char **argv;
-    int start, numbytes;
+    off_t start, numbytes;
     
     if(peer->transfer == NULL)
     {
@@ -2240,8 +2245,8 @@ static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	freedcpeer(peer);
 	goto out;
     }
-    start = atoi(argv[2]);
-    numbytes = atoi(argv[3]);
+    start = strtoll(argv[2], NULL, 10);
+    numbytes = strtoll(argv[3], NULL, 10);
     if(!strcmp(argv[0], "tthl"))
     {
 	if((start != 0) || (numbytes % 24 != 0))
@@ -2289,14 +2294,14 @@ static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 
 static void cmd_sending(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
-    int numbytes;
+    off_t numbytes;
     
     if(peer->transfer == NULL)
     {
 	freedcpeer(peer);
 	return;
     }
-    numbytes = atoi(args);
+    numbytes = strtoll(args, NULL, 10);
     if(peer->transfer->size - peer->transfer->curpos != numbytes)
     {
 	transfersetsize(peer->transfer, peer->transfer->curpos + numbytes);
@@ -2811,7 +2816,8 @@ static void udpread(struct socket *sk, void *data)
     size_t buflen, hashlen;
     char *nick, *filename, *hubname;
     struct sockaddr_in hubaddr;
-    int size, slots;
+    off_t size;
+    int slots;
     struct fnetnode *fn, *myfn;
     struct dchub *hub;
     struct srchres *sr;
@@ -2847,7 +2853,7 @@ static void udpread(struct socket *sk, void *data)
 	    return;
 	}
 	*p2 = 0;
-	size = atoi(p);
+	size = strtoll(p, NULL, 10);
 	p = p2 + 1;
 	if((p2 = strchr(p, '/')) == NULL)
 	{
@@ -3317,7 +3323,7 @@ static void updatehmlist(void)
 	    if(node->f.b.type == FILE_REG)
 	    {
 		addtobuf(buf, '|');
-		sprintf(numbuf, "%zi", node->size);
+		sprintf(numbuf, "%ji", (intmax_t)node->size);
 		bufcat(buf, numbuf, strlen(numbuf));
 	    }
 	    addtobuf(buf, 13);
@@ -3492,7 +3498,7 @@ static void updatexmllist(void)
 		lev++;
 		continue;
 	    } else {
-		fprintf(fs, "<File Name=\"%s\" Size=\"%zi\"", namebuf, node->size);
+		fprintf(fs, "<File Name=\"%s\" Size=\"%ji\"", namebuf, (intmax_t)node->size);
 		if(node->f.b.hastth)
 		{
 		    hashbuf = base32encode(node->hashtth, 24);

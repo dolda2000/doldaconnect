@@ -73,7 +73,7 @@ struct transfer
     wchar_t *path;
     uid_t owner;
     int state, dir, error;
-    size_t size, curpos, endpos;
+    off_t size, curpos, endpos;
     struct fnetnode *fn;
     void *ifacedata;
     struct socket *localend;
@@ -103,7 +103,7 @@ struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nick
 void transfersetnick(struct transfer *transfer, wchar_t *newnick);
 void transfersetpath(struct transfer *transfer, wchar_t *newpath);
 void transfersetstate(struct transfer *transfer, int newstate);
-void transfersetsize(struct transfer *transfer, int newsize);
+void transfersetsize(struct transfer *transfer, off_t newsize);
 void transferseterror(struct transfer *transfer, int error);
 void transfersetactivity(struct transfer *transfer, wchar_t *desc);
 void transferattach(struct transfer *transfer, struct transferiface *iface, void *data);
@@ -115,7 +115,7 @@ int forkfilter(struct transfer *transfer);
 void transferputdata(struct transfer *transfer, void *buf, size_t size);
 size_t transferdatasize(struct transfer *transfer);
 void transferendofdata(struct transfer *transfer);
-void transferprepul(struct transfer *transfer, size_t size, size_t start, size_t end, struct socket *lesk);
+void transferprepul(struct transfer *transfer, off_t size, off_t start, off_t end, struct socket *lesk);
 void transferstartul(struct transfer *transfer, struct socket *sk);
 void transfersethash(struct transfer *transfer, struct hash *hash);
 struct transfer *finddownload(wchar_t *peerid);

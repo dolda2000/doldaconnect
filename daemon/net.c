@@ -388,12 +388,17 @@ static void sockrecv(struct socket *sk)
 #if defined(HAVE_LINUX_SOCKIOS_H) && defined(SIOCINQ)
 	/* SIOCINQ is Linux-specific AFAIK, but I really have no idea
 	 * how to read the inqueue size on other OSs */
-	if(ioctl(sk->fd, SIOCINQ, &inq))
-	{
-	    /* I don't really know what could go wrong here, so let's
-	     * assume it's transient. */
-	    flog(LOG_WARNING, "SIOCINQ return %s on socket %i, falling back to 2048 bytes", strerror(errno), sk->fd);
-	    inq = 2048;
+	if(sk->isrealsocket) {
+	    if(ioctl(sk->fd, SIOCINQ, &inq))
+	    {
+		/* I don't really know what could go wrong here, so let's
+		 * assume it's transient. */
+		flog(LOG_WARNING, "SIOCINQ return %s on socket %i, falling back to 2048 bytes", strerror(errno), sk->fd);
+		inq = 2048;
+	    }
+	} else {
+	    /* There are perils when trying to use SIOCINQ on files >2GiB... */
+	    inq = 65536;
 	}
 #else
 	inq = 2048;

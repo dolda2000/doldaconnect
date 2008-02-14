@@ -104,7 +104,7 @@ struct srchres
     wchar_t *filename;
     struct fnet *fnet;
     wchar_t *peerid, *peernick;
-    size_t size;
+    off_t size;
     int slots;
     struct fnetnode *fn;
     double time;

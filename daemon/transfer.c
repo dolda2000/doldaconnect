@@ -305,7 +305,7 @@ void *transfergetdata(struct transfer *transfer, size_t *size)
     return(buf);
 }
 
-void transferprepul(struct transfer *transfer, size_t size, size_t start, size_t end, struct socket *lesk)
+void transferprepul(struct transfer *transfer, off_t size, off_t start, off_t end, struct socket *lesk)
 {
     transfersetsize(transfer, size);
     transfer->curpos = start;
@@ -461,7 +461,7 @@ void transfersetnick(struct transfer *transfer, wchar_t *newnick)
     CBCHAINDOCB(transfer, trans_ac, transfer, L"nick");
 }
 
-void transfersetsize(struct transfer *transfer, int newsize)
+void transfersetsize(struct transfer *transfer, off_t newsize)
 {
     transfer->size = newsize;
     CBCHAINDOCB(transfer, trans_ac, transfer, L"size");
@@ -670,7 +670,7 @@ int forkfilter(struct transfer *transfer)
     {
 	argv = NULL;
 	argvsize = argvdata = 0;
-	buf = sprintf2("%zi", transfer->size);
+	buf = sprintf2("%ji", (intmax_t)transfer->size);
 	addtobuf(argv, filtername);
 	addtobuf(argv, filename);
 	addtobuf(argv, buf);

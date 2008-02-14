@@ -58,7 +58,7 @@ struct sharecache
     struct sharecache *next, *prev, *child, *parent;
     char *path;
     wchar_t *name;
-    size_t size;
+    off_t size;
     time_t mtime;
     dev_t dev;
     ino_t inode;
