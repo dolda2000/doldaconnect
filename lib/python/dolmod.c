@@ -90,6 +90,9 @@ static PyObject *resp_intresp(struct respobj *self)
 	    case 3:
 		PyList_SetItem(sl, i, PyFloat_FromDouble(ires->argv[i].val.flnum));
 		break;
+	    case 4:
+		PyList_SetItem(sl, i, PyLong_FromLongLong(ires->argv[i].val.lnum));
+		break;
 	    }
 	}
 	dc_freeires(ires);
