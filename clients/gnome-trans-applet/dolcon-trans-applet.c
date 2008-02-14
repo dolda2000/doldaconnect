@@ -126,7 +126,7 @@ static void update(struct appletdata *data)
 	} else {
 	    if((data->curdisplay->pos > 0) && (data->curdisplay->size > 0))
 	    {
-		sprintf(buf, "%'i/%'i", data->curdisplay->pos, data->curdisplay->size);
+		sprintf(buf, "%'ji/%'ji", (intmax_t)data->curdisplay->pos, (intmax_t)data->curdisplay->size);
 		gtk_progress_bar_set_fraction(data->pbar, (double)data->curdisplay->pos / (double)data->curdisplay->size);
 		gtk_progress_bar_set_text(data->pbar, buf);
 	    } else {
