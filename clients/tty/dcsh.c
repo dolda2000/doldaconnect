@@ -52,6 +52,16 @@ void wcslimit(wchar_t *wcs, int limit) {
     }
 }
 
+void wcslimitr(wchar_t *wcs, int limit) {
+    int i;
+    
+    if((i = wcslen(wcs)) > limit) {
+	memmove(wcs + 3, wcs + (i - limit + 3), sizeof(wchar_t) * (limit - 2));
+	for(i = 0; i < 3; i++)
+	    wcs[i] = L'.';
+    }
+}
+
 int cmd_lsnodes(int argc, wchar_t **argv)
 {
     struct dc_response *resp;
@@ -60,24 +70,55 @@ int cmd_lsnodes(int argc, wchar_t **argv)
     resp = dc_gettaggedrespsync(dc_queuecmd(NULL, NULL, L"lsnodes", NULL));
     if(resp->code == 200) {
 	if(interactive) {
-	    printf("   ID  NET  USERS S NAME\n");
+	    printf("ID    NET  USERS  S NAME\n");
 	    printf("----- ---- ------ - ----------------------------------------------------------\n");
 	}
 	while((ires = dc_interpret(resp)) != NULL) {
 	    if(interactive)
 		wcslimit(ires->argv[2].val.str, 58);
-	    printf("%5i %4ls %6i %c %ls\n", ires->argv[0].val.num, ires->argv[1].val.str, ires->argv[3].val.num, "SHED"[ires->argv[4].val.num], ires->argv[2].val.str);
+	    printf("%-5i %-4ls %-6i %c %ls\n", ires->argv[0].val.num, ires->argv[1].val.str, ires->argv[3].val.num, "SHED"[ires->argv[4].val.num], ires->argv[2].val.str);
 	    dc_freeires(ires);
 	}
     } else if(resp->code == 201) {
     } else {
 	fprintf(stderr, "dcsh: %ls\n", resp->rlines[0].argv[0]);
+	return(1);
+    }
+    return(0);
+}
+
+int cmd_lsdl(int argc, wchar_t **argv)
+{
+    struct dc_response *resp;
+    struct dc_intresp *ires;
+    
+    resp = dc_gettaggedrespsync(dc_queuecmd(NULL, NULL, L"lstrans", NULL));
+    if(resp->code == 200) {
+	if(interactive) {
+	    printf("ID      S USER            FILE\n");
+	    printf("------- - --------------- ----------------------------------------------------\n");
+	}
+	while((ires = dc_interpret(resp)) != NULL) {
+	    if(ires->argv[1].val.num == DC_TRNSD_DOWN) {
+		if(interactive) {
+		    wcslimit(ires->argv[4].val.str, 15);
+		    wcslimitr(ires->argv[5].val.str, 52);
+		}
+		printf("%-7i %c %-15ls %ls\n", ires->argv[0].val.num, "SHED"[ires->argv[2].val.num], ires->argv[4].val.str, ires->argv[5].val.str);
+	    }
+	    dc_freeires(ires);
+	}
+    } else if(resp->code == 201) {
+    } else {
+	fprintf(stderr, "dcsh: %ls\n", resp->rlines[0].argv[0]);
+	return(1);
     }
     return(0);
 }
 
 struct cmd commands[] = {
     {L"hubs", cmd_lsnodes},
+    {L"lsdl", cmd_lsdl},
     {NULL, NULL}
 };
 
