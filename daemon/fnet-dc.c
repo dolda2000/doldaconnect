@@ -641,7 +641,7 @@ static int trresumecb(struct transfer *transfer, wchar_t *cmd, wchar_t *arg, str
 	    flog(LOG_WARNING, "filter returned no position for \"resume\" on transfer %i", transfer->id);
 	    freedcpeer(peer);
 	} else {
-	    transfer->curpos = wcstol(arg, NULL, 10);
+	    transfer->curpos = wcstoll(arg, NULL, 10);
 	    peer->hascurpos = 1;
 	    requestfile(peer);
 	}
