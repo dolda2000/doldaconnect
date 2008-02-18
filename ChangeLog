@@ -1,3 +1,8 @@
+Version 1.1.1:
+
+	* Fixed a Makefile bug
+	* Fixed a resume bug concerning files larger than 2 GiB
+	
 Version 1.1:
 
 	* Much better and documented hubmgr
