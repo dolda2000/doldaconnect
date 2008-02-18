@@ -6,6 +6,9 @@ tempdir="$(mktemp -d /tmp/dc-apkg-XXXXXX)"
 cd "$tempdir"
 git clone git://git.dolda2000.com/doldaconnect
 cd doldaconnect
+if [ -n "$1" ]; then
+    git checkout "$1"
+fi
 ./bootstrap
 ./configure
 
