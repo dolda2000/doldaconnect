@@ -75,7 +75,6 @@ struct fnetpeerdi
 
 struct fnetpeer
 {
-    struct fnetpeer *next, *prev;
     struct fnetnode *fn;
     wchar_t *id;
     wchar_t *nick;
@@ -107,7 +106,7 @@ struct fnetnode
     wchar_t *owner;
     struct fnet *fnet;
     struct fnetpeerdatum *peerdata;
-    struct fnetpeer *peers;
+    struct btree *peers;
     struct wcspair *args;
     int numpeers;
     void *data;
@@ -133,6 +132,7 @@ void putfnetnode(struct fnetnode *fn);
 void killfnetnode(struct fnetnode *fn);
 struct fnetpeer *fnetaddpeer(struct fnetnode *fn, wchar_t *id, wchar_t *nick);
 void fnetdelpeer(struct fnetpeer *peer);
+void fnetpeerdm(struct fnetnode *fn);
 struct fnetpeer *fnetfindpeer(struct fnetnode *fn, wchar_t *id);
 void fnetpeersetstr(struct fnetpeer *peer, wchar_t *id, wchar_t *value);
 void fnetpeersetnum(struct fnetpeer *peer, wchar_t *id, int value);

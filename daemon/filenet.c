@@ -30,6 +30,8 @@
 #include "utils.h"
 #include "net.h"
 
+static void freepeer(struct fnetpeer *peer);
+
 static struct fnet *networks = NULL;
 struct fnetnode *fnetnodes = NULL;
 int numfnetnodes = 0;
@@ -76,6 +78,16 @@ void getfnetnode(struct fnetnode *fn)
 #endif
 }
 
+static void freepeers(struct btree *n)
+{
+    if(n == NULL)
+	return;
+    freepeers(n->l);
+    freepeers(n->r);
+    freepeer(n->d);
+    free(n);
+}
+
 void putfnetnode(struct fnetnode *fn)
 {
     struct fnetnode *cur;
@@ -102,8 +114,7 @@ void putfnetnode(struct fnetnode *fn)
 	fn->fnet->destroy(fn);
     while(fn->args != NULL)
 	freewcspair(fn->args, &fn->args);
-    while(fn->peers != NULL)
-	fnetdelpeer(fn->peers);
+    freepeers(fn->peers);
     if(fn->mynick != NULL)
 	free(fn->mynick);
     if(fn->pubid != NULL)
@@ -317,6 +328,11 @@ void fnetpeerunset(struct fnetpeer *peer, wchar_t *id)
     putdatum(peer, datum);
 }
 
+static int peercmpid(void *a, void *b)
+{
+    return(wcscmp(((struct fnetpeer *)a)->id, ((struct fnetpeer *)b)->id));
+}
+
 struct fnetpeer *fnetaddpeer(struct fnetnode *fn, wchar_t *id, wchar_t *nick)
 {
     struct fnetpeer *new;
@@ -328,30 +344,18 @@ struct fnetpeer *fnetaddpeer(struct fnetnode *fn, wchar_t *id, wchar_t *nick)
     new->flags.w = 0;
     new->dinum = 0;
     new->peerdi = NULL;
-    new->next = fn->peers;
-    new->prev = NULL;
-    if(fn->peers != NULL)
-	fn->peers->prev = new;
-    fn->peers = new;
+    bbtreeput(&fn->peers, new, peercmpid);
     fn->numpeers++;
     CBCHAINDOCB(fn, fnetnode_ac, fn, L"numpeers");
     CBCHAINDOCB(fn, fnetpeer_new, fn, new);
     return(new);
 }
 
-void fnetdelpeer(struct fnetpeer *peer)
+static void freepeer(struct fnetpeer *peer)
 {
     int i;
     
-    if(peer->next != NULL)
-	peer->next->prev = peer->prev;
-    if(peer->prev != NULL)
-	peer->prev->next = peer->next;
-    if(peer->fn->peers == peer)
-	peer->fn->peers = peer->next;
     peer->fn->numpeers--;
-    CBCHAINDOCB(peer->fn, fnetnode_ac, peer->fn, L"numpeers");
-    CBCHAINDOCB(peer->fn, fnetpeer_del, peer->fn, peer);
     free(peer->id);
     free(peer->nick);
     for(i = 0; i < peer->dinum; i++)
@@ -365,12 +369,43 @@ void fnetdelpeer(struct fnetpeer *peer)
     free(peer);
 }
 
+void fnetdelpeer(struct fnetpeer *peer)
+{
+    bbtreedel(&peer->fn->peers, peer, peercmpid);
+    CBCHAINDOCB(peer->fn, fnetnode_ac, peer->fn, L"numpeers");
+    CBCHAINDOCB(peer->fn, fnetpeer_del, peer->fn, peer);
+    freepeer(peer);
+}
+
+void fnetpeerdm(struct fnetnode *fn)
+{
+    struct btree *new;
+    struct fnetpeer *peer;
+    int intact;
+    
+    new = NULL;
+    intact = 1;
+    for(peer = btreeiter(fn->peers); peer != NULL; peer = btreeiter(NULL)) {
+	if(!peer->flags.b.delete) {
+	    bbtreeput(&new, peer, peercmpid);
+	} else {
+	    intact = 0;
+	    CBCHAINDOCB(peer->fn, fnetpeer_del, peer->fn, peer);
+	    freepeer(peer);
+	}
+    }
+    btreefree(fn->peers);
+    fn->peers = new;
+    if(!intact)
+	CBCHAINDOCB(peer->fn, fnetnode_ac, peer->fn, L"numpeers");
+}
+
 struct fnetpeer *fnetfindpeer(struct fnetnode *fn, wchar_t *id)
 {
-    struct fnetpeer *cur;
+    struct fnetpeer key;
     
-    for(cur = fn->peers; (cur != NULL) && wcscmp(cur->id, id); cur = cur->next);
-    return(cur);
+    key.id = id;
+    return(btreeget(fn->peers, &key, peercmpid));
 }
 
 int fnetsetnick(struct fnetnode *fn, wchar_t *newnick)

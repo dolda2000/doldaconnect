@@ -905,10 +905,10 @@ static void cmd_nicklist(struct socket *sk, struct fnetnode *fn, char *cmd, char
     struct dchub *hub;
     char *p;
     wchar_t *buf;
-    struct fnetpeer *peer, *npeer;
+    struct fnetpeer *peer;
     
     hub = fn->data;
-    for(peer = fn->peers; peer != NULL; peer = peer->next)
+    for(peer = btreeiter(fn->peers); peer != NULL; peer = btreeiter(NULL))
 	peer->flags.b.delete = 1;
     while((p = strstr(args, "$$")) != NULL)
     {
@@ -924,12 +924,7 @@ static void cmd_nicklist(struct socket *sk, struct fnetnode *fn, char *cmd, char
 	}
 	args = p + 2;
     }
-    for(peer = fn->peers; peer != NULL; peer = npeer)
-    {
-	npeer = peer->next;
-	if(peer->flags.b.delete)
-	    fnetdelpeer(peer);
-    }
+    fnetpeerdm(fn);
     hubhandleaction(sk, fn, cmd, args);
 }
 
@@ -941,7 +936,7 @@ static void cmd_oplist(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     struct fnetpeer *peer;
     
     hub = fn->data;
-    for(peer = fn->peers; peer != NULL; peer = peer->next)
+    for(peer = btreeiter(fn->peers); peer != NULL; peer = btreeiter(NULL))
 	peer->flags.b.op = 0;
     while((p = strstr(args, "$$")) != NULL)
     {

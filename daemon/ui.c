@@ -694,7 +694,7 @@ static void cmd_lspeers(struct socket *sk, struct uidata *data, int argc, wchar_
 {
     int i;
     struct fnetnode *fn;
-    struct fnetpeer *peer;
+    struct fnetpeer *peer, *npeer;
     
     haveargs(2);
     if((fn = findfnetnode(wcstol(argv[1], NULL, 0))) == NULL)
@@ -706,9 +706,10 @@ static void cmd_lspeers(struct socket *sk, struct uidata *data, int argc, wchar_
     {
 	sq(sk, 0, L"201", L"No peers avaiable", NULL);
     } else {
-	for(peer = fn->peers; peer != NULL; peer = peer->next)
+	for(peer = btreeiter(fn->peers); peer != NULL; peer = npeer)
 	{
-	    sq(sk, 2 | ((peer->next != NULL)?1:0), L"200", L"%ls", peer->id, L"%ls", peer->nick, NULL);
+	    npeer = btreeiter(NULL);
+	    sq(sk, 2 | ((npeer != NULL)?1:0), L"200", L"%ls", peer->id, L"%ls", peer->nick, NULL);
 	    for(i = 0; i < peer->dinum; i++)
 	    {
 		if(peer->peerdi[i].datum->datatype == FNPD_INT)
