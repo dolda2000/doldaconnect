@@ -42,7 +42,8 @@ struct treeiter {
 	struct btree *n;
 	int s;
     } *st;
-    size_t stsize, sp;
+    size_t stsize;
+    int sp;
 };
 
 static char *base64set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
