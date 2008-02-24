@@ -118,6 +118,7 @@ struct uidata
     struct uidata *next, *prev;
     struct socket *sk;
     struct qcommand *queue, *queuelast;
+    size_t queuesize;
     struct authhandle *auth;
     int close;
     union
@@ -704,7 +705,7 @@ static void cmd_lspeers(struct socket *sk, struct uidata *data, int argc, wchar_
     }
     if(fn->peers == NULL)
     {
-	sq(sk, 0, L"201", L"No peers avaiable", NULL);
+	sq(sk, 0, L"201", L"No peers available", NULL);
     } else {
 	for(peer = btreeiter(fn->peers); peer != NULL; peer = npeer)
 	{
@@ -1421,6 +1422,7 @@ static struct qcommand *unlinkqcmd(struct uidata *data)
     qcmd = data->queue;
     if(qcmd != NULL)
     {
+	data->queuesize--;
 	data->queue = qcmd->next;
 	if(qcmd == data->queuelast)
 	    data->queuelast = qcmd->next;
@@ -1611,6 +1613,7 @@ static void queuecmd(struct uidata *data, struct command *cmd, int argc, wchar_t
     data->queuelast = new;
     if(data->queue == NULL)
 	data->queue = new;
+    data->queuesize++;
 }
 
 static struct uidata *newuidata(struct socket *sk)
@@ -1802,6 +1805,11 @@ static void uiread(struct socket *sk, struct uidata *data)
 	    data->pp++;
 	    break;
 	}
+    }
+    if(data->cbdata > 16384)
+    {
+	/* Kill clients that send us unreasonably long lines */
+	data->close = 1;
     }
 }
 
@@ -2399,6 +2407,15 @@ static int run(void)
 	    qcmd->cmd->handler(data->sk, data, qcmd->argc, qcmd->argv);
 	    freequeuecmd(qcmd);
 	    return(1);
+	}
+	if(data->queuesize > 10)
+	{
+	    /* Clients should not be queue up commands at all, since
+	     * they should not send a new command before receiving a
+	     * reply to the previous command. Therefore, we
+	     * mercilessly massacre clients which are stacking up too
+	     * many commands. */
+	    data->close = 1;
 	}
     }
     return(0);
