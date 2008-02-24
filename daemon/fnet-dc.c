@@ -91,6 +91,7 @@ struct command
     char *name;
     void (*handler)(struct socket *sk, void *data, char *cmd, char *args);
     int stop;
+    int limit;
 };
 
 struct qcommand
@@ -102,6 +103,7 @@ struct qcommand
 struct qcmdqueue
 {
     struct qcommand *f, *l;
+    int size;
 };
 
 struct dchub
@@ -393,6 +395,7 @@ static struct qcommand *newqcmd(struct qcmdqueue *queue, char *string)
     else
 	queue->l->next = new;
     queue->l = new;
+    queue->size++;
     return(new);
 }
 
@@ -404,6 +407,7 @@ static struct qcommand *ulqcmd(struct qcmdqueue *queue)
 	return(NULL);
     if((queue->f = qcmd->next) == NULL)
 	queue->l = NULL;
+    queue->size--;
     return(qcmd);
 }
 
@@ -2628,10 +2632,10 @@ static struct command hubcmds[] =
     {"$OpList", cc(cmd_oplist)},
     {"$MyINFO", cc(cmd_myinfo)},
     {"$ForceMove", cc(cmd_forcemove)},
-    {"$Search", cc(cmd_search)},
-    {"$MultiSearch", cc(cmd_search)},
-    {"$ConnectToMe", cc(cmd_connecttome)},
-    {"$RevConnectToMe", cc(cmd_revconnecttome)},
+    {"$Search", cc(cmd_search), .limit = 100},
+    {"$MultiSearch", cc(cmd_search), .limit = 50},
+    {"$ConnectToMe", cc(cmd_connecttome), .limit = 200},
+    {"$RevConnectToMe", cc(cmd_revconnecttome), .limit = 500},
     {"$GetNetInfo", cc(cmd_getnetinfo)},
     {"$To:", cc(cmd_to)},
     {"$SR", cc(cmd_sr)},
@@ -2659,8 +2663,8 @@ static struct command peercmds[] =
     {"$GetZBlock", cc(cmd_getblock)},
     {"$UGetZBlock", cc(cmd_getblock)},
     {"$ADCGET", cc(cmd_adcget)},
-    {"$ADCSND", cc(cmd_adcsnd), 1},
-    {"$Sending", cc(cmd_sending), 1},
+    {"$ADCSND", cc(cmd_adcsnd), .stop = 1},
+    {"$Sending", cc(cmd_sending), .stop = 1},
     {NULL, NULL}
 };
 #undef cc
@@ -2977,8 +2981,9 @@ static void udpread(struct socket *sk, void *data)
 static void hubread(struct socket *sk, struct fnetnode *fn)
 {
     struct dchub *hub;
+    struct command *cmd;
     char *newbuf;
-    size_t datalen;
+    size_t datalen, cnlen;
     char *p;
     
     hub = (struct dchub *)fn->data;
@@ -2994,11 +2999,22 @@ static void hubread(struct socket *sk, struct fnetnode *fn)
     while((datalen > 0) && ((p = memchr(p, '|', datalen)) != NULL))
     {
 	*(p++) = 0;
-	newqcmd(&hub->queue, hub->inbuf);
+	for(cmd = hubcmds; cmd->handler != NULL; cmd++)
+	{
+	    cnlen = strlen(cmd->name);
+	    if(!strncmp(hub->inbuf, cmd->name, cnlen) && ((hub->inbuf[cnlen] == ' ') || (hub->inbuf[cnlen] == 0)))
+		break;
+	}
+	if((cmd->limit == 0) || (hub->queue.size < cmd->limit))
+	    newqcmd(&hub->queue, hub->inbuf);
 	memmove(hub->inbuf, p, hub->inbufdata -= p - hub->inbuf);
 	datalen = hub->inbufdata;
 	p = hub->inbuf;
     }
+    if(hub->queue.size > 1000)
+	sk->ignread = 1;
+    else
+	sk->ignread = 0;
 }
 
 static void huberr(struct socket *sk, int err, struct fnetnode *fn)
@@ -3224,11 +3240,13 @@ static struct fnet dcnet =
 static void peerread(struct socket *sk, struct dcpeer *peer)
 {
     char *newbuf, *p;
-    size_t datalen;
+    size_t datalen, cnlen;
     struct command *cmd;
 
     if((newbuf = sockgetinbuf(sk, &datalen)) == NULL)
 	return;
+    if(peer->inbufdata > 500000) /* Discard possibly malicious data */
+	peer->inbufdata = 0;
     sizebuf2(peer->inbuf, peer->inbufdata + datalen, 1);
     memcpy(peer->inbuf + peer->inbufdata, newbuf, datalen);
     free(newbuf);
@@ -3239,17 +3257,24 @@ static void peerread(struct socket *sk, struct dcpeer *peer)
 	while((peer->inbufdata > 0) && (p = memchr(peer->inbuf, '|', peer->inbufdata)) != NULL)
 	{
 	    *(p++) = 0;
-	    newqcmd(&peer->queue, peer->inbuf);
 	    for(cmd = peercmds; cmd->handler != NULL; cmd++)
 	    {
-		if(!memcmp(peer->inbuf, cmd->name, strlen(cmd->name)) && ((peer->inbuf[strlen(cmd->name)] == ' ') || (peer->inbuf[strlen(cmd->name)] == '|')))
+		cnlen = strlen(cmd->name);
+		if(!strncmp(peer->inbuf, cmd->name, cnlen) && ((peer->inbuf[cnlen] == ' ') || (peer->inbuf[cnlen] == 0)))
 		    break;
 	    }
+	    if((cmd->limit == 0) || (peer->queue.size < cmd->limit))
+		newqcmd(&peer->queue, peer->inbuf);
 	    memmove(peer->inbuf, p, peer->inbufdata -= p - peer->inbuf);
 	    if(cmd->stop)
 	    {
 		peer->state = PEER_STOP;
 		break;
+	    } else {
+		if(peer->queue.size > 1000)
+		    sk->ignread = 1;
+		else
+		    sk->ignread = 0;
 	    }
 	}
     } else if(peer->state == PEER_TTHL) {
