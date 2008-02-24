@@ -115,6 +115,8 @@ wchar_t *wpfind(struct wcspair *list, wchar_t *key);
 int bbtreedel(struct btree **tree, void *item, int (*cmp)(void *, void *));
 int bbtreeput(struct btree **tree, void *item, int (*cmp)(void *, void *));
 void *btreeget(struct btree *tree, void *key, int (*cmp)(void *, void *));
+void *btreeiter(struct btree *tree);
+void btreefree(struct btree *tree);
 
 #define sizebuf(b, bs, rs, es, a) _sizebuf((void **)(void *)(b), (bs), (rs), (es), (a))
 #define sizebuf2(b, rs, a) _sizebuf((void **)(void *)(&(b)), &(b ## size), (rs), sizeof(*(b)), (a))

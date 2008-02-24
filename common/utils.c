@@ -37,6 +37,14 @@
 #include <utils.h>
 #include <log.h>
 
+struct treeiter {
+    struct {
+	struct btree *n;
+	int s;
+    } *st;
+    size_t stsize, sp;
+};
+
 static char *base64set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static int base64rev[] = {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -1030,3 +1038,93 @@ void *btreeget(struct btree *tree, void *key, int (*cmp)(void *, void *))
     }
 }
 
+void btreefree(struct btree *tree)
+{
+    if(tree == NULL)
+	return;
+    btreefree(tree->l);
+    btreefree(tree->r);
+    free(tree);
+}
+
+static void *btreenext(void **iterp)
+{
+    struct treeiter *iter;
+    int s;
+    struct btree *n;
+    
+    if((iter = *iterp) == NULL)
+	return(NULL);
+    while(1) {
+	s = iter->st[iter->sp].s;
+	n = iter->st[iter->sp].n;
+	if(s == 0) {
+	    iter->st[iter->sp].s = 1;
+	    if(n->l != NULL) {
+		iter->sp++;
+		sizebuf2(iter->st, iter->sp + 1, 1);
+		iter->st[iter->sp].s = 0;
+		iter->st[iter->sp].n = n->l;
+	    }
+	} else if(s == 1) {
+	    iter->st[iter->sp].s = 2;
+	    return(iter->st[iter->sp].n->d);
+	} else if(s == 2) {
+	    iter->st[iter->sp].s = 3;
+	    if(n->r != NULL) {
+		iter->sp++;
+		sizebuf2(iter->st, iter->sp + 1, 1);
+		iter->st[iter->sp].s = 0;
+		iter->st[iter->sp].n = n->r;
+	    }
+	} else {
+	    iter->sp--;
+	    if(iter->sp < 0) {
+		free(iter->st);
+		free(iter);
+		*iterp = NULL;
+		return(NULL);
+	    }
+	}
+    }
+}
+
+static void *btreefirst(struct btree *tree, void **iterp)
+{
+    struct treeiter *iter;
+    
+    if(tree == NULL) {
+	*iterp = NULL;
+	return(NULL);
+    }
+    *iterp = iter = memset(smalloc(sizeof(*iter)), 0, sizeof(*iter));
+    sizebuf2(iter->st, 1, 1);
+    iter->st[0].n = tree;
+    iter->st[0].s = 0;
+    return(btreenext(iterp));
+}
+
+static void btreestop(void **iterp)
+{
+    struct treeiter *iter;
+    
+    if((iter = *iterp) == NULL)
+	return;
+    if(iter->st != NULL)
+	free(iter->st);
+    free(iter);
+    *iterp = NULL;
+}
+
+void *btreeiter(struct btree *tree)
+{
+    static void *iter = NULL;
+    
+    if(tree == NULL) {
+	return(btreenext(&iter));
+    } else {
+	if(iter != NULL)
+	    btreestop(&iter);
+	return(btreefirst(tree, &iter));
+    }
+}
