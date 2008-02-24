@@ -99,12 +99,17 @@ struct qcommand
     char *string;
 };
 
+struct qcmdqueue
+{
+    struct qcommand *f, *l;
+};
+
 struct dchub
 {
     struct socket *sk;
     char *inbuf;
     size_t inbufdata, inbufsize;
-    struct qcommand *queue;
+    struct qcmdqueue queue;
     int extended, dcppemu;
     char *charset;
     char *nativename;
@@ -130,7 +135,7 @@ struct dcpeer
     off_t curread, totalsize;
     int freeing;
     struct timer *timeout;
-    struct qcommand *queue;
+    struct qcmdqueue queue;
     struct transfer *transfer;
     int state;
     int ptclose;      /* Close after transfer is complete */
@@ -376,26 +381,29 @@ static struct dcexppeer *expectpeer(char *nick, struct fnetnode *fn)
     return(ep);
 }
 
-static struct qcommand *newqcmd(struct qcommand **queue, char *string)
+static struct qcommand *newqcmd(struct qcmdqueue *queue, char *string)
 {
     struct qcommand *new;
     
-    while(*queue != NULL)
-	queue = &(*queue)->next;
     new = smalloc(sizeof(*new));
     new->string = sstrdup(string);
-    new->next = *queue;
-    *queue = new;
+    new->next = NULL;
+    if(queue->l == NULL)
+	queue->f = new;
+    else
+	queue->l->next = new;
+    queue->l = new;
     return(new);
 }
 
-static struct qcommand *ulqcmd(struct qcommand **queue)
+static struct qcommand *ulqcmd(struct qcmdqueue *queue)
 {
     struct qcommand *qcmd;
     
-    if((qcmd = *queue) == NULL)
+    if((qcmd = queue->f) == NULL)
 	return(NULL);
-    *queue = qcmd->next;
+    if((queue->f = qcmd->next) == NULL)
+	queue->l = NULL;
     return(qcmd);
 }
 
