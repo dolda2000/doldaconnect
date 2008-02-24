@@ -829,7 +829,7 @@ void logincallback(int err, wchar_t *reason, void *data)
     switch(err)
     {
     case DC_LOGIN_ERR_SUCCESS:
-	dc_queuecmd(NULL, NULL, L"notify", L"all", L"on", NULL);
+	dc_queuecmd(NULL, NULL, L"notify", L"all", L"on", L"fn:peer", L"off", NULL);
 	dc_getfnlistasync(getfnlistcallback, NULL);
 	dc_gettrlistasync(gettrlistcallback, NULL);
 	updatesbar("Authenticated");
