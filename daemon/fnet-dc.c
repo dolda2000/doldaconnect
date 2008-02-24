@@ -3013,8 +3013,6 @@ static void hubread(struct socket *sk, struct fnetnode *fn)
     }
     if(hub->queue.size > 1000)
 	sk->ignread = 1;
-    else
-	sk->ignread = 0;
 }
 
 static void huberr(struct socket *sk, int err, struct fnetnode *fn)
@@ -3245,8 +3243,6 @@ static void peerread(struct socket *sk, struct dcpeer *peer)
 
     if((newbuf = sockgetinbuf(sk, &datalen)) == NULL)
 	return;
-    if(peer->inbufdata > 500000) /* Discard possibly malicious data */
-	peer->inbufdata = 0;
     sizebuf2(peer->inbuf, peer->inbufdata + datalen, 1);
     memcpy(peer->inbuf + peer->inbufdata, newbuf, datalen);
     free(newbuf);
@@ -3271,15 +3267,15 @@ static void peerread(struct socket *sk, struct dcpeer *peer)
 		peer->state = PEER_STOP;
 		break;
 	    } else {
-		if(peer->queue.size > 1000)
+		if(peer->queue.size > 50)
 		    sk->ignread = 1;
-		else
-		    sk->ignread = 0;
 	    }
 	}
     } else if(peer->state == PEER_TTHL) {
 	handletthl(peer);
     }
+    if(peer->inbufdata > 500000)
+	sk->ignread = 1;
 }
 
 static void peererror(struct socket *sk, int err, struct dcpeer *peer)
@@ -3755,9 +3751,10 @@ static int run(void)
     struct dchub *hub;
     struct dcpeer *peer, *nextpeer;
     struct qcommand *qcmd;
-    int ret;
+    int ret, quota;
     
     ret = 0;
+    quota = 20;
     for(fn = fnetnodes; fn != NULL; fn = nextfn)
     {
 	nextfn = fn->next;
@@ -3766,7 +3763,7 @@ static int run(void)
 	if(fn->data == NULL)
 	    continue;
 	hub = (struct dchub *)fn->data;
-	if((qcmd = ulqcmd(&hub->queue)) != NULL)
+	while((quota > 0) && ((qcmd = ulqcmd(&hub->queue)) != NULL))
 	{
 	    if(*qcmd->string == '$')
 	    {
@@ -3777,13 +3774,18 @@ static int run(void)
 	    }
 	    freeqcmd(qcmd);
 	    ret = 1;
-	    break;
+	    quota--;
 	}
+	if(hub->queue.size < 1000)
+	    hub->sk->ignread = 0;
+	if(quota < 1)
+	    break;
     }
+    quota = 20;
     for(peer = peers; peer != NULL; peer = nextpeer)
     {
 	nextpeer = peer->next;
-	if((qcmd = ulqcmd(&peer->queue)) != NULL)
+	while((quota > 0) && ((qcmd = ulqcmd(&peer->queue)) != NULL))
 	{
 	    if(peer->timeout != NULL)
 		canceltimer(peer->timeout);
@@ -3792,8 +3794,12 @@ static int run(void)
 		dispatchcommand(qcmd, peercmds, peer->sk, peer);
 	    freeqcmd(qcmd);
 	    ret = 1;
-	    break;
+	    quota--;
 	}
+	if((peer->queue.size < 50) && (peer->inbufdata < 500000))
+	    peer->sk->ignread = 0;
+	if(quota < 1)
+	    break;
     }
     return(ret);
 }
