@@ -3228,7 +3228,7 @@ static wchar_t *dcbasename(wchar_t *filename)
 {
     wchar_t *ret;
     
-    if((ret = wcsrchr(filename, L'\\')) != NULL)
+    if((ret = wcsrchr(filename, L'/')) != NULL)
 	return(ret + 1);
     return(filename);
 }
