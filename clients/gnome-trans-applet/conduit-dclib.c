@@ -84,8 +84,7 @@ static char *gettag(struct dc_transfer *dt)
 	return(NULL);
     if((mbspath = icwcstombs(dt->path, "UTF-8")) == NULL)
 	return(NULL);
-    /* XXX: Achtung! Too DC-specific! */
-    if((p = strrchr(mbspath, '\\')) == NULL)
+    if((p = strrchr(mbspath, '/')) == NULL)
 	p = mbspath;
     else
 	p++;

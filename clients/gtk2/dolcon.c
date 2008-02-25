@@ -1165,9 +1165,8 @@ void handleresps(void)
 			    if((buf = icwcstombs(ires->argv[1].val.str, "UTF-8")) != NULL)
 			    {
 				p = buf;
-				/* XXX: Too NMDC-specific! */
-				if(strrchr(p, '\\') != NULL)
-				    p = strrchr(p, '\\') + 1;
+				if(strrchr(p, '/') != NULL)
+				    p = strrchr(p, '/') + 1;
 				gtk_tree_store_set(srchmodel, &piter, 3, p, -1);
 				free(buf);
 			    }

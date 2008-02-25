@@ -5,3 +5,4 @@ Rev.	Changes
 1	Initial revisioned protocol
 2	Added `reset' command
 	Added `hup' command
+3	Made remote paths deconstructible

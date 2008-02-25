@@ -3,7 +3,7 @@
 
 #include <wchar.h>
 
-#define DC_LATEST 2
+#define DC_LATEST 3
 
 typedef long long dc_lnum_t;
 

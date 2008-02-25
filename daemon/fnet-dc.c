@@ -222,25 +222,40 @@ static char *dcmakekey(char *lock)
     return(key);
 }
 
-static char *pathnmdc2adc(char *path)
+static wchar_t *nmdc2path(char *nmdc, char *charset)
 {
-    char *ret;
-    size_t retsize, retdata;
+    wchar_t *ret, *p;
     
-    if(!strcmp(path, "files.xml") || !strcmp(path, "files.xml.bz2") || !strcmp(path, "MyList.DcLst"))
-	return(sstrdup(path));
-    ret = NULL;
-    retsize = retdata = 0;
-    addtobuf(ret, '/');
-    for(; *path; path++)
-    {
-	if(*path == '\\')
-	    addtobuf(ret, '/');
-	else
-	    addtobuf(ret, *path);
+    if((ret = icmbstowcs(nmdc, charset)) == NULL)
+	return(NULL);
+    for(p = ret; *p != L'\0'; p++) {
+	if(*p == L'\\')
+	    *p = L'/';
     }
-    addtobuf(ret, 0);
     return(ret);
+}
+
+static char *path2nmdc(wchar_t *path, char *charset)
+{
+    char *ret, *p;
+    
+    if((ret = icwcstombs(path, charset)) == NULL)
+	return(NULL);
+    for(p = ret; *p; p++) {
+	if(*p == '/')
+	    *p = '\\';
+    }
+    return(ret);
+}
+
+static wchar_t *adc2path(char *adc)
+{
+    return(icmbstowcs(adc, "UTF-8"));
+}
+
+static char *path2adc(wchar_t *path)
+{
+    return(icwcstombs(path, "UTF-8"));
 }
 
 static int isdchash(struct hash *hash)
@@ -635,10 +650,7 @@ static char *getadcid(struct dcpeer *peer)
 	ret = sprintf2("TTH/%.39s", buf);
 	free(buf);
     } else {
-	if((buf = icwcstombs(peer->transfer->path, "UTF-8")) == NULL)
-	    return(NULL);
-	ret = pathnmdc2adc(buf);
-	free(buf);
+	ret = path2adc(peer->transfer->path);
     }
     return(ret);
 }
@@ -700,7 +712,7 @@ static void requestfile(struct dcpeer *peer)
     if(peer->transfer->size == -1)
     {
 	/* Use DCCHARSET for $Get paths until further researched... */
-	if((buf = icswcstombs(peer->transfer->path, DCCHARSET, NULL)) == NULL)
+	if((buf = path2nmdc(peer->transfer->path, DCCHARSET)) == NULL)
 	{
 	    transferseterror(peer->transfer, TRNSE_NOTFOUND);
 	    freedcpeer(peer);
@@ -710,6 +722,7 @@ static void requestfile(struct dcpeer *peer)
 	 * cmd_filelength when it detects that the sizes
 	 * don't match. */
 	qstrf(peer->sk, "$Get %s$1|", buf);
+	free(buf);
 	return;
     }
     if((peer->transfer->hash == NULL) && !peer->notthl)
@@ -760,22 +773,24 @@ static void requestfile(struct dcpeer *peer)
 	sendadcf(peer->sk, "%ji", (intmax_t)(peer->transfer->size - peer->transfer->curpos));
 	qstr(peer->sk, "|");
     } else if(supports(peer, "xmlbzlist")) {
-	if((buf = icswcstombs(peer->transfer->path, "UTF-8", NULL)) == NULL)
+	if((buf = path2nmdc(peer->transfer->path, "UTF-8")) == NULL)
 	{
 	    transferseterror(peer->transfer, TRNSE_NOTFOUND);
 	    freedcpeer(peer);
 	    return;
 	}
 	qstrf(peer->sk, "$UGetBlock %ji %ji %s|", (intmax_t)peer->transfer->curpos, (intmax_t)(peer->transfer->size - peer->transfer->curpos), buf);
+	free(buf);
     } else {
 	/* Use DCCHARSET for $Get paths until further researched... */
-	if((buf = icswcstombs(peer->transfer->path, DCCHARSET, NULL)) == NULL)
+	if((buf = path2nmdc(peer->transfer->path, DCCHARSET)) == NULL)
 	{
 	    transferseterror(peer->transfer, TRNSE_NOTFOUND);
 	    freedcpeer(peer);
 	    return;
 	}
 	qstrf(peer->sk, "$Get %s$%ji|", buf, (intmax_t)peer->transfer->curpos + 1);
+	free(buf);
     }
 }
 
@@ -1458,7 +1473,7 @@ static void cmd_sr(struct socket *sk, struct fnetnode *fn, char *cmd, char *args
     if((wnick = icmbstowcs(nick, hub->charset)) == NULL)
 	return;
     /* Use DCCHARSET in $Get paths until further researched... */
-    if((wfile = icmbstowcs(filename, DCCHARSET)) == NULL)
+    if((wfile = nmdc2path(filename, DCCHARSET)) == NULL)
     {
 	free(wnick);
 	return;
@@ -1877,8 +1892,10 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
 	freedcpeer(peer);
 	return;
     } else if(fd >= 0) {
-	if((buf2 = icsmbstowcs(args, DCCHARSET, NULL)) != NULL)
+	if((buf2 = nmdc2path(args, DCCHARSET)) != NULL) {
 	    transfersetpath(peer->transfer, buf2);
+	    free(buf2);
+	}
 	peer->transfer->flags.b.minislot = 1;
     }
     if(fd < 0)
@@ -2021,8 +2038,10 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	qstr(sk, "$Error Could not send file list|");
 	return;
     } else if(fd >= 0) {
-	if((buf2 = icsmbstowcs(args, charset, NULL)) != NULL)
+	if((buf2 = nmdc2path(args, charset)) != NULL) {
 	    transfersetpath(peer->transfer, buf2);
+	    free(buf2);
+	}
 	peer->transfer->flags.b.minislot = 1;
     }
     if(fd < 0)
@@ -2108,7 +2127,7 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	qstr(sk, "$Error Could not send file list|");
 	goto out;
     } else if(fd >= 0) {
-	if((wbuf = icsmbstowcs(argv[1], "UTF-8", NULL)) != NULL)
+	if((wbuf = adc2path(argv[1])) != NULL)
 	    transfersetpath(peer->transfer, wbuf);
 	peer->transfer->flags.b.minislot = 1;
     }
@@ -2905,7 +2924,7 @@ static void udpread(struct socket *sk, void *data)
 	*p2 = 0;
 	hubaddr.sin_port = htons(atoi(p));
 	/* Use DCCHARSET in $Get paths until further researched... */
-	if((wfile = icmbstowcs(filename, DCCHARSET)) == NULL)
+	if((wfile = nmdc2path(filename, DCCHARSET)) == NULL)
 	{
 	    free(buf);
 	    return;

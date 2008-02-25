@@ -370,7 +370,7 @@ static void cmd_connect(struct socket *sk, struct uidata *data, int argc, wchar_
 	    return;
 	}
     }
-    sq(sk, 0, L"201", L"1", L"2", L"Dolda Connect daemon v" VERSION, NULL);
+    sq(sk, 0, L"201", L"1", L"3", L"Dolda Connect daemon v" VERSION, NULL);
 }
 
 static void cmd_notfound(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
