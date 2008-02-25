@@ -80,7 +80,7 @@ static gboolean updatetip(struct appletdata *data)
 	return(TRUE);
     }
     now = time(NULL);
-    if(data->curdisplay->cmptime == 0)
+    if((data->curdisplay->cmptime == 0) || (now == data->curdisplay->cmptime))
     {
 	strcpy(buf, _("Calculating remaining time..."));
     } else {
