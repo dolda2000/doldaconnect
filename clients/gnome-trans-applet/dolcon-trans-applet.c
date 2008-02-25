@@ -91,7 +91,12 @@ static gboolean updatetip(struct appletdata *data)
 	    strcpy(buf, _("Time left: Infinite (Transfer is standing still)"));
 	} else {
 	    left = (data->curdisplay->size - data->curdisplay->pos) / speed;
-	    sprintf(buf, _("Time left: %i:%02i"), left / 3600, (left / 60) % 60);
+	    if(left >= 86400)
+		sprintf(buf, _("Time left: %id%02ih%02im"), left / 86400, (left / 3600) % 24, (left / 60) % 60);
+	    else if(left >= 3600)
+		sprintf(buf, _("Time left: %ih%02im"), left / 3600, (left / 60) % 60);
+	    else
+		sprintf(buf, _("Time left: %im"), left / 60);
 	}
     }
     gtk_tooltips_set_tip(data->tips, GTK_WIDGET(data->applet), buf, NULL);

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2008-02-14 15:53+0100\n"
-"PO-Revision-Date: 2007-08-31 03:37+0200\n"
+"POT-Creation-Date: 2008-02-25 05:39+0100\n"
+"PO-Revision-Date: 2008-02-25 05:41+0100\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -121,7 +121,7 @@ msgstr ""
 "%s"
 
 #: clients/gtk2/dolcon.c:1338 clients/gtk2/hublist.c:206
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:113
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:118
 msgid "Connecting..."
 msgstr "Ansluter..."
 
@@ -507,7 +507,7 @@ msgid "Connect _automatically on startup"
 msgstr "Anslut au_tomatiskt vid uppstart"
 
 #: clients/gnome-trans-applet/dolcon-trans-applet.c:79
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:125
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:130
 msgid "No transfer selected"
 msgstr "Ingen överföring vald"
 
@@ -519,20 +519,30 @@ msgstr "Beräknar återstående tid..."
 msgid "Time left: Infinite (Transfer is standing still)"
 msgstr "Tid kvar: Oändlig (Överföringen står still)"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:94
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:95
 #, c-format
-msgid "Time left: %i:%02i"
-msgstr "Tid kvar: %i:%02i"
+msgid "Time left: %id%02ih%02im"
+msgstr "Tid kvar: %id%02ih%02im"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:109
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:97
+#, c-format
+msgid "Time left: %ih%02im"
+msgstr "Tid kvar: %ih%02im"
+
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:99
+#, c-format
+msgid "Time left: %im"
+msgstr "Tid kvar: %im"
+
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:114
 msgid "Not connected"
 msgstr "Ej ansluten"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:121
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:126
 msgid "No transfers to display"
 msgstr "Inga överföringar"
 
-#: clients/gnome-trans-applet/dolcon-trans-applet.c:134
+#: clients/gnome-trans-applet/dolcon-trans-applet.c:139
 msgid "Initializing"
 msgstr "Förbereder"
 
