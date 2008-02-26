@@ -3002,7 +3002,7 @@ static void hubread(struct socket *sk, struct fnetnode *fn)
     struct command *cmd;
     char *newbuf;
     size_t datalen, cnlen;
-    char *p;
+    char *p, *p2;
     
     hub = (struct dchub *)fn->data;
     if((newbuf = sockgetinbuf(sk, &datalen)) == NULL)
@@ -3012,23 +3012,23 @@ static void hubread(struct socket *sk, struct fnetnode *fn)
     sizebuf2(hub->inbuf, hub->inbufdata + datalen, 1);
     memcpy(hub->inbuf + hub->inbufdata, newbuf, datalen);
     free(newbuf);
-    p = hub->inbuf + hub->inbufdata;
+    p = hub->inbuf;
     hub->inbufdata += datalen;
-    while((datalen > 0) && ((p = memchr(p, '|', datalen)) != NULL))
+    while((datalen > 0) && ((p2 = memchr(p, '|', datalen)) != NULL))
     {
-	*(p++) = 0;
+	*(p2++) = 0;
 	for(cmd = hubcmds; cmd->handler != NULL; cmd++)
 	{
 	    cnlen = strlen(cmd->name);
-	    if(!strncmp(hub->inbuf, cmd->name, cnlen) && ((hub->inbuf[cnlen] == ' ') || (hub->inbuf[cnlen] == 0)))
+	    if(!strncmp(p, cmd->name, cnlen) && ((p[cnlen] == ' ') || (p[cnlen] == 0)))
 		break;
 	}
 	if((cmd->limit == 0) || (hub->queue.size < cmd->limit))
-	    newqcmd(&hub->queue, hub->inbuf);
-	memmove(hub->inbuf, p, hub->inbufdata -= p - hub->inbuf);
-	datalen = hub->inbufdata;
-	p = hub->inbuf;
+	    newqcmd(&hub->queue, p);
+	datalen -= p2 - p;
+	p = p2;
     }
+    memmove(hub->inbuf, p, hub->inbufdata -= p - hub->inbuf);
     if(hub->queue.size > 1000)
 	sk->ignread = 1;
 }
