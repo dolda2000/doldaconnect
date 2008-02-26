@@ -3222,15 +3222,6 @@ static void hubkill(struct fnetnode *fn)
     hub->sk->close = 1;
 }
 
-static wchar_t *dcbasename(wchar_t *filename)
-{
-    wchar_t *ret;
-    
-    if((ret = wcsrchr(filename, L'/')) != NULL)
-	return(ret + 1);
-    return(filename);
-}
-
 static struct transferiface dctransfer =
 {
     .detach = (void (*)(struct transfer *, void *))dctransdetach,
@@ -3249,7 +3240,6 @@ static struct fnet dcnet =
     .reqconn = hubreqconn,
     .sendchat = hubsendchat,
     .search = hubsearch,
-    .filebasename = dcbasename
 };
 
 static void peerread(struct socket *sk, struct dcpeer *peer)

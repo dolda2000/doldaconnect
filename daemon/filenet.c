@@ -459,6 +459,15 @@ void fnetsetstate(struct fnetnode *fn, int newstate)
     CBCHAINDOCB(fn, fnetnode_ac, fn, L"state");
 }
 
+wchar_t *fnfilebasename(wchar_t *path)
+{
+    wchar_t *p;
+    
+    if((p = wcsrchr(path, L'/')) != NULL)
+	return(p + 1);
+    return(path);
+}
+
 struct fnet *findfnet(wchar_t *name)
 {
     struct fnet *fnet;

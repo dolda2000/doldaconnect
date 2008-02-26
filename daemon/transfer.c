@@ -616,9 +616,7 @@ int forkfilter(struct transfer *transfer)
     struct wcspair *ta;
     char *rec, *val;
 
-    wfilename = transfer->path;
-    if(transfer->fnet->filebasename != NULL)
-	wfilename = transfer->fnet->filebasename(wfilename);
+    wfilename = fnfilebasename(transfer->path);
     if(transfer->auth == NULL)
     {
 	flog(LOG_WARNING, "tried to fork filter for transfer with NULL authhandle (tranfer %i)", transfer->id);

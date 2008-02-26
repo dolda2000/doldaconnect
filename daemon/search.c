@@ -1085,9 +1085,7 @@ static int srisvalid(struct srchres *sr, struct sexpr *sexpr)
 	free(buf);
 	return(!ret);
     case SOP_LINKRE:
-	p = sr->filename;
-	if(sr->fnet->filebasename != NULL)
-	    p = sr->fnet->filebasename(p);
+	p = fnfilebasename(sr->filename);
 	if((buf = icwcstombs(p, "UTF-8")) == NULL)
 	    return(0);
 	ret = regexec(&sexpr->d.re.cre, buf, 0, NULL, 0);
@@ -1096,9 +1094,7 @@ static int srisvalid(struct srchres *sr, struct sexpr *sexpr)
     case SOP_NAMESS:
 	return(wcsexists(sr->filename, sexpr->d.s));
     case SOP_LINKSS:
-	p = sr->filename;
-	if(sr->fnet->filebasename != NULL)
-	    p = sr->fnet->filebasename(p);
+	p = fnfilebasename(sr->filename);
 	return(wcsexists(p, sexpr->d.s));
     case SOP_SIZELT:
 	return(sr->size < sexpr->d.n);
