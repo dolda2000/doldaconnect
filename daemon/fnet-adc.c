@@ -58,6 +58,11 @@ struct qcmd {
     wchar_t **args;
 };
 
+struct qcmdqueue {
+    struct qcmd *f, *l;
+    int size;
+};
+
 struct adchub {
     struct socket *sk;
     char *inbuf;
@@ -69,7 +74,7 @@ struct adchub {
     iconv_t ich;
     int state;
     struct wcspair *hubinf;
-    struct qcmd *queue;
+    struct qcmdqueue queue;
 };
 
 static wchar_t *eoc;
@@ -163,26 +168,31 @@ static void sendadc(struct socket *sk, int sep, ...)
     va_end(args);
 }
 
-static struct qcmd *newqcmd(struct qcmd **queue, wchar_t **args)
+static struct qcmd *newqcmd(struct qcmdqueue *queue, wchar_t **args)
 {
     struct qcmd *new;
     
-    while(*queue != NULL)
-	queue = &((*queue)->next);
     new = smalloc(sizeof(*new));
     new->next = NULL;
     new->args = args;
-    *queue = new;
+    if(queue->l == NULL)
+	queue->f = new;
+    else
+	queue->l->next = new;
+    queue->l = new;
+    queue->size++;
     return(new);
 }
 
-static struct qcmd *ulqcmd(struct qcmd **queue)
+static struct qcmd *ulqcmd(struct qcmdqueue *queue)
 {
     struct qcmd *ret;
     
-    if((ret = *queue) == NULL)
+    if((ret = queue->f) == NULL)
 	return(NULL);
-    *queue = ret->next;
+    if((queue->f = ret->next) == NULL)
+	queue->l = NULL;
+    queue->size--;
     return(ret);
 }
 
