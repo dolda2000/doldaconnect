@@ -3140,7 +3140,6 @@ static void freedcpeer(struct dcpeer *peer)
 	    peer->transfer->close = 1;
 	if(peer->transfer->dir == TRNSD_DOWN)
 	    resettransfer(peer->transfer);
-	transferdetach(peer->transfer);
     }
     if(peer->timeout != NULL)
 	canceltimer(peer->timeout);
