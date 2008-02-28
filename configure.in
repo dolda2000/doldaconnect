@@ -257,6 +257,7 @@ autopackage/Makefile
 common/Makefile
 daemon/Makefile
 lib/Makefile
+lib/ucs/Makefile
 lib/guile/Makefile
 lib/guile/dolcon/Makefile
 clients/Makefile
