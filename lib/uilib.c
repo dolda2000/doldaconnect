@@ -490,6 +490,7 @@ int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...)
 			return(-1);
 		    }
 		} else if(!wcscmp(tpart, L"ls")) {
+		    freepart = 0;
 		    part = va_arg(al, wchar_t *);
 		} else if(!wcscmp(tpart, L"ll")) {
 		    freepart = 1;
