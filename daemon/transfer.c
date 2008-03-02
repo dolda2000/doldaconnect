@@ -605,7 +605,7 @@ static void filterexit(pid_t pid, int status, void *data)
 
 int forkfilter(struct transfer *transfer)
 {
-    char *filtername, *filename, *peerid, *buf;
+    char *filtername, *filename, *peerid, *buf, *p;
     wchar_t *wfilename;
     struct passwd *pwent;
     pid_t pid;
@@ -658,6 +658,12 @@ int forkfilter(struct transfer *transfer)
 	}
 	peerid = sprintf2("utf8-%s", buf);
 	free(buf);
+    }
+    for(p = filename; *p; p++) {
+	if(*p == '/')
+	    *p = '_';
+	else if((p == filename) && (*p == '.'))
+	    *p = '_';
     }
     if((pid = forksess(transfer->owner, transfer->auth, filterexit, NULL, FD_PIPE, 0, O_WRONLY, &inpipe, FD_PIPE, 1, O_RDONLY, &outpipe, FD_FILE, 2, O_RDWR, "/dev/null", FD_END)) < 0)
     {
