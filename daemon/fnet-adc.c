@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <string.h>
 #include <netinet/in.h>
@@ -297,7 +298,7 @@ static void dispatch(struct qcmd *qcmd, struct fnetnode *fn)
 	if(!wcscmp(cmd->name, qcmd->args[0] + 1)) {
 	    if(argc < cmd->minargs)
 		return;
-	    cmd->func(fn, cmdnm, sender, argc, qcmd->args);
+	    cmd->func(fn, cmdnm, sender, argc, argv);
 	    return;
 	}
     }
@@ -379,7 +380,7 @@ static void hubconnect(struct fnetnode *fn, struct socket *sk)
 	return;
     }
     fn->data = hub;
-    sendadc(sk, 0, L"HSUP", L"ADBASE", eoc, NULL);
+    sendadc(sk, 0, L"HSUP", L"ADBASE", L"ADTIGR", eoc, NULL);
 }
 
 static void hubdestroy(struct fnetnode *fn)
@@ -456,9 +457,31 @@ static void preinit(int hup)
     regfnet(adcnet);
 }
 
-static int init(int hup)
+static void makepid(char *idbuf)
 {
     int i;
+    int fd, ret;
+    
+    i = 0;
+    if((fd = open("/dev/urandom", O_RDONLY)) >= 0) {
+	for(i = 0; i < 24; i += ret) {
+	    if((ret = read(fd, idbuf + i, 24 - i)) <= 0) {
+		flog(LOG_WARNING, "could not read random data from /dev/urandom for ADC PID: %s", (errno == 0)?"EOF":strerror(errno));
+		break;
+	    }
+	}
+	close(fd);
+    } else {
+	flog(LOG_WARNING, "could not open /dev/urandom: %s", strerror(errno));
+    }
+    if(i != 24) {
+	for(i = 0; i < sizeof(idbuf); i++)
+	    idbuf[i] = rand() % 256;
+    }
+}
+
+static int init(int hup)
+{
     char idbuf[24], *id32;
     struct tigerhash th;
     
@@ -466,8 +489,7 @@ static int init(int hup)
 	eoc = swcsdup(L"");
 	
 	if((privid = fetchvar("adc.pid", NULL)) == NULL) {
-	    for(i = 0; i < sizeof(idbuf); i++)
-		idbuf[i] = rand() % 256;
+	    makepid(idbuf);
 	    id32 = base32encode(idbuf, sizeof(idbuf));
 	    id32[39] = 0;
 	    privid = icmbstowcs(id32, "us-ascii");
