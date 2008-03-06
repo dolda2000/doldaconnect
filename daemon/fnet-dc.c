@@ -3014,7 +3014,7 @@ static void hubread(struct socket *sk, struct fnetnode *fn)
     free(newbuf);
     p = hub->inbuf;
     hub->inbufdata += datalen;
-    while((datalen > 0) && ((p2 = memchr(p, '|', datalen)) != NULL))
+    while((p - hub->inbuf < hub->inbufdata) && ((p2 = memchr(p, '|', hub->inbufdata - (p - hub->inbuf))) != NULL))
     {
 	*(p2++) = 0;
 	for(cmd = hubcmds; cmd->handler != NULL; cmd++)
@@ -3025,7 +3025,6 @@ static void hubread(struct socket *sk, struct fnetnode *fn)
 	}
 	if((cmd->limit == 0) || (hub->queue.size < cmd->limit))
 	    newqcmd(&hub->queue, p);
-	datalen -= p2 - p;
 	p = p2;
     }
     memmove(hub->inbuf, p, hub->inbufdata -= p - hub->inbuf);
