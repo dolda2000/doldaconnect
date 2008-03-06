@@ -59,24 +59,6 @@
  * considering it was developed without i18n support under Windows */
 #define DCCHARSET "windows-1252"
 
-#ifdef DCPP_MASQUERADE
-/*
- * I honestly don't want to pretend being a client that I'm not, but
- * there are so many hubs that simply do not accept any clients
- * outside their whitelists, for no obvious reasons, so I feel that I
- * am left with little choice. Anyhow, as long as I actually support
- * all the features that my faked DC++ version does, there should be
- * very little harm done.
- */
-#define DCIDTAG "++"
-#define DCIDTAGV "0.674"
-#define DCIDFULL "DC++ 0.674"
-#else
-#define DCIDTAG "Dolda"
-#define DCIDTAGV VERSION
-#define DCIDFULL "DoldaConnect " VERSION
-#endif
-
 #define PEER_CMD 0
 #define PEER_STOP 1
 #define PEER_TRNS 2
