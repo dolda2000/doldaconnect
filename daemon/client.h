@@ -93,6 +93,7 @@ int hashcmp(struct hash *h1, struct hash *h2);
 void scanshares(void);
 
 extern struct sharecache *shareroot;
+extern int sharedfiles;
 extern unsigned long long sharesize;
 EGCBCHAIN(sharechangecb, unsigned long long);
 

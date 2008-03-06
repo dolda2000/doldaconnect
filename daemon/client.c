@@ -106,6 +106,7 @@ static struct timer *hashwritetimer = NULL;
 static pid_t hashjob = -1;
 struct sharecache *shareroot = NULL;
 static struct timer *scantimer = NULL;
+int sharedfiles = 0;
 unsigned long long sharesize = 0;
 GCBCHAIN(sharechangecb, unsigned long long);
 
@@ -648,6 +649,8 @@ static void freecache(struct sharecache *node)
     CBCHAINDOCB(node, share_delete, node);
     CBCHAINFREE(node, share_delete);
     sharesize -= node->size;
+    if(node->f.b.type == FILE_REG)
+	sharedfiles--;
     if(node->path != NULL)
 	free(node->path);
     if(node->name != NULL)
@@ -938,6 +941,7 @@ int doscan(int quantum)
 	    if(S_ISREG(sb.st_mode))
 	    {
 		sharesize += (n->size = sb.st_size);
+		sharedfiles++;
 	    } else {
 		n->size = 0;
 	    }
