@@ -21,7 +21,7 @@
 .\" Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111,
 .\" USA.
 .\"
-.TH HUBMGR 1 "2007-11-18" "" "Dolda Connect manual"
+.TH HUBMGR 1 "2008-03-03" "" "Dolda Connect manual"
 .SH NAME
 hubmgr \- Automatic hub manager for Dolda Connect
 .SH SYNOPSIS
@@ -40,6 +40,12 @@ upon receipt of either one of them. It will also listen for messages
 on the name \fBhubmgr\fP and exit if it receives a message with the
 first token being \fBexit\fP. Upon exit, it will disconnect all
 managed hubs.
+.P
+\fBhubmgr\fP will check its configuration file (which is described
+below in the FILES section) for updates on a regular basis. If the
+file has changed, it will be reread and \fBhubmgr\fP will connect to
+any new hubs encountered, as well as disconnect from hubs that have
+been removed from the file.
 .SH OPTIONS
 .TP
 .B -d

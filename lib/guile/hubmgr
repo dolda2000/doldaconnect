@@ -79,9 +79,6 @@
 			(same (car delta))
 			(del (cadr delta))
 			(new (caddr delta)))
-		   (display same) (newline)
-		   (display del) (newline)
-		   (display new) (newline)
 		   (for-each (lambda (o)
 			       (let ((el (assq o connlist)))
 				 (if el
