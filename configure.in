@@ -121,26 +121,21 @@ DOLDA_ENABLE(guishell, [  --enable-guishell       Build the GUI shell programs],
 AM_CONDITIONAL(GUISHELL, test "$enable_guishell" = yes)
 
 # Gnome applet check
-DOLDA_ENABLE(gnomeapplet, [  --enable-gnomeapplet    Enable GNOME transfer applet (experimental)], no,
+DOLDA_ENABLE(gnomeapplet, [  --enable-gnomeapplet    Enable GNOME transfer applet], no,
 			  [HAS_LIBPANELAPPLET])
-if test "$enable_gnomeapplet" = yes; then
-	experimental=yes
-fi
 AM_CONDITIONAL(CLI_GNOMEAPPLET, test "$enable_gnomeapplet" = yes)
 
 # Gaim plugin check
 gaimplugin_msg=
-DOLDA_ENABLE(gaimplugin, [  --enable-gaimplugin     Enable Gaim chat plugin (experimental)], no,
+DOLDA_ENABLE(gaimplugin, [  --enable-gaimplugin     Enable Gaim chat plugin], no,
 			 [HAS_LIBGAIM])
 if test "$enable_gaimplugin" = yes; then
-	experimental=yes
 	gaimplugin_msg="Gaim $gaimplugin_msg"
 fi
 AM_CONDITIONAL(CLI_GAIM, test "$enable_gaimplugin" = yes)
-DOLDA_ENABLE(pidginplugin, [  --enable-pidginplugin   Enable Pidgin chat plugin (experimental)], no,
+DOLDA_ENABLE(pidginplugin, [  --enable-pidginplugin   Enable Pidgin chat plugin], no,
 			   [HAS_LIBPURPLE])
 if test "$enable_pidginplugin" = yes; then
-	experimental=yes
 	gaimplugin_msg="Pidgin $gaimplugin_msg"
 fi
 AM_CONDITIONAL(CLI_PIDGIN, test "$enable_pidginplugin" = yes)
