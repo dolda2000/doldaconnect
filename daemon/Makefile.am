@@ -11,7 +11,6 @@ doldacond_SOURCES=	main.c \
 			filenet.c \
 			filenet.h \
 			fnet-dc.c \
-			fnet-adc.c \
 			auth.c \
 			auth.h \
 			auth-pam.c \
@@ -26,6 +25,10 @@ doldacond_SOURCES=	main.c \
 			conf.c \
 			conf.h \
 			reqstat.c
+
+if ADC
+doldacond_SOURCES +=	fnet-adc.c
+endif
 
 EXTRA_DIST=emacs-local
 doldacond_LDADD=$(top_srcdir)/common/libcommon.a \

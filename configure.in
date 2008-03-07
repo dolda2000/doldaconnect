@@ -97,6 +97,14 @@ DOLDA_ENABLE(daemon, [  --enable-daemon         Enable the daemon], yes,
 		     [HAS_LIBZ HAS_LIBBZ2 HAS_GDBM])
 AM_CONDITIONAL(DAEMON, test "$enable_daemon" = yes)
 
+# ADC check
+DOLDA_ENABLE(fnetadc, [  --enable-fnetadc        Enable ADC code (experimental)], no,
+		  [enable_daemon])
+if test "$enable_fnetadc" = yes; then
+   	experimental=yes
+fi
+AM_CONDITIONAL(ADC, test "$enable_fnetadc" = yes)
+
 # Gtk GUI check
 DOLDA_ENABLE(gtk2ui, [  --enable-gtk2ui         Enable the GTK2 user interface], yes,
 		     [HAS_GTK2 HAS_LIBBZ2 HAS_LIBXML])
@@ -286,15 +294,16 @@ autopackage/guishell.apspec
 echo
 echo "Dolda Connect has been configured with the following settings:"
 echo
-echo "    Daemon:                  $enable_daemon"
-echo "    PAM support:             $pam_msg"
-echo "    Kerberos 5 support:      $krb_msg"
-echo "    GTK2 user interface:     $enable_gtk2ui"
-echo "    Dolconf configurator:    $enable_dolconf"
-echo "    GUI shell:               $enable_guishell"
-echo "    Guile extension library: $enable_guile"
-echo "    GNOME transfer applet:   $enable_gnomeapplet"
-echo "    Gaim chat plugin:        $gaimplugin_msg"
+echo "    Daemon:                     $enable_daemon"
+echo "    PAM support:                $pam_msg"
+echo "    Kerberos 5 support:         $krb_msg"
+echo "    ADC support (unfinished):   $enable_fnetadc"
+echo "    GTK2 user interface:        $enable_gtk2ui"
+echo "    Dolconf configurator:       $enable_dolconf"
+echo "    GUI shell:                  $enable_guishell"
+echo "    Guile extension library:    $enable_guile"
+echo "    GNOME transfer applet:      $enable_gnomeapplet"
+echo "    Gaim chat plugin:           $gaimplugin_msg"
 echo
 
 if tput bold >/dev/null 2>&1 && tty <&2 >/dev/null 2>&1; then
