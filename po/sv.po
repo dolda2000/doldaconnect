@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: doldaconnect 0.1.1\n"
 "Report-Msgid-Bugs-To: fredrik@dolda2000.com\n"
-"POT-Creation-Date: 2008-02-25 05:39+0100\n"
+"POT-Creation-Date: 2008-03-07 01:15+0100\n"
 "PO-Revision-Date: 2008-02-25 05:41+0100\n"
 "Last-Translator: Fredrik Tolf <fredrik@dolda2000.com>\n"
 "Language-Team: Swedish <sv@li.org>\n"
@@ -41,7 +41,7 @@ msgstr "%H:%M:%S"
 msgid "%s (reported at %s)"
 msgstr "%s (rapporterades kl. %s)"
 
-#: clients/gtk2/dolcon.c:627 clients/gtk2/dolcon.c:2319
+#: clients/gtk2/dolcon.c:627 clients/gtk2/dolcon.c:2318
 msgid "Disconnected"
 msgstr "Frånkopplad"
 
@@ -90,11 +90,11 @@ msgstr "Fel protokoll-revision hos servern"
 msgid "Connected"
 msgstr "Ansluten"
 
-#: clients/gtk2/dolcon.c:1269
+#: clients/gtk2/dolcon.c:1268
 msgid "The server has closed the connection"
 msgstr "Servern har stängt förbindelsen"
 
-#: clients/gtk2/dolcon.c:1271
+#: clients/gtk2/dolcon.c:1270
 #, c-format
 msgid ""
 "The connection to the server failed:\n"
@@ -105,11 +105,11 @@ msgstr ""
 "\n"
 "%s"
 
-#: clients/gtk2/dolcon.c:1291
+#: clients/gtk2/dolcon.c:1290
 msgid "Preferences"
 msgstr "Inställningar"
 
-#: clients/gtk2/dolcon.c:1331
+#: clients/gtk2/dolcon.c:1330
 #, c-format
 msgid ""
 "Could not connect:\n"
@@ -120,107 +120,107 @@ msgstr ""
 "\n"
 "%s"
 
-#: clients/gtk2/dolcon.c:1338 clients/gtk2/hublist.c:206
+#: clients/gtk2/dolcon.c:1337 clients/gtk2/hublist.c:206
 #: clients/gnome-trans-applet/dolcon-trans-applet.c:118
 msgid "Connecting..."
 msgstr "Ansluter..."
 
-#: clients/gtk2/dolcon.c:1347
+#: clients/gtk2/dolcon.c:1346
 msgid "Connect"
 msgstr "Anslut"
 
-#: clients/gtk2/dolcon.c:1347
+#: clients/gtk2/dolcon.c:1346
 msgid "Server address:"
 msgstr "Serverns adress:"
 
-#: clients/gtk2/dolcon.c:1360 clients/gtk2/dolcon.c:1381
-#: clients/gtk2/dolcon.c:1479 clients/gtk2/dolcon.c:1521
-#: clients/gtk2/dolcon.c:1585 clients/gtk2/dolcon.c:1673
-#: clients/gtk2/dolcon.c:1771
+#: clients/gtk2/dolcon.c:1359 clients/gtk2/dolcon.c:1380
+#: clients/gtk2/dolcon.c:1478 clients/gtk2/dolcon.c:1520
+#: clients/gtk2/dolcon.c:1584 clients/gtk2/dolcon.c:1672
+#: clients/gtk2/dolcon.c:1770
 msgid "Not connected to DC server"
 msgstr "Ej ansluten till DC-servern"
 
-#: clients/gtk2/dolcon.c:1367 clients/gtk2/dolcon.c:1400
-#: clients/gtk2/dolcon.c:1492 clients/gtk2/dolcon.c:1539
-#: clients/gtk2/dolcon.c:1598 clients/gtk2/dolcon.c:1691
-#: clients/gtk2/dolcon.c:1746 clients/gtk2/dolcon.c:1818
-#: clients/gtk2/dolcon.c:1943 clients/gtk2/dolcon.c:1970
+#: clients/gtk2/dolcon.c:1366 clients/gtk2/dolcon.c:1399
+#: clients/gtk2/dolcon.c:1491 clients/gtk2/dolcon.c:1538
+#: clients/gtk2/dolcon.c:1597 clients/gtk2/dolcon.c:1690
+#: clients/gtk2/dolcon.c:1745 clients/gtk2/dolcon.c:1817
+#: clients/gtk2/dolcon.c:1942 clients/gtk2/dolcon.c:1969
 msgid "You do not have permission to do that"
 msgstr "Du har inte tillstånd att göra det"
 
-#: clients/gtk2/dolcon.c:1387
+#: clients/gtk2/dolcon.c:1386
 msgid "Illegal address entered"
 msgstr "Ogiltig adress"
 
-#: clients/gtk2/dolcon.c:1402 clients/gtk2/dolcon.c:1541
+#: clients/gtk2/dolcon.c:1401 clients/gtk2/dolcon.c:1540
 msgid "The server could not parse that address"
 msgstr "Servern kunde inte tolka den adressen"
 
-#: clients/gtk2/dolcon.c:1404 clients/gtk2/dolcon.c:1543
+#: clients/gtk2/dolcon.c:1403 clients/gtk2/dolcon.c:1542
 msgid "There are too many hubs connected"
 msgstr "För många hubbar är anslutna"
 
-#: clients/gtk2/dolcon.c:1484 clients/gtk2/dolcon.c:1590
+#: clients/gtk2/dolcon.c:1483 clients/gtk2/dolcon.c:1589
 msgid "No hub selected"
 msgstr "Ingen hub vald"
 
-#: clients/gtk2/dolcon.c:1600
+#: clients/gtk2/dolcon.c:1599
 msgid ""
 "This hub could not support all the types of characters in your chat message"
 msgstr "Den här hubben klarar inte av alla sorters bokstäver i ditt meddelande"
 
-#: clients/gtk2/dolcon.c:1602
+#: clients/gtk2/dolcon.c:1601
 msgid "This hub does not support chatting"
 msgstr "Den här hubben klarar inte av att chatta"
 
-#: clients/gtk2/dolcon.c:1604
+#: clients/gtk2/dolcon.c:1603
 #, c-format
 msgid "An error occurred while trying to chat (%i)"
 msgstr "Ett fel uppstod under försöket att chatta (%i)"
 
-#: clients/gtk2/dolcon.c:1681
+#: clients/gtk2/dolcon.c:1680
 msgid "Please enter a search expression before searching"
 msgstr "Skriv in ett sökuttryck först"
 
-#: clients/gtk2/dolcon.c:1689
+#: clients/gtk2/dolcon.c:1688
 msgid "Could not find any hubs to search on"
 msgstr "Kunde inte hitta någon hub att söka på"
 
-#: clients/gtk2/dolcon.c:1693
+#: clients/gtk2/dolcon.c:1692
 msgid "The server could not parse your search expression"
 msgstr "Servern kunde inte tolka ditt sökuttryck"
 
-#: clients/gtk2/dolcon.c:1695
+#: clients/gtk2/dolcon.c:1694
 #, c-format
 msgid "An error occurred while trying to search (%i)"
 msgstr "Ett fel uppstod under försöket att söka (%i)"
 
-#: clients/gtk2/dolcon.c:1748 clients/gtk2/dolcon.c:1972
+#: clients/gtk2/dolcon.c:1747 clients/gtk2/dolcon.c:1971
 #, c-format
 msgid "An error occurred while trying to cancel (%i)"
 msgstr "Ett fel uppstod under försöket att avbryta (%i)"
 
-#: clients/gtk2/dolcon.c:1820
+#: clients/gtk2/dolcon.c:1819
 #, c-format
 msgid "An error occurred while trying to queue the download (%i)"
 msgstr "Ett fel uppstod under försöket att lägga till nerladdningen (%i)"
 
-#: clients/gtk2/dolcon.c:1945
+#: clients/gtk2/dolcon.c:1944
 #, c-format
 msgid "An error occurred while trying to reset (%i)"
 msgstr "Ett fel uppstod under försöket att återställa (%i)"
 
-#: clients/gtk2/dolcon.c:2081
+#: clients/gtk2/dolcon.c:2080
 #, c-format
 msgid "An error occurred (%ls)"
 msgstr "Ett fel uppstod (%ls)"
 
-#: clients/gtk2/dolcon.c:2199 clients/gtk2/mainwnd.gtk:470
+#: clients/gtk2/dolcon.c:2198 clients/gtk2/mainwnd.gtk:470
 #, c-format
 msgid "Ready to search"
 msgstr "Redo att söka"
 
-#: clients/gtk2/dolcon.c:2201
+#: clients/gtk2/dolcon.c:2200
 #, c-format
 msgid "Search scheduled and will be submitted in %i seconds"
 msgstr "Sökningen är schemalagd och kommer genomföras om %i sekunder"
