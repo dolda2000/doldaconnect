@@ -41,6 +41,7 @@
 #include <pwd.h>
 #include <locale.h>
 #include <assert.h>
+#include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
