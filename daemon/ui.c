@@ -34,6 +34,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

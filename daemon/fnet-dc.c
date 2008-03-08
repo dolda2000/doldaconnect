@@ -30,6 +30,7 @@
 #include <bzlib.h>
 #include <zlib.h>
 #include <sys/stat.h>
+#include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

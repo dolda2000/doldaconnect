@@ -43,6 +43,7 @@
 #include <netdb.h>
 #include <sys/poll.h>
 #include <pwd.h>
+#include <stdint.h>
 #ifdef HAVE_RESOLVER
 #include <arpa/nameser.h>
 #include <resolv.h>

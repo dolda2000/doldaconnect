@@ -26,6 +26,7 @@
 #include <grp.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
