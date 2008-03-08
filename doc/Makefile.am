@@ -1,3 +1,4 @@
 SUBDIRS=man
 
-EXTRA_DIST =	INSTALL protorev INSTALL.gaim INSTALL.applet TODO gui-shell
+EXTRA_DIST =	builddeps.debian gui-shell INSTALL INSTALL.applet INSTALL.gaim \
+		INSTALL.guile protorev README.FreeBSD server-address TODO
