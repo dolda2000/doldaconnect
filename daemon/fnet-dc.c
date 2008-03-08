@@ -1123,7 +1123,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     size_t buflen;
     int termnum, satisfied, skipcheck;
     int level, tersat[32];
-    wchar_t *terms[32];
+    wchar_t *terms[32], *lname;
     char hashtth[24];
     
     hub = fn->data;
@@ -1211,8 +1211,10 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		    memcpy(hashtth, buf, 24);
 		    free(buf);
 		} else {
-		    if((terms[termnum] = icmbstowcs(p, hub->charset)) != NULL)
+		    if((terms[termnum] = icmbstowcs(p, hub->charset)) != NULL) {
+			wcslower(terms[termnum]);
 			termnum++;
+		    }
 		}
 	    }
 	    p = p2 + 1;
@@ -1244,11 +1246,12 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	}
 	if(!skipcheck)
 	{
+	    lname = wcslower(swcsdup(node->name));
 	    for(i = 0; i < termnum; i++)
 	    {
 		if(tersat[i] >= 0)
 		    continue;
-		if(wcsexists(node->name, terms[i]))
+		if(wcsstr(lname, terms[i]))
 		{
 		    tersat[i] = level;
 		    satisfied++;
@@ -1256,6 +1259,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		    break;
 		}
 	    }
+	    free(lname);
 	}
 	if(!skipcheck && (satisfied == termnum))
 	{

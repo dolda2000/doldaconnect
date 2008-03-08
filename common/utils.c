@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <netinet/in.h>
-#include <alloca.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -418,34 +417,13 @@ double ntime(void)
     return((double)tv.tv_sec + ((double)tv.tv_usec / 1000000.0));
 }
 
-int wcsexists(wchar_t *h, wchar_t *n)
+wchar_t *wcslower(wchar_t *wcs)
 {
-    int i, o, nl, hl;
-    wchar_t *ln, *lh;
+    wchar_t *p;
     
-    ln = alloca(sizeof(*ln) * (nl = wcslen(n)));
-    for(i = 0; i < nl; i++)
-	ln[i] = towlower(n[i]);
-    lh = alloca(sizeof(*lh) * (hl = wcslen(h)));
-    if(nl > hl)
-	return(0);
-    for(i = 0; i < nl; i++)
-	lh[i] = towlower(h[i]);
-    i = 0;
-    while(1)
-    {
-	for(o = 0; o < nl; o++)
-	{
-	    if(lh[i + o] != ln[o])
-		break;
-	}
-	if(o == nl)
-	    return(1);
-	if(i == hl - nl)
-	    return(0);
-	lh[i + nl] = towlower(h[i + nl]);
-	i++;
-    }
+    for(p = wcs; *p != L'\0'; p++)
+	*p = towlower(*p);
+    return(wcs);
 }
 
 #ifndef HAVE_WCSCASECMP

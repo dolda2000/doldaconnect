@@ -93,7 +93,7 @@ wchar_t *wcstolower(wchar_t *wcs);
 wchar_t ucptowc(int ucp);
 void _sizebuf(void **buf, size_t *bufsize, size_t reqsize, size_t elsize, int algo);
 double ntime(void);
-int wcsexists(wchar_t *h, wchar_t *n);
+wchar_t *wcslower(wchar_t *wcs);
 #ifndef HAVE_WCSCASECMP
 int wcscasecmp(const wchar_t *s1, const wchar_t *s2);
 #endif

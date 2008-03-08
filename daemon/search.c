@@ -139,6 +139,19 @@ static struct wcslist *newsl(struct wcslist **list, wchar_t *str)
     return(ln);
 }
 
+static int wcsexists(wchar_t *h, wchar_t *n)
+{
+    size_t hl = wcslen(h), nl = wcslen(n);
+    wchar_t lh[hl + 1], ln[nl + 1];
+    int i;
+    
+    for(i = 0; i <= hl; i++)
+	lh[i] = towlower(h[i]);
+    for(i = 0; i <= nl; i++)
+	ln[i] = towlower(n[i]);
+    return(wcsstr(lh, ln) != NULL);
+}
+
 static void slmerge1(struct wcslist **list, wchar_t *str)
 {
     size_t len;
