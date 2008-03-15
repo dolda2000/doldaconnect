@@ -28,7 +28,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <sys/poll.h>
+#include <sys/select.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -843,61 +843,55 @@ static void acceptunix(struct socket *sk)
 
 int pollsocks(int timeout)
 {
-    int i, num, ret;
+    int ret, fd;
     socklen_t retlen;
-    int newfd;
-    struct pollfd *pfds;
+    int newfd, maxfd;
+    fd_set rfds, wfds, efds;
     struct socket *sk, *next, *newsk;
     struct sockaddr_storage ss;
     socklen_t sslen;
+    struct timeval tv;
     
-    pfds = smalloc(sizeof(*pfds) * (num = numsocks));
-    for(i = 0, sk = sockets; i < num; sk = sk->next)
+    FD_ZERO(&rfds);
+    FD_ZERO(&wfds);
+    FD_ZERO(&efds);
+    for(maxfd = 0, sk = sockets; sk != NULL; sk = sk->next)
     {
-	if(sk->state == SOCK_STL)
-	{
-	    num--;
+	if((sk->state == SOCK_STL) || (sk->fd < 0))
 	    continue;
-	}
-	pfds[i].fd = sk->fd;
-	pfds[i].events = 0;
 	if(!sk->ignread)
-	    pfds[i].events |= POLLIN;
+	    FD_SET(sk->fd, &rfds);
 	if((sk->state == SOCK_SYN) || (sockqueuesize(sk) > 0))
-	    pfds[i].events |= POLLOUT;
-	pfds[i].revents = 0;
-	i++;
+	    FD_SET(sk->fd, &wfds);
+	FD_SET(sk->fd, &efds);
+	if(sk->fd > maxfd)
+	    maxfd = sk->fd;
     }
-    ret = poll(pfds, num, timeout);
+    tv.tv_sec = timeout / 1000;
+    tv.tv_usec = (timeout % 1000) * 1000;
+    ret = select(maxfd + 1, &rfds, &wfds, &efds, (timeout < 0)?NULL:&tv);
     if(ret < 0)
     {
 	if(errno != EINTR)
 	{
-	    flog(LOG_CRIT, "pollsocks: poll errored out: %s", strerror(errno));
+	    flog(LOG_CRIT, "pollsocks: select errored out: %s", strerror(errno));
 	    /* To avoid CPU hogging in case it's bad, which it
 	     * probably is. */
 	    sleep(1);
 	}
-	free(pfds);
 	return(1);
     }
     for(sk = sockets; sk != NULL; sk = next)
     {
 	next = sk->next;
-	for(i = 0; i < num; i++)
-	{
-	    if(pfds[i].fd == sk->fd)
-		break;
-	}
-	if(i == num)
-	    continue;
+	fd = sk->fd;
 	switch(sk->state)
 	{
 	case SOCK_LST:
-	    if(pfds[i].revents & POLLIN)
+	    if(FD_ISSET(fd, &rfds))
 	    {
 		sslen = sizeof(ss);
-		if((newfd = accept(sk->fd, (struct sockaddr *)&ss, &sslen)) < 0)
+		if((newfd = accept(fd, (struct sockaddr *)&ss, &sslen)) < 0)
 		{
 		    if(sk->errcb != NULL)
 			sk->errcb(sk, errno, sk->data);
@@ -914,26 +908,26 @@ int pollsocks(int timeout)
 		    sk->acceptcb(sk, newsk, sk->data);
 		putsock(newsk);
 	    }
-	    if(pfds[i].revents & POLLERR)
+	    if(FD_ISSET(fd, &efds))
 	    {
 		retlen = sizeof(ret);
-		getsockopt(sk->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
+		getsockopt(fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
 		if(sk->errcb != NULL)
 		    sk->errcb(sk, ret, sk->data);
 		continue;
 	    }
 	    break;
 	case SOCK_SYN:
-	    if(pfds[i].revents & POLLERR)
+	    if(FD_ISSET(fd, &efds))
 	    {
 		retlen = sizeof(ret);
-		getsockopt(sk->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
+		getsockopt(fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
 		if(sk->conncb != NULL)
 		    sk->conncb(sk, ret, sk->data);
 		closesock(sk);
 		continue;
 	    }
-	    if(pfds[i].revents & (POLLIN | POLLOUT))
+	    if(FD_ISSET(fd, &rfds) || FD_ISSET(fd, &wfds))
 	    {
 		sk->state = SOCK_EST;
 		if(sk->conncb != NULL)
@@ -941,41 +935,25 @@ int pollsocks(int timeout)
 	    }
 	    break;
 	case SOCK_EST:
-	    if(pfds[i].revents & POLLERR)
+	    if(FD_ISSET(fd, &efds))
 	    {
 		retlen = sizeof(ret);
-		getsockopt(sk->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
+		getsockopt(fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
 		if(sk->errcb != NULL)
 		    sk->errcb(sk, ret, sk->data);
 		closesock(sk);
 		continue;
 	    }
-	    if(pfds[i].revents & POLLIN)
+	    if(FD_ISSET(fd, &rfds))
 		sockrecv(sk);
-	    if(pfds[i].revents & POLLOUT)
+	    if(FD_ISSET(fd, &wfds))
 	    {
 		if(sockqueuesize(sk) > 0)
 		    sockflush(sk);
 	    }
 	    break;
 	}
-	if(pfds[i].revents & POLLNVAL)
-	{
-	    flog(LOG_CRIT, "BUG: stale socket struct on fd %i", sk->fd);
-	    sk->state = SOCK_STL;
-	    unlinksock(sk);
-	    continue;
-	}
-	if(pfds[i].revents & POLLHUP)
-	{
-	    if(sk->errcb != NULL)
-		sk->errcb(sk, 0, sk->data);
-	    closesock(sk);
-	    unlinksock(sk);
-	    continue;
-	}
     }
-    free(pfds);
     for(sk = sockets; sk != NULL; sk = next)
     {
 	next = sk->next;
