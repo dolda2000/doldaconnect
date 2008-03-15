@@ -1086,6 +1086,8 @@ static void terminate(void)
 {
     if(hashjob != 0)
 	kill(hashjob, SIGHUP);
+    if(hashwritetimer != NULL)
+	writehashcache(1);
     while(shares != NULL)
 	freesharepoint(shares);
     freecache(shareroot);
