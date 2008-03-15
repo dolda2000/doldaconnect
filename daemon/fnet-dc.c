@@ -3321,6 +3321,7 @@ static void updatehmlist(void)
     char *buf, *buf2, numbuf[32];
     size_t bufsize, bufdata;
     int fd, ibuf;
+    FILE *out;
     
     bufdata = 0;
     buf = smalloc(bufsize = 65536);
@@ -3378,27 +3379,28 @@ static void updatehmlist(void)
 	free(hmlistname);
 	hmlistname = NULL;
     } else {
+	out = fdopen(fd, "w");
 	/*
 	 * I do not want to implement a good Huffman encoder, and it's not
 	 * like Huffman encoding actually yields any impressive results
 	 * for DC file lists anyway, so I'll just output a bogus
 	 * tree. Implement a good encoder if you want to.
 	 */
-	write(fd, "HE3\r\0", 5);
-	write(fd, &bufdata, 4);
+	fwrite("HE3\r\0", 1, 5, out);
+	fwrite(&bufdata, 4, 1, out); /* XXX: Endian unsafe */
 	ibuf = 256;
-	write(fd, &ibuf, 2);
+	fwrite(&ibuf, 2, 1, out);
 	ibuf = 8;
 	for(i = 0; i < 256; i++)
 	{
-	    write(fd, &i, 1);
-	    write(fd, &ibuf, 1);
+	    fwrite(&i, 1, 1, out);
+	    fwrite(&ibuf, 1, 1, out);
 	}
 	for(i = 0; i < 256; i++)
-	    write(fd, &i, 1);
+	    fwrite(&i, 1, 1, out);
 	for(buf2 = buf; bufdata > 0;)
 	{
-	    if((ret = write(fd, buf2, bufdata)) < 0)
+	    if((ret = fwrite(buf2, 1, bufdata, out)) < 0)
 	    {
 		flog(LOG_WARNING, "could not write file list: %s", strerror(errno));
 		break;
@@ -3406,7 +3408,7 @@ static void updatehmlist(void)
 	    bufdata -= ret;
 	    buf2 += ret;
 	}
-	close(fd);
+	fclose(out);
     }
     free(buf);
 }
