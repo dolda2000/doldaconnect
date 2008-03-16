@@ -171,8 +171,8 @@ static void notifappend(struct notif *notif, ...);
 
 struct uiuser *users = NULL;
 struct uidata *actives = NULL;
-struct socket *tcpsocket = NULL;
-struct socket *unixsocket = NULL;
+struct lport *tcpsocket = NULL;
+struct lport *unixsocket = NULL;
 static time_t starttime;
 
 static wchar_t *quoteword(wchar_t *word)
@@ -340,33 +340,35 @@ static void cmd_connect(struct socket *sk, struct uidata *data, int argc, wchar_
 {
     int valid;
     struct in6_addr mv4lo;
+    struct sockaddr *remote;
     
     if(confgetint("ui", "onlylocal"))
     {
-	switch(sk->remote->sa_family)
-	{
-	case AF_INET:
-	    valid = ((struct sockaddr_in *)sk->remote)->sin_addr.s_addr == INADDR_LOOPBACK;
-	    break;
-	case AF_INET6:
-	    inet_pton(AF_INET6, "::ffff:127.0.0.1", &mv4lo);
-	    valid = 0;
-	    if(!memcmp(&((struct sockaddr_in6 *)sk->remote)->sin6_addr, &in6addr_loopback, sizeof(in6addr_loopback)))
+	valid = 0;
+	if(!sockpeeraddr(sk, &remote, NULL)) {
+	    switch(remote->sa_family)
+	    {
+	    case AF_INET:
+		valid = ((struct sockaddr_in *)remote)->sin_addr.s_addr == INADDR_LOOPBACK;
+		break;
+	    case AF_INET6:
+		inet_pton(AF_INET6, "::ffff:127.0.0.1", &mv4lo);
+		valid = 0;
+		if(!memcmp(&((struct sockaddr_in6 *)remote)->sin6_addr, &in6addr_loopback, sizeof(in6addr_loopback)))
+		    valid = 1;
+		if(!memcmp(&((struct sockaddr_in6 *)remote)->sin6_addr, &mv4lo, sizeof(in6addr_loopback)))
+		    valid = 1;
+		break;
+	    case AF_UNIX:
 		valid = 1;
-	    if(!memcmp(&((struct sockaddr_in6 *)sk->remote)->sin6_addr, &mv4lo, sizeof(in6addr_loopback)))
-		valid = 1;
-	    break;
-	case AF_UNIX:
-	    valid = 1;
-	    break;
-	default:
-	    valid = 0;
-	    break;
+		break;
+	    }
+	    free(remote);
 	}
 	if(!valid)
 	{
 	    sq(sk, 0, L"502", L"Only localhost connections allowed to this host", NULL);
-	    sk->close = 1;
+	    closesock(sk);
 	    data->close = 1;
 	    return;
 	}
@@ -463,20 +465,20 @@ static void cmd_login(struct socket *sk, struct uidata *data, int argc, wchar_t 
 	if(data->uid == -1)
 	{
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but no account existed", data->username, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but no account existed", data->username, formatsockpeer(sk));
 	    logout(data);
 	} else if((data->userinfo == NULL) || (data->userinfo->perms & PERM_DISALLOW)) {
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but was not authorized", data->username, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but was not authorized", data->username, formatsockpeer(sk));
 	    logout(data);
 	} else {
 	    sq(sk, 0, L"200", L"Welcome", NULL);
-	    flog(LOG_INFO, "%ls (UID %i) logged in from %s", data->username, data->uid, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "%ls (UID %i) logged in from %s", data->username, data->uid, formatsockpeer(sk));
 	}
 	break;
     case AUTH_DENIED:
 	sq(sk, 0, L"506", L"Authentication error", L"%ls", (data->auth->text == NULL)?L"":(data->auth->text), NULL);
-	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formataddress(sk->remote, sk->remotelen));
+	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formatsockpeer(sk));
 	logout(data);
 	break;
     case AUTH_PASS:
@@ -537,20 +539,20 @@ static void cmd_pass(struct socket *sk, struct uidata *data, int argc, wchar_t *
 	if(data->uid == -1)
 	{
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but no account existed", data->username, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but no account existed", data->username, formatsockpeer(sk));
 	    logout(data);
 	} else if((data->userinfo == NULL) || (data->userinfo->perms & PERM_DISALLOW)) {
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but was not authorized", data->username, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but was not authorized", data->username, formatsockpeer(sk));
 	    logout(data);
 	} else {
 	    sq(sk, 0, L"200", L"Welcome", NULL);
-	    flog(LOG_INFO, "%ls (UID %i) logged in from %s", data->username, data->uid, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "%ls (UID %i) logged in from %s", data->username, data->uid, formatsockpeer(sk));
 	}
 	break;
     case AUTH_DENIED:
 	sq(sk, 0, L"506", L"Authentication error", L"%ls", (data->auth->text == NULL)?L"":(data->auth->text), NULL);
-	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formataddress(sk->remote, sk->remotelen));
+	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formatsockpeer(sk));
 	logout(data);
 	break;
     case AUTH_PASS:
@@ -1821,7 +1823,7 @@ static void uierror(struct socket *sk, int err, struct uidata *data)
     freeuidata(data);
 }
 
-static void uiaccept(struct socket *sk, struct socket *newsk, void *data)
+static void uiaccept(struct lport *lp, struct socket *newsk, void *data)
 {
     struct uidata *uidata;
     
@@ -2235,7 +2237,7 @@ static struct sockaddr_un *makeunixname(void)
 
 static int tcpportupdate(struct configvar *var, void *uudata)
 {
-    struct socket *newsock;
+    struct lport *newsock;
     
     newsock = NULL;
     if((var->val.num != -1) && ((newsock = netcstcplisten(var->val.num, 1, uiaccept, NULL)) == NULL))
@@ -2245,7 +2247,7 @@ static int tcpportupdate(struct configvar *var, void *uudata)
     }
     if(tcpsocket != NULL)
     {
-	putsock(tcpsocket);
+	closelport(tcpsocket);
 	tcpsocket = NULL;
     }
     tcpsocket = newsock;
@@ -2254,7 +2256,7 @@ static int tcpportupdate(struct configvar *var, void *uudata)
 
 static int unixsockupdate(struct configvar *var, void *uudata)
 {
-    struct socket *newsock;
+    struct lport *newsock;
     struct sockaddr_un *un;
     mode_t ou;
     
@@ -2269,7 +2271,7 @@ static int unixsockupdate(struct configvar *var, void *uudata)
     umask(ou);
     if(unixsocket != NULL)
     {
-	putsock(unixsocket);
+	closelport(unixsocket);
 	unixsocket = NULL;
     }
     unixsocket = newsock;
@@ -2427,9 +2429,9 @@ static void terminate(void)
     while(users != NULL)
 	freeuser(users);
     if(tcpsocket != NULL)
-	putsock(tcpsocket);
+	closelport(tcpsocket);
     if(unixsocket != NULL)
-	putsock(unixsocket);
+	closelport(unixsocket);
 }
 
 static struct configvar myvars[] =

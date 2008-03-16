@@ -81,7 +81,8 @@ struct adchub {
 static wchar_t *eoc, *ns, *fmt;
 /* I've never understood why both of these are necessary, but... */
 static wchar_t *privid, *cid;
-struct socket *udpsock, *tcpsock;
+struct socket *udpsock;
+struct lport *tcpsock;
 
 static wchar_t **parseadc(wchar_t *cmdline)
 {
@@ -240,13 +241,13 @@ static void sendinf(struct fnetnode *fn)
     sendadc(sk, 1, L"VEDolda ", ns, icsmbstowcs(VERSION, "us-ascii", NULL), NULL);
     sendadc(sk, 1, L"NI", ns, fn->mynick, NULL);
     sendadc(sk, 1, L"SS", ns, fmt, L"mi", (intmax_t)sharesize, L"SF", ns, fmt, L"i", sharedfiles, NULL);
-    if(sk->family == AF_INET)
+    if(sockfamily(sk) == AF_INET)
 	sendadc(sk, 1, L"I40.0.0.0", NULL);
-    else if(sk->family == AF_INET6)
+    else if(sockfamily(sk) == AF_INET6)
 	sendadc(sk, 1, L"I6::", NULL);
     sendadc(sk, 1, L"SL", ns, fmt, L"i", confgetint("transfer", "slot"), NULL);
     if(tcpsock != NULL) {
-	if((sk->family == AF_INET) && !sockgetremotename(udpsock, (struct sockaddr **)&a4, &alen)) {
+	if((sockfamily(sk) == AF_INET) && !sockgetremotename(udpsock, (struct sockaddr **)&a4, &alen)) {
 	    sendadc(sk, 1, L"U4", ns, fmt, L"i", ntohs(a4->sin_port), NULL);
 	    free(a4);
 	}
@@ -359,7 +360,7 @@ static void dispatch(struct qcmd *qcmd, struct fnetnode *fn)
     flog(LOG_DEBUG, "unknown adc command: %ls", qcmd->args[0]);
 }
 
-static void peeraccept(struct socket *sk, struct socket *newsk, void *uudata)
+static void peeraccept(struct lport *lp, struct socket *newsk, void *uudata)
 {
 }
 
@@ -463,7 +464,7 @@ static void hubkill(struct fnetnode *fn)
     struct adchub *hub;
     
     hub = fn->data;
-    hub->sk->close = 1;
+    closesock(hub->sk);
 }
 
 static int hubsetnick(struct fnetnode *fn, wchar_t *newnick)
@@ -565,7 +566,7 @@ static int updateudpport(struct configvar *var, void *uudata)
 static int updatetcpport(struct configvar *var, void *uudata)
 {
     struct sockaddr_in addr;
-    struct socket *newsock;
+    struct lport *newsock;
     
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -573,7 +574,7 @@ static int updatetcpport(struct configvar *var, void *uudata)
     if((newsock = netcslisten(SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), peeraccept, NULL)) == NULL)
 	flog(LOG_INFO, "could not listen to a remote address, going into passive mode");
     if(tcpsock != NULL)
-	putsock(tcpsock);
+	closelport(tcpsock);
     tcpsock = newsock;
     return(0);
 }

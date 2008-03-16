@@ -141,7 +141,7 @@ struct dcpeer
 static struct fnet dcnet;
 static struct transferiface dctransfer;
 static struct socket *udpsock = NULL;
-static struct socket *tcpsock = NULL;
+static struct lport *tcpsock = NULL;
 static struct dcpeer *peers = NULL;
 int numdcpeers = 0;
 static struct dcexppeer *expected = NULL;
@@ -1145,7 +1145,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	    goto out;
 	prefix = sprintf2("$SR %s ", hub->nativenick);
 	infix = sprintf2(" %i/%i\005", slotsleft(), confgetint("transfer", "slots"));
-	postfix = sprintf2(" (%s)\005%s|", formataddress(hub->sk->remote, hub->sk->remotelen), args + 4);
+	postfix = sprintf2(" (%s)\005%s|", formatsockpeer(hub->sk), args + 4);
 	dsk = sk;
 	getsock(dsk);
     } else {
@@ -1158,8 +1158,8 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	addr.sin_port = htons(atoi(p2));
 	prefix = sprintf2("$SR %s ", hub->nativenick);
 	infix = sprintf2(" %i/%i\005", slotsleft(), confgetint("transfer", "slots"));
-	postfix = sprintf2(" (%s)|", formataddress(hub->sk->remote, hub->sk->remotelen));
-	netdgramconn(dsk = netdupsock(udpsock), (struct sockaddr *)&addr, sizeof(addr));
+	postfix = sprintf2(" (%s)|", formatsockpeer(hub->sk));
+	dsk = netdgramconn(udpsock, (struct sockaddr *)&addr, sizeof(addr));
     }
     
     minsize = maxsize = -1;
@@ -1351,7 +1351,7 @@ static void sendctm(struct socket *sk, char *nick)
     
     if(tcpsock == NULL)
 	return;
-    if(sockgetremotename2(tcpsock, sk, &addr, &addrlen) < 0)
+    if(getremotename2(tcpsock, sk, &addr, &addrlen) < 0)
 	return;
     if(addr->sa_family == AF_INET)
 	qstrf(sk, "$ConnectToMe %s %s|", nick, formataddress(addr, addrlen));
@@ -2294,7 +2294,6 @@ static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	{
 	    sockpushdata(sk, peer->inbuf, peer->inbufdata);
 	    peer->inbufdata = 0;
-	    transread(sk, peer);
 	}
     } else {
 	/* We certainly didn't request this...*/
@@ -2327,7 +2326,6 @@ static void cmd_sending(struct socket *sk, struct dcpeer *peer, char *cmd, char 
     {
 	sockpushdata(sk, peer->inbuf, peer->inbufdata);
 	peer->inbufdata = 0;
-	transread(sk, peer);
     }
 }
 
@@ -2767,7 +2765,7 @@ static void dctransendofdata(struct transfer *transfer, struct dcpeer *peer)
 static void dcwantdata(struct transfer *transfer, struct dcpeer *peer)
 {
     if(transferdatasize(transfer) < 65536)
-	peer->sk->ignread = 0;
+	sockblock(peer->sk, 0);
 }
 
 static void transread(struct socket *sk, struct dcpeer *peer)
@@ -2794,7 +2792,7 @@ static void transread(struct socket *sk, struct dcpeer *peer)
 	return;
     }
     if(transferdatasize(peer->transfer) > 65535)
-	sk->ignread = 1;
+	sockblock(sk, 1);
 }
 
 static void transerr(struct socket *sk, int err, struct dcpeer *peer)
@@ -2828,6 +2826,7 @@ static void udpread(struct socket *sk, void *data)
     size_t buflen, hashlen;
     char *nick, *filename, *hubname;
     struct sockaddr_in hubaddr;
+    struct sockaddr *addrbuf;
     off_t size;
     int slots;
     struct fnetnode *fn, *myfn;
@@ -2947,13 +2946,14 @@ static void udpread(struct socket *sk, void *data)
 	{
 	    for(fn = fnetnodes; fn != NULL; fn = fn->next)
 	    {
-		if((fn->fnet == &dcnet) && ((hub = fn->data) != NULL))
+		if((fn->fnet == &dcnet) && ((hub = fn->data) != NULL) && !sockpeeraddr(hub->sk, &addrbuf, NULL))
 		{
-		    if((hub->sk != NULL) && addreq(hub->sk->remote, (struct sockaddr *)&hubaddr))
+		    if((hub->sk != NULL) && addreq(addrbuf, (struct sockaddr *)&hubaddr))
 		    {
 			myfn = fn;
 			break;
 		    }
+		    free(addrbuf);
 		}
 	    }
 	}
@@ -3016,7 +3016,7 @@ static void hubread(struct socket *sk, struct fnetnode *fn)
     }
     memmove(hub->inbuf, p, hub->inbufdata -= p - hub->inbuf);
     if(hub->queue.size > 1000)
-	sk->ignread = 1;
+	sockblock(sk, 1);
 }
 
 static void huberr(struct socket *sk, int err, struct fnetnode *fn)
@@ -3204,7 +3204,7 @@ static void hubkill(struct fnetnode *fn)
     struct dchub *hub;
     
     hub = (struct dchub *)fn->data;
-    hub->sk->close = 1;
+    closesock(hub->sk);
 }
 
 static struct transferiface dctransfer =
@@ -3260,14 +3260,14 @@ static void peerread(struct socket *sk, struct dcpeer *peer)
 		break;
 	    } else {
 		if(peer->queue.size > 50)
-		    sk->ignread = 1;
+		    sockblock(sk, 1);
 	    }
 	}
     } else if(peer->state == PEER_TTHL) {
 	handletthl(peer);
     }
     if(peer->inbufdata > 500000)
-	sk->ignread = 1;
+	sockblock(sk, 1);
 }
 
 static void peererror(struct socket *sk, int err, struct dcpeer *peer)
@@ -3301,7 +3301,7 @@ static void peerconnect(struct socket *sk, int err, struct fnetnode *fn)
     sendpeerlock(peer);
 }
 
-static void peeraccept(struct socket *sk, struct socket *newsk, void *data)
+static void peeraccept(struct lport *lp, struct socket *newsk, void *data)
 {
     struct dcpeer *peer;
     
@@ -3771,7 +3771,7 @@ static int run(void)
 	    quota--;
 	}
 	if(hub->queue.size < 1000)
-	    hub->sk->ignread = 0;
+	    sockblock(hub->sk, 0);
 	if(quota < 1)
 	    break;
     }
@@ -3790,7 +3790,7 @@ static int run(void)
 	    quota--;
 	}
 	if((peer->queue.size < 50) && (peer->inbufdata < 500000))
-	    peer->sk->ignread = 0;
+	    sockblock(peer->sk, 0);
 	if(quota < 1)
 	    break;
     }
@@ -3833,7 +3833,7 @@ static int updateudpport(struct configvar *var, void *uudata)
 static int updatetcpport(struct configvar *var, void *uudata)
 {
     struct sockaddr_in addr;
-    struct socket *newsock;
+    struct lport *newsock;
     
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -3841,7 +3841,7 @@ static int updatetcpport(struct configvar *var, void *uudata)
     if((newsock = netcslisten(SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), peeraccept, NULL)) == NULL)
 	flog(LOG_INFO, "could not listen to a remote address, going into passive mode");
     if(tcpsock != NULL)
-	putsock(tcpsock);
+	closelport(tcpsock);
     tcpsock = newsock;
     return(0);
 }
@@ -3856,7 +3856,7 @@ static int init(int hup)
 	if(udpsock != NULL)
 	    putsock(udpsock);
 	if(tcpsock != NULL)
-	    putsock(tcpsock);
+	    closelport(tcpsock);
 	addr.sin_family = AF_INET;
 	memset(&addr.sin_addr, 0, sizeof(addr.sin_addr));
 	addr.sin_port = htons(confgetint("dc", "udpport"));
