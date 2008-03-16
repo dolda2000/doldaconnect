@@ -45,6 +45,8 @@ struct socket
     int state;
     int block;
     int dgram;
+    int eos;
+    struct socket *back;
     union
     {
 	struct
@@ -76,12 +78,14 @@ struct lport {
 
 void putsock(struct socket *sk);
 void getsock(struct socket *sk);
-struct lport *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data);
-struct lport *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data);
-struct lport *netcstcplisten(int port, int local, void (*func)(struct socket *, struct socket *, void *), void *data);
+struct lport *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct lport *, struct socket *, void *), void *data);
+struct lport *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct lport *, struct socket *, void *), void *data);
+struct lport *netcstcplisten(int port, int local, void (*func)(struct lport *, struct socket *, void *), void *data);
 struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(struct socket *, int, void *), void *data);
 int pollsocks(int timeout);
+void freedgbuf(struct dgrambuf *dg);
 void sockqueue(struct socket *sk, void *data, size_t size);
+void sockeos(struct socket *sk);
 size_t sockqueuesize(struct socket *sk);
 int netresolve(char *addr, void (*callback)(struct sockaddr *addr, int addrlen, void *data), void *data);
 struct socket *netcsdgram(struct sockaddr *name, socklen_t namelen);
