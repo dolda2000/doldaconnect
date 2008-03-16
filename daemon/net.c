@@ -792,6 +792,11 @@ static int rebindunix(struct ufd *ufd, struct sockaddr *name, socklen_t namelen)
     return(0);
 }
 
+void closelport(struct lport *lp)
+{
+    freeufd(lp->ufd);
+}
+
 /*
  * The difference between netcslisten() and netcslistenlocal() is that
  * netcslistenlocal() always listens on the local host, instead of
@@ -820,8 +825,10 @@ struct lport *netcslistenlocal(int type, struct sockaddr *name, socklen_t namele
 	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &intbuf, sizeof(intbuf));
     }
     ufd = mkufd(fd, UFD_LISTEN, NULL);
-    ufd->d.l.lp = lp;
     ufd->d.l.family = name->sa_family;
+    lp = memset(smalloc(sizeof(*lp)), 0, sizeof(*lp));
+    lp->ufd = ufd;
+    ufd->d.l.lp = lp;
     if((bind(fd, name, namelen) < 0) && ((errno != EADDRINUSE) || (rebindunix(ufd, name, namelen) < 0))) {
 	freeufd(ufd);
 	return(NULL);
@@ -960,6 +967,27 @@ static void acceptunix(struct ufd *ufd)
 #endif
 }
 
+static void runbatches(void)
+{
+    struct scons *sc, *nsc;
+
+    for(sc = cbatch, cbatch = NULL; sc; sc = nsc) {
+	nsc = sc->n;
+	sc->s->conncb(sc->s, 0, sc->s->data);
+	free(sc);
+    }
+    for(sc = rbatch, rbatch = NULL; sc; sc = nsc) {
+	nsc = sc->n;
+	sc->s->readcb(sc->s, sc->s->data);
+	free(sc);
+    }
+    for(sc = wbatch, wbatch = NULL; sc; sc = nsc) {
+	nsc = sc->n;
+	sc->s->writecb(sc->s, sc->s->data);
+	free(sc);
+    }
+}
+
 int pollsocks(int timeout)
 {
     int ret;
@@ -971,7 +999,6 @@ int pollsocks(int timeout)
     struct sockaddr_storage ss;
     socklen_t sslen;
     struct timeval tv;
-    struct scons *sc, *nsc;
     
     FD_ZERO(&rfds);
     FD_ZERO(&wfds);
@@ -1062,8 +1089,7 @@ int pollsocks(int timeout)
 	    }
 	}
     }
-    for(ufd = ufds; ufd != NULL; ufd = next)
-    {
+    for(ufd = ufds; ufd != NULL; ufd = next) {
 	next = ufd->next;
 	if(sockgetdatalen(ufd->sk) == 0) {
 	    if(ufd->sk->eos) {
@@ -1076,16 +1102,34 @@ int pollsocks(int timeout)
 	    }
 	}
     }
+    runbatches();
     return(1);
+}
+
+static struct ufd *getskufd(struct socket *sk)
+{
+    while(1) {
+	if(sk->back->ufd != NULL)
+	    return(sk->back->ufd);
+	if((sk = sk->back->pnext) == NULL)
+	    break;
+    }
+    return(NULL);
 }
 
 int socksettos(struct socket *sk, int tos)
 {
     int buf;
+    struct ufd *ufd;
     
-    if(sk->family == AF_UNIX)
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    if(ufd->d.s.family == AF_UNIX)
 	return(0); /* Unix sockets are always perfect. :) */
-    if(sk->family == AF_INET)
+    if(ufd->d.s.family == AF_INET)
     {
 	switch(tos)
 	{
@@ -1108,14 +1152,14 @@ int socksettos(struct socket *sk, int tos)
 	    flog(LOG_WARNING, "attempted to set unknown TOS value %i to IPv4 sock", tos);
 	    return(-1);
 	}
-	if(setsockopt(sk->fd, IPPROTO_IP, IP_TOS, &buf, sizeof(buf)) < 0)
+	if(setsockopt(ufd->fd, IPPROTO_IP, IP_TOS, &buf, sizeof(buf)) < 0)
 	{
 	    flog(LOG_WARNING, "could not set sock TOS to %i: %s", tos, strerror(errno));
 	    return(-1);
 	}
 	return(0);
     }
-    if(sk->family == AF_INET6)
+    if(ufd->d.s.family == AF_INET6)
     {
 	switch(tos)
 	{
@@ -1149,7 +1193,7 @@ int socksettos(struct socket *sk, int tos)
 	*/
 	return(0);
     }
-    flog(LOG_WARNING, "could not set TOS on sock of family %i", sk->family);
+    flog(LOG_WARNING, "could not set TOS on sock of family %i", ufd->d.s.family);
     return(1);
 }
 
@@ -1250,16 +1294,16 @@ int netresolve(char *addr, void (*callback)(struct sockaddr *addr, int addrlen, 
     return(0);
 }
 
-int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+static int getlocalname(int fd, struct sockaddr **namebuf, socklen_t *lenbuf)
 {
     socklen_t len;
     struct sockaddr_storage name;
     
     *namebuf = NULL;
-    if((sk->state == SOCK_STL) || (sk->fd < 0))
+    if(fd < 0)
 	return(-1);
     len = sizeof(name);
-    if(getsockname(sk->fd, (struct sockaddr *)&name, &len) < 0)
+    if(getsockname(fd, (struct sockaddr *)&name, &len) < 0)
     {
 	flog(LOG_ERR, "BUG: alive socket with dead fd in sockgetlocalname (%s)", strerror(errno));
 	return(-1);
@@ -1268,6 +1312,26 @@ int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *le
     if(lenbuf != NULL)
 	*lenbuf = len;
     return(0);
+}
+
+int lstgetlocalname(struct lport *lp, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct ufd *ufd;
+
+    ufd = lp->ufd;
+    return(getlocalname(ufd->fd, namebuf, lenbuf));
+}
+
+int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct ufd *ufd;
+
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    return(getlocalname(ufd->fd, namebuf, lenbuf));
 }
 
 static void sethostaddr(struct sockaddr *dst, struct sockaddr *src)
@@ -1309,22 +1373,15 @@ static int makepublic(struct sockaddr *addr)
     return(0);
 }
 
-int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+static int getremotename(int fd, struct sockaddr **namebuf, socklen_t *lenbuf)
 {
     socklen_t len;
     struct sockaddr *name;
-    
-    switch(confgetint("net", "mode"))
-    {
+
+    switch(confgetint("net", "mode")) {
     case 0:
 	*namebuf = NULL;
-	if((sk->state == SOCK_STL) || (sk->fd < 0))
-	{
-	    errno = EBADF;
-	    return(-1);
-	}
-	if(!sockgetlocalname(sk, &name, &len))
-	{
+	if(!getlocalname(fd, &name, &len)) {
 	    *namebuf = name;
 	    *lenbuf = len;
 	    makepublic(name);
@@ -1342,19 +1399,50 @@ int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *l
     }
 }
 
+int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct ufd *ufd;
+    
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    if(ufd->fd < 0) {
+	errno = EBADF;
+	return(-1);
+    }
+    return(getremotename(ufd->fd, namebuf, lenbuf));
+}
+
+int lstgetremotename(struct lport *lp, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct ufd *ufd;
+    
+    ufd = lp->ufd;
+    return(getremotename(ufd->fd, namebuf, lenbuf));
+}
+
 int sockgetremotename2(struct socket *sk, struct socket *sk2, struct sockaddr **namebuf, socklen_t *lenbuf)
 {
     struct sockaddr *name1, *name2;
     socklen_t len1, len2;
+    struct ufd *ufd1, *ufd2;
     
-    if(sk->family != sk2->family)
-    {
-	flog(LOG_ERR, "using sockgetremotename2 with sockets of differing family: %i %i", sk->family, sk2->family);
+    ufd1 = getskufd(sk);
+    ufd2 = getskufd(sk2);
+    if((ufd1->type != UFD_SOCK) || (ufd2->type != UFD_SOCK)) {
+	errno = EOPNOTSUPP;
 	return(-1);
     }
-    if(sockgetremotename(sk, &name1, &len1))
+    if(ufd1->d.s.family != ufd2->d.s.family)
+    {
+	flog(LOG_ERR, "using sockgetremotename2 with sockets of differing family: %i %i", ufd1->d.s.family, ufd2->d.s.family);
 	return(-1);
-    if(sockgetremotename(sk2, &name2, &len2)) {
+    }
+    if(getremotename(ufd1->fd, &name1, &len1))
+	return(-1);
+    if(getremotename(ufd2->fd, &name2, &len2)) {
 	free(name1);
 	return(-1);
     }
@@ -1365,14 +1453,89 @@ int sockgetremotename2(struct socket *sk, struct socket *sk2, struct sockaddr **
     return(0);
 }
 
+int lstgetremotename2(struct lport *lp, struct socket *sk2, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct sockaddr *name1, *name2;
+    socklen_t len1, len2;
+    struct ufd *ufd1, *ufd2;
+    
+    ufd1 = lp->ufd;
+    ufd2 = getskufd(sk2);
+    if(ufd2->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    if(ufd1->d.s.family != ufd2->d.s.family)
+    {
+	flog(LOG_ERR, "using lstgetremotename2 with sockets of differing family: %i %i", ufd1->d.s.family, ufd2->d.s.family);
+	return(-1);
+    }
+    if(getremotename(ufd1->fd, &name1, &len1))
+	return(-1);
+    if(getremotename(ufd2->fd, &name2, &len2)) {
+	free(name1);
+	return(-1);
+    }
+    sethostaddr(name1, name2);
+    free(name2);
+    *namebuf = name1;
+    *lenbuf = len1;
+    return(0);
+}
+
+int getucred(struct socket *sk, uid_t *uid, gid_t *gid)
+{
+    struct ufd *ufd;
+    
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    if(ufd->d.s.family != AF_UNIX) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    *uid = ufd->d.s.ucred.uid;
+    *gid = ufd->d.s.ucred.gid;
+    return(0);
+}
+
 void sockblock(struct socket *sk, int block)
 {
-    sk->block = block;
+    struct ufd *ufd;
+    
+    ufd = getskufd(sk);
+    ufd->ignread = block;
+}
+
+int sockfamily(struct socket *sk)
+{
+    struct ufd *ufd;
+    
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    return(ufd->d.s.family);
 }
 
 int sockpeeraddr(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
 {
-    return(-1);
+    struct ufd *ufd;
+    
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    if(ufd->d.s.remote == NULL)
+	return(-1);
+    *namebuf = memcpy(smalloc(ufd->d.s.remotelen), ufd->d.s.remote, ufd->d.s.remotelen);
+    if(lenbuf != NULL)
+	*lenbuf = ufd->d.s.remotelen;
+    return(0);
 }
 
 char *formatsockpeer(struct socket *sk)
@@ -1528,8 +1691,10 @@ static int init(int hup)
 
 static void terminate(void)
 {
-    while(sockets != NULL)
-	unlinksock(sockets);
+    /*
+    while(ufds != NULL)
+	freeufd(ufds);
+    */
 }
 
 static struct module me =

@@ -43,10 +43,9 @@ struct socket
 {
     int refcount;
     int state;
-    int block;
     int dgram;
     int eos;
-    struct socket *back;
+    struct socket *back, *pnext;
     union
     {
 	struct
@@ -72,7 +71,6 @@ struct lport {
     struct ufd *ufd;
     void (*acceptcb)(struct lport *lp, struct socket *newsk, void *data);
     void (*errcb)(struct lport *lp, int err, void *data);
-    void (*close)(struct lport *lp);
     void *data;
 };
 
@@ -90,11 +88,10 @@ size_t sockqueuesize(struct socket *sk);
 int netresolve(char *addr, void (*callback)(struct sockaddr *addr, int addrlen, void *data), void *data);
 struct socket *netcsdgram(struct sockaddr *name, socklen_t namelen);
 struct socket *netdgramconn(struct socket *sk, struct sockaddr *addr, socklen_t addrlen);
-int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf);
 int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf);
 int sockgetremotename2(struct socket *sk, struct socket *sk2, struct sockaddr **namebuf, socklen_t *lenbuf);
-int getremotename(struct lport *lp, struct sockaddr **namebuf, socklen_t *lenbuf);
-int getremotename2(struct lport *lp, struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf);
+int lstgetremotename(struct lport *lp, struct sockaddr **namebuf, socklen_t *lenbuf);
+int lstgetremotename2(struct lport *lp, struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf);
 void closesock(struct socket *sk);
 void closelport(struct lport *lp);
 void *sockgetinbuf(struct socket *sk, size_t *size);

@@ -1351,7 +1351,7 @@ static void sendctm(struct socket *sk, char *nick)
     
     if(tcpsock == NULL)
 	return;
-    if(getremotename2(tcpsock, sk, &addr, &addrlen) < 0)
+    if(lstgetremotename2(tcpsock, sk, &addr, &addrlen) < 0)
 	return;
     if(addr->sa_family == AF_INET)
 	qstrf(sk, "$ConnectToMe %s %s|", nick, formataddress(addr, addrlen));
