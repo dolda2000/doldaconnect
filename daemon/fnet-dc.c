@@ -2951,6 +2951,7 @@ static void udpread(struct socket *sk, void *data)
 		    if((hub->sk != NULL) && addreq(addrbuf, (struct sockaddr *)&hubaddr))
 		    {
 			myfn = fn;
+			free(addrbuf);
 			break;
 		    }
 		    free(addrbuf);
