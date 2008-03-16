@@ -247,7 +247,8 @@ static void freeufd(struct ufd *ufd)
     if(ufd == ufds)
 	ufds = ufd->next;
     closeufd(ufd);
-    putsock(ufd->sk);
+    if(ufd->sk != NULL)
+	putsock(ufd->sk);
     if(ufd->type == UFD_SOCK) {
 	if(ufd->d.s.remote != NULL)
 	    free(ufd->d.s.remote);
@@ -261,6 +262,7 @@ static struct ufd *mkufd(int fd, int type, struct socket *sk)
     
     ufd = memset(smalloc(sizeof(*ufd)), 0, sizeof(*ufd));
     ufd->fd = fd;
+    ufd->type = type;
     if(sk != NULL) {
 	getsock(ufd->sk = sk);
 	sk->ufd = ufd;
@@ -294,6 +296,7 @@ static struct ufd *dupufd(struct ufd *ufd)
 	freeufd(nufd);
 	return(NULL);
     }
+    sksetstate(nsk, SOCK_EST);
     if(ufd->type == UFD_SOCK) {
 	nufd->d.s.family = ufd->d.s.family;
 	nufd->d.s.type = ufd->d.s.type;
@@ -407,6 +410,8 @@ void sockpushdata(struct socket *sk, void *buf, size_t size)
 /* Read as the preterite of `read' */
 void sockread(struct socket *sk)
 {
+    if((sockgetdatalen(sk) == 0) && (sk->eos == 1))
+	linksock(&rbatch, sk);
     linksock(&wbatch, sk->back);
 }
 
@@ -912,7 +917,7 @@ struct socket *netdgramconn(struct socket *sk, struct sockaddr *addr, socklen_t 
     struct ufd *nufd;
     
     nufd = dupufd(sk->back->ufd);
-    sk = nufd->sk->back;
+    getsock(sk = nufd->sk->back);
     memcpy(nufd->d.s.remote = smalloc(addrlen), addr, nufd->d.s.remotelen = addrlen);
     nufd->ignread = 1;
     return(sk);
@@ -973,18 +978,46 @@ static void runbatches(void)
 
     for(sc = cbatch, cbatch = NULL; sc; sc = nsc) {
 	nsc = sc->n;
-	sc->s->conncb(sc->s, 0, sc->s->data);
+	if(sc->s->conncb != NULL)
+	    sc->s->conncb(sc->s, 0, sc->s->data);
 	free(sc);
     }
     for(sc = rbatch, rbatch = NULL; sc; sc = nsc) {
 	nsc = sc->n;
-	sc->s->readcb(sc->s, sc->s->data);
+	if(sc->s->readcb != NULL)
+	    sc->s->readcb(sc->s, sc->s->data);
+	if((sockgetdatalen(sc->s) == 0) && (sc->s->eos == 1)) {
+	    if(sc->s->errcb != NULL)
+		sc->s->errcb(sc->s, 0, sc->s->data);
+	    sc->s->eos = 2;
+	}
 	free(sc);
     }
     for(sc = wbatch, wbatch = NULL; sc; sc = nsc) {
 	nsc = sc->n;
-	sc->s->writecb(sc->s, sc->s->data);
+	if(sc->s->writecb != NULL)
+	    sc->s->writecb(sc->s, sc->s->data);
 	free(sc);
+    }
+}
+
+static void cleansocks(void)
+{
+    struct ufd *ufd, *next;
+    
+    for(ufd = ufds; ufd != NULL; ufd = next) {
+	next = ufd->next;
+	if(ufd->sk && (sockgetdatalen(ufd->sk) == 0)) {
+	    if(ufd->sk->eos == 1) {
+		ufd->sk->eos = 2;
+		closeufd(ufd);
+		closesock(ufd->sk);
+	    }
+	    if((ufd->sk->refcount == 1) && (ufd->sk->back->refcount == 0)) {
+		freeufd(ufd);
+		continue;
+	    }
+	}
     }
 }
 
@@ -994,12 +1027,13 @@ int pollsocks(int timeout)
     socklen_t retlen;
     int newfd, maxfd;
     fd_set rfds, wfds, efds;
-    struct ufd *ufd, *nufd, *next;
+    struct ufd *ufd, *nufd;
     struct socket *nsk;
     struct sockaddr_storage ss;
     socklen_t sslen;
     struct timeval tv;
     
+    cleansocks();
     FD_ZERO(&rfds);
     FD_ZERO(&wfds);
     FD_ZERO(&efds);
@@ -1018,6 +1052,8 @@ int pollsocks(int timeout)
 	if(ufd->fd > maxfd)
 	    maxfd = ufd->fd;
     }
+    if(rbatch || wbatch || cbatch)
+	timeout = 0;
     tv.tv_sec = timeout / 1000;
     tv.tv_usec = (timeout % 1000) * 1000;
     ret = select(maxfd + 1, &rfds, &wfds, &efds, (timeout < 0)?NULL:&tv);
@@ -1030,8 +1066,7 @@ int pollsocks(int timeout)
 	}
 	return(1);
     }
-    for(ufd = ufds; ufd != NULL; ufd = ufd->next)
-    {
+    for(ufd = ufds; ufd != NULL; ufd = ufd->next) {
 	if(ufd->sk < 0)
 	    continue;
 	if(ufd->type == UFD_LISTEN) {
@@ -1050,7 +1085,7 @@ int pollsocks(int timeout)
 		if(ss.ss_family == PF_UNIX)
 		    acceptunix(nufd);
 		if(ufd->d.l.lp->acceptcb != NULL)
-		    ufd->d.l.lp->acceptcb(ufd->d.l.lp, nsk, ufd->d.l.lp->data);
+		    ufd->d.l.lp->acceptcb(ufd->d.l.lp, nsk->back, ufd->d.l.lp->data);
 		putsock(nsk);
 	    }
 	    if(FD_ISSET(ufd->fd, &efds)) {
@@ -1084,25 +1119,15 @@ int pollsocks(int timeout)
 		}
 		if(FD_ISSET(ufd->fd, &rfds))
 		    sockrecv(ufd);
+		if(ufd->fd == -1)
+		    continue;
 		if(FD_ISSET(ufd->fd, &wfds))
 		    sockflush(ufd);
 	    }
 	}
     }
-    for(ufd = ufds; ufd != NULL; ufd = next) {
-	next = ufd->next;
-	if(sockgetdatalen(ufd->sk) == 0) {
-	    if(ufd->sk->eos) {
-		closeufd(ufd);
-		closesock(ufd->sk);
-	    }
-	    if((ufd->sk->refcount == 1) && (ufd->sk->back->refcount == 0)) {
-		freeufd(ufd);
-		continue;
-	    }
-	}
-    }
     runbatches();
+    cleansocks();
     return(1);
 }
 
