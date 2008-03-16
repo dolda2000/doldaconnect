@@ -365,13 +365,16 @@ static void freesock(struct socket *sk)
 
 void putsock(struct socket *sk)
 {
+    struct socket *back;
+    
     if(--(sk->refcount) < 0) {
 	flog(LOG_CRIT, "BUG: socket refcount < 0");
 	abort();
     }
     if((sk->refcount == 0) && (sk->back->refcount == 0)) {
+	back = sk->back;
 	freesock(sk);
-	freesock(sk->back);
+	freesock(back);
     }
 }
 
