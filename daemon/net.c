@@ -120,6 +120,8 @@ struct ufd {
     } d;
 };
 
+static int getlocalname(int fd, struct sockaddr **namebuf, socklen_t *lenbuf);
+
 static struct ufd *ufds = NULL;
 static struct scons *rbatch, *wbatch, *cbatch;
 int numsocks = 0;
@@ -522,15 +524,7 @@ void sockqueuedg(struct socket *sk, struct dgrambuf *dg)
     linksock(&rbatch, sk->back);
 }
 
-void sockeos(struct socket *sk)
-{
-    sksetstate(sk, SOCK_STL);
-    if(sk->back->eos == 0)
-	sk->back->eos = 1;
-    linksock(&rbatch, sk->back);
-}
-
-static void sockerror(struct socket *sk, int en)
+void sockerror(struct socket *sk, int en)
 {
     sksetstate(sk, SOCK_STL);
     if(sk->back->errcb != NULL)
@@ -641,7 +635,7 @@ static void sockrecv(struct ufd *ufd)
 	    freedgbuf(dbuf);
 	    if((ufd->type != UFD_SOCK) || !((ufd->d.s.family == AF_INET) || (ufd->d.s.family == AF_INET6)))
 	    {
-		sockeos(ufd->sk);
+		closesock(ufd->sk);
 		closeufd(ufd);
 	    }
 	    return;
@@ -702,7 +696,7 @@ static void sockrecv(struct ufd *ufd)
 	{
 	    free(buf);
 	    closeufd(ufd);
-	    sockeos(ufd->sk);
+	    closesock(ufd->sk);
 	    return;
 	}
 	sockqueue(ufd->sk, buf, ret);
@@ -741,20 +735,10 @@ static void sockflush(struct ufd *ufd)
 
 void closesock(struct socket *sk)
 {
-/*
-    struct sockaddr_un *un;
-    
-    if((sk->family == AF_UNIX) && !sockgetlocalname(sk, (struct sockaddr **)(void *)&un, NULL) && (un->sun_family == PF_UNIX))
-    {
-	if((sk->state == SOCK_LST) && strchr(un->sun_path, '/'))
-	{
-	    if(unlink(un->sun_path))
-		flog(LOG_WARNING, "could not unlink Unix socket %s: %s", un->sun_path, strerror(errno));
-	}
-    }
-*/
     sksetstate(sk, SOCK_STL);
-    sockeos(sk);
+    if(sk->back->eos == 0)
+	sk->back->eos = 1;
+    linksock(&rbatch, sk->back);
 }
 
 size_t sockgetdatalen(struct socket *sk)
@@ -802,6 +786,14 @@ static int rebindunix(struct ufd *ufd, struct sockaddr *name, socklen_t namelen)
 
 void closelport(struct lport *lp)
 {
+    struct ufd *ufd;
+    struct sockaddr_un *un;
+    
+    ufd = lp->ufd;
+    if((ufd->d.l.family == AF_UNIX) && !getlocalname(ufd->fd, (struct sockaddr **)(void *)&un, NULL) && (un->sun_family == PF_UNIX) && strchr(un->sun_path, '/')) {
+	if(unlink(un->sun_path))
+	    flog(LOG_WARNING, "could not unlink Unix socket %s: %s", un->sun_path, strerror(errno));
+    }
     freeufd(lp->ufd);
 }
 

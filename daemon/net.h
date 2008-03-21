@@ -83,7 +83,7 @@ struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(
 int pollsocks(int timeout);
 void freedgbuf(struct dgrambuf *dg);
 void sockqueue(struct socket *sk, void *data, size_t size);
-void sockeos(struct socket *sk);
+void sockerror(struct socket *sk, int en);
 size_t sockqueuesize(struct socket *sk);
 int netresolve(char *addr, void (*callback)(struct sockaddr *addr, int addrlen, void *data), void *data);
 struct socket *netcsdgram(struct sockaddr *name, socklen_t namelen);
