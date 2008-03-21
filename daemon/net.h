@@ -45,6 +45,7 @@ struct socket
     int state;
     int dgram;
     int eos;
+    size_t maxbuf;
     struct socket *back, *pnext;
     union
     {
@@ -84,7 +85,8 @@ int pollsocks(int timeout);
 void freedgbuf(struct dgrambuf *dg);
 void sockqueue(struct socket *sk, void *data, size_t size);
 void sockerror(struct socket *sk, int en);
-size_t sockqueuesize(struct socket *sk);
+/* size_t sockqueuesize(struct socket *sk); */
+ssize_t sockqueueleft(struct socket *sk);
 int netresolve(char *addr, void (*callback)(struct sockaddr *addr, int addrlen, void *data), void *data);
 struct socket *netcsdgram(struct sockaddr *name, socklen_t namelen);
 struct socket *netdgramconn(struct socket *sk, struct sockaddr *addr, socklen_t addrlen);
@@ -102,7 +104,7 @@ int addreq(struct sockaddr *x, struct sockaddr *y);
 char *formataddress(struct sockaddr *arg, socklen_t arglen);
 char *formatsockpeer(struct socket *sk);
 void sockpushdata(struct socket *sk, void *buf, size_t size);
-void sockblock(struct socket *sk, int block);
+/* void sockblock(struct socket *sk, int block); */
 int sockpeeraddr(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf);
 int getucred(struct socket *sk, uid_t *uid, gid_t *gid);
 int sockfamily(struct socket *sk);

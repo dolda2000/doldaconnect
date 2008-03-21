@@ -234,9 +234,7 @@ static void transexpire(int cancelled, struct transfer *transfer)
 
 static void transferread(struct socket *sk, struct transfer *transfer)
 {
-    if(sockgetdatalen(sk) >= 65536)
-	sockblock(sk, 1);
-    if((transfer->iface != NULL) && (transfer->iface->gotdata != NULL))
+    if((sockgetdatalen(sk) > 0) && (transfer->iface != NULL) && (transfer->iface->gotdata != NULL))
 	transfer->iface->gotdata(transfer, transfer->ifacedata);
 }
 
@@ -278,7 +276,7 @@ void transferendofdata(struct transfer *transfer)
 
 size_t transferdatasize(struct transfer *transfer)
 {
-    return(sockqueuesize(transfer->localend));
+    return(sockqueueleft(transfer->localend));
 }
 
 void *transfergetdata(struct transfer *transfer, size_t *size)
@@ -287,7 +285,6 @@ void *transfergetdata(struct transfer *transfer, size_t *size)
     
     if(transfer->localend == NULL)
 	return(NULL);
-    sockblock(transfer->localend, 0);
     time(&transfer->activity);
     if((buf = sockgetinbuf(transfer->localend, size)) == NULL)
 	return(NULL);
@@ -311,7 +308,6 @@ void transferprepul(struct transfer *transfer, off_t size, off_t start, off_t en
     transfersetsize(transfer, size);
     transfer->curpos = start;
     transfer->endpos = end;
-    sockblock(lesk, 1);
     transfersetlocalend(transfer, lesk);
 }
 
@@ -326,7 +322,7 @@ void transferstartul(struct transfer *transfer, struct socket *sk)
     transfersetstate(transfer, TRNS_MAIN);
     socksettos(sk, confgetint("transfer", "ultos"));
     if(transfer->localend != NULL)
-	sockblock(transfer->localend, 0);
+	transferread(transfer->localend, transfer);
 }
 
 void transfersetlocalend(struct transfer *transfer, struct socket *sk)
@@ -716,7 +712,7 @@ int forkfilter(struct transfer *transfer)
      * the fd, and thus it closes it. Until I can find out whyever the
      * kernel gives a POLLIN on the fd (if I can at all...), I'll just
      * set ignread on insock for now. */
-    sockblock(insock, 1);
+/*     sockblock(insock, 1); */
     transfer->filter = pid;
     transfersetlocalend(transfer, insock);
     getsock(transfer->filterout = outsock);

@@ -211,6 +211,7 @@ static struct socket *newsock1(int dgram)
     new->refcount = 1;
     new->state = -1;
     new->dgram = dgram;
+    new->maxbuf = 65536;
     numsocks++;
     return(new);
 }
@@ -756,9 +757,14 @@ size_t sockgetdatalen(struct socket *sk)
     return(ret);
 }
 
-size_t sockqueuesize(struct socket *sk)
+/* size_t sockqueuesize(struct socket *sk) */
+/* { */
+/*     return(sockgetdatalen(sk->back)); */
+/* } */
+
+ssize_t sockqueueleft(struct socket *sk)
 {
-    return(sockgetdatalen(sk->back));
+    return(sk->back->maxbuf - sockgetdatalen(sk->back));
 }
 
 /*
@@ -1038,7 +1044,7 @@ int pollsocks(int timeout)
     for(maxfd = 0, ufd = ufds; ufd != NULL; ufd = ufd->next) {
 	if(ufd->fd < 0)
 	    continue;
-	if(!ufd->ignread)
+	if(!ufd->ignread && ((ufd->sk == NULL) || (sockqueueleft(ufd->sk) > 0)))
 	    FD_SET(ufd->fd, &rfds);
 	if(ufd->sk != NULL) {
 	    if(sockgetdatalen(ufd->sk) > 0)
@@ -1529,13 +1535,13 @@ int getucred(struct socket *sk, uid_t *uid, gid_t *gid)
     return(0);
 }
 
-void sockblock(struct socket *sk, int block)
-{
-    struct ufd *ufd;
+/* void sockblock(struct socket *sk, int block) */
+/* { */
+/*     struct ufd *ufd; */
     
-    ufd = getskufd(sk);
-    ufd->ignread = block;
-}
+/*     ufd = getskufd(sk); */
+/*     ufd->ignread = block; */
+/* } */
 
 int sockfamily(struct socket *sk)
 {
