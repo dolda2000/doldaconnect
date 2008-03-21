@@ -274,7 +274,7 @@ void transferendofdata(struct transfer *transfer)
     }
 }
 
-size_t transferdatasize(struct transfer *transfer)
+ssize_t transferdatasize(struct transfer *transfer)
 {
     return(sockqueueleft(transfer->localend));
 }

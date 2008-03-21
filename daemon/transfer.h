@@ -113,7 +113,7 @@ void transfersetlocalend(struct transfer *transfer, struct socket *sk);
 void *transfergetdata(struct transfer *transfer, size_t *size);
 int forkfilter(struct transfer *transfer);
 void transferputdata(struct transfer *transfer, void *buf, size_t size);
-size_t transferdatasize(struct transfer *transfer);
+ssize_t transferdatasize(struct transfer *transfer);
 void transferendofdata(struct transfer *transfer);
 void transferprepul(struct transfer *transfer, off_t size, off_t start, off_t end, struct socket *lesk);
 void transferstartul(struct transfer *transfer, struct socket *sk);
