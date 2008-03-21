@@ -2691,7 +2691,7 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
     
     if((peer->state == PEER_TRNS) || (peer->state == PEER_SYNC))
     {
-	if(sockqueuesize(peer->sk) < 65536)
+	if(sockqueueleft(peer->sk) > 0)
 	{
 	    if((buf = transfergetdata(transfer, &bufsize)) != NULL)
 	    {
@@ -2762,18 +2762,14 @@ static void dctransendofdata(struct transfer *transfer, struct dcpeer *peer)
     dctransgotdata(transfer, peer);
 }
 
-static void dcwantdata(struct transfer *transfer, struct dcpeer *peer)
-{
-    if(transferdatasize(transfer) < 65536)
-	sockblock(peer->sk, 0);
-}
-
 static void transread(struct socket *sk, struct dcpeer *peer)
 {
     void *buf;
     size_t bufsize;
     struct transfer *transfer;
     
+    if(transferdatasize(peer->transfer) < 0)
+	return;
     if((buf = sockgetinbuf(sk, &bufsize)) == NULL)
 	return;
     if(peer->transfer == NULL)
@@ -2791,8 +2787,12 @@ static void transread(struct socket *sk, struct dcpeer *peer)
 	transferendofdata(transfer);
 	return;
     }
-    if(transferdatasize(peer->transfer) > 65535)
-	sockblock(sk, 1);
+}
+
+static void dcwantdata(struct transfer *transfer, struct dcpeer *peer)
+{
+    if(transferdatasize(transfer) > 0)
+	transread(peer->sk, peer);
 }
 
 static void transerr(struct socket *sk, int err, struct dcpeer *peer)
@@ -2993,6 +2993,8 @@ static void hubread(struct socket *sk, struct fnetnode *fn)
     char *p, *p2;
     
     hub = (struct dchub *)fn->data;
+    if(hub->queue.size > 1000)
+	return;
     if((newbuf = sockgetinbuf(sk, &datalen)) == NULL)
 	return;
     if(hub->inbufdata > 500000) /* Discard possible malicious data */
@@ -3016,8 +3018,6 @@ static void hubread(struct socket *sk, struct fnetnode *fn)
 	p = p2;
     }
     memmove(hub->inbuf, p, hub->inbufdata -= p - hub->inbuf);
-    if(hub->queue.size > 1000)
-	sockblock(sk, 1);
 }
 
 static void huberr(struct socket *sk, int err, struct fnetnode *fn)
@@ -3234,6 +3234,10 @@ static void peerread(struct socket *sk, struct dcpeer *peer)
     size_t datalen, cnlen;
     struct command *cmd;
 
+    if(peer->state == PEER_CMD) {
+	if((peer->queue.size > 50) || (peer->inbufdata > 65536))
+	    return;
+    }
     if((newbuf = sockgetinbuf(sk, &datalen)) == NULL)
 	return;
     sizebuf2(peer->inbuf, peer->inbufdata + datalen, 1);
@@ -3259,16 +3263,11 @@ static void peerread(struct socket *sk, struct dcpeer *peer)
 	    {
 		peer->state = PEER_STOP;
 		break;
-	    } else {
-		if(peer->queue.size > 50)
-		    sockblock(sk, 1);
 	    }
 	}
     } else if(peer->state == PEER_TTHL) {
 	handletthl(peer);
     }
-    if(peer->inbufdata > 500000)
-	sockblock(sk, 1);
 }
 
 static void peererror(struct socket *sk, int err, struct dcpeer *peer)
@@ -3772,7 +3771,7 @@ static int run(void)
 	    quota--;
 	}
 	if(hub->queue.size < 1000)
-	    sockblock(hub->sk, 0);
+	    hubread(hub->sk, fn);
 	if(quota < 1)
 	    break;
     }
@@ -3791,7 +3790,7 @@ static int run(void)
 	    quota--;
 	}
 	if((peer->queue.size < 50) && (peer->inbufdata < 500000))
-	    sockblock(peer->sk, 0);
+	    peerread(peer->sk, peer);
 	if(quota < 1)
 	    break;
     }
