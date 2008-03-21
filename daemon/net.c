@@ -1485,9 +1485,9 @@ int lstgetremotename2(struct lport *lp, struct socket *sk2, struct sockaddr **na
 	errno = EOPNOTSUPP;
 	return(-1);
     }
-    if(ufd1->d.s.family != ufd2->d.s.family)
+    if(ufd1->d.l.family != ufd2->d.s.family)
     {
-	flog(LOG_ERR, "using lstgetremotename2 with sockets of differing family: %i %i", ufd1->d.s.family, ufd2->d.s.family);
+	flog(LOG_ERR, "using lstgetremotename2 with sockets of differing family: %i %i", ufd1->d.l.family, ufd2->d.s.family);
 	return(-1);
     }
     if(getremotename(ufd1->fd, &name1, &len1))
