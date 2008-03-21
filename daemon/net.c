@@ -704,14 +704,16 @@ static void sockrecv(struct ufd *ufd)
     }
 }
 
-static void sockflush(struct ufd *ufd)
+static int sockflush(struct ufd *ufd)
 {
     int ret;
     struct dgrambuf *dbuf;
     int dgram;
     
-    if((dgram = ufddgram(ufd)) < 0)
-	return;
+    if((dgram = ufddgram(ufd)) < 0) {
+	errno = EBADFD;
+	return(-1);
+    }
     if(dgram) {
 	dbuf = sockgetdgbuf(ufd->sk);
 	sendto(ufd->fd, dbuf->data, dbuf->size, MSG_DONTWAIT | MSG_NOSIGNAL, dbuf->addr, dbuf->addrlen);
@@ -721,16 +723,14 @@ static void sockflush(struct ufd *ufd)
 	    ret = send(ufd->fd, ufd->sk->buf.s.buf, ufd->sk->buf.s.datasize, MSG_DONTWAIT | MSG_NOSIGNAL);
 	else
 	    ret = write(ufd->fd, ufd->sk->buf.s.buf, ufd->sk->buf.s.datasize);
-	if(ret < 0) {
-	    /* For now, assume transient error, since
-	     * the socket is polled for errors */
-	    return;
-	}
+	if(ret < 0)
+	    return(-1);
 	if(ret > 0) {
 	    memmove(ufd->sk->buf.s.buf, ((char *)ufd->sk->buf.s.buf) + ret, ufd->sk->buf.s.datasize -= ret);
 	    sockread(ufd->sk);
 	}
     }
+    return(0);
 }
 
 void closesock(struct socket *sk)
@@ -1119,8 +1119,13 @@ int pollsocks(int timeout)
 		    sockrecv(ufd);
 		if(ufd->fd == -1)
 		    continue;
-		if(FD_ISSET(ufd->fd, &wfds))
-		    sockflush(ufd);
+		if(FD_ISSET(ufd->fd, &wfds)) {
+		    if(sockflush(ufd)) {
+			sockerror(ufd->sk, errno);
+			closeufd(ufd);
+			continue;
+		    }
+		}
 	    }
 	}
     }
