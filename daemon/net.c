@@ -975,6 +975,7 @@ static void runbatches(void)
 	nsc = sc->n;
 	if(sc->s->conncb != NULL)
 	    sc->s->conncb(sc->s, 0, sc->s->data);
+	putsock(sc->s);
 	free(sc);
     }
     for(sc = rbatch, rbatch = NULL; sc; sc = nsc) {
@@ -986,12 +987,14 @@ static void runbatches(void)
 		sc->s->errcb(sc->s, 0, sc->s->data);
 	    sc->s->eos = 2;
 	}
+	putsock(sc->s);
 	free(sc);
     }
     for(sc = wbatch, wbatch = NULL; sc; sc = nsc) {
 	nsc = sc->n;
 	if(sc->s->writecb != NULL)
 	    sc->s->writecb(sc->s, sc->s->data);
+	putsock(sc->s);
 	free(sc);
     }
 }
@@ -1002,7 +1005,7 @@ static void cleansocks(void)
     
     for(ufd = ufds; ufd != NULL; ufd = next) {
 	next = ufd->next;
-	if(ufd->sk && (sockgetdatalen(ufd->sk) == 0)) {
+	if(ufd->sk && ((ufd->fd < 0) || (sockgetdatalen(ufd->sk) == 0))) {
 	    if(ufd->sk->eos == 1) {
 		ufd->sk->eos = 2;
 		closeufd(ufd);
