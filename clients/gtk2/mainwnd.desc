@@ -140,24 +140,24 @@ end
 					$mlbl label: "_List of downloads:" mwidget: downloads
 					:sw fill: TRUE expand: TRUE
 						:treeview name: downloads var: y sig(key-press-event): cb_main_trlist_keypress sig(popup-menu): cb_main_trpopup sig(button-release-event): cb_main_trpopup
-							:tvcol title: "User Name"
+							:tvcol title: "User Name" resizable: TRUE
 								$pixbufrend stock_id: 8
 								$textrend text: 4
 							end
-							$tvcol title: "File Name" text: 5
-							:tvcol title: "Size"
+							$tvcol title: "File Name" text: 5 resizable: TRUE
+							:tvcol title: "Size" resizable: TRUE
 								$textrend func: transnicebytefunc funcdata: "GINT_TO_POINTER(6)"
 							end
-							:tvcol title: "Position"
+							:tvcol title: "Position" resizable: TRUE
 								$progrend func: progressfunc funcdata: "GINT_TO_POINTER((6 << 8) | 7)" expand: TRUE
 							end
-							:tvcol title: "Speed"
+							:tvcol title: "Speed" resizable: TRUE
 								$textrend func: transspeedinfo
 							end
-							:tvcol title: "Error"
+							:tvcol title: "Error" resizable: TRUE
 								$textrend func: transerrorinfo
 							end
-							$tvcol title: "Hash" text: 12
+							$tvcol title: "Hash"  resizable: TRUE text: 12
 						end
 					end
 				end
