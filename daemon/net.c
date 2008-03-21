@@ -704,14 +704,16 @@ static void sockrecv(struct ufd *ufd)
     }
 }
 
-static void sockflush(struct ufd *ufd)
+static int sockflush(struct ufd *ufd)
 {
     int ret;
     struct dgrambuf *dbuf;
     int dgram;
     
-    if((dgram = ufddgram(ufd)) < 0)
-	return;
+    if((dgram = ufddgram(ufd)) < 0) {
+	errno = EBADFD;
+	return(-1);
+    }
     if(dgram) {
 	dbuf = sockgetdgbuf(ufd->sk);
 	sendto(ufd->fd, dbuf->data, dbuf->size, MSG_DONTWAIT | MSG_NOSIGNAL, dbuf->addr, dbuf->addrlen);
@@ -721,16 +723,14 @@ static void sockflush(struct ufd *ufd)
 	    ret = send(ufd->fd, ufd->sk->buf.s.buf, ufd->sk->buf.s.datasize, MSG_DONTWAIT | MSG_NOSIGNAL);
 	else
 	    ret = write(ufd->fd, ufd->sk->buf.s.buf, ufd->sk->buf.s.datasize);
-	if(ret < 0) {
-	    /* For now, assume transient error, since
-	     * the socket is polled for errors */
-	    return;
-	}
+	if(ret < 0)
+	    return(-1);
 	if(ret > 0) {
 	    memmove(ufd->sk->buf.s.buf, ((char *)ufd->sk->buf.s.buf) + ret, ufd->sk->buf.s.datasize -= ret);
 	    sockread(ufd->sk);
 	}
     }
+    return(0);
 }
 
 void closesock(struct socket *sk)
@@ -975,6 +975,7 @@ static void runbatches(void)
 	nsc = sc->n;
 	if(sc->s->conncb != NULL)
 	    sc->s->conncb(sc->s, 0, sc->s->data);
+	putsock(sc->s);
 	free(sc);
     }
     for(sc = rbatch, rbatch = NULL; sc; sc = nsc) {
@@ -986,12 +987,14 @@ static void runbatches(void)
 		sc->s->errcb(sc->s, 0, sc->s->data);
 	    sc->s->eos = 2;
 	}
+	putsock(sc->s);
 	free(sc);
     }
     for(sc = wbatch, wbatch = NULL; sc; sc = nsc) {
 	nsc = sc->n;
 	if(sc->s->writecb != NULL)
 	    sc->s->writecb(sc->s, sc->s->data);
+	putsock(sc->s);
 	free(sc);
     }
 }
@@ -1002,7 +1005,7 @@ static void cleansocks(void)
     
     for(ufd = ufds; ufd != NULL; ufd = next) {
 	next = ufd->next;
-	if(ufd->sk && (sockgetdatalen(ufd->sk) == 0)) {
+	if(ufd->sk && ((ufd->fd < 0) || (sockgetdatalen(ufd->sk) == 0))) {
 	    if(ufd->sk->eos == 1) {
 		ufd->sk->eos = 2;
 		closeufd(ufd);
@@ -1116,8 +1119,13 @@ int pollsocks(int timeout)
 		    sockrecv(ufd);
 		if(ufd->fd == -1)
 		    continue;
-		if(FD_ISSET(ufd->fd, &wfds))
-		    sockflush(ufd);
+		if(FD_ISSET(ufd->fd, &wfds)) {
+		    if(sockflush(ufd)) {
+			sockerror(ufd->sk, errno);
+			closeufd(ufd);
+			continue;
+		    }
+		}
 	    }
 	}
     }
@@ -1485,9 +1493,9 @@ int lstgetremotename2(struct lport *lp, struct socket *sk2, struct sockaddr **na
 	errno = EOPNOTSUPP;
 	return(-1);
     }
-    if(ufd1->d.s.family != ufd2->d.s.family)
+    if(ufd1->d.l.family != ufd2->d.s.family)
     {
-	flog(LOG_ERR, "using lstgetremotename2 with sockets of differing family: %i %i", ufd1->d.s.family, ufd2->d.s.family);
+	flog(LOG_ERR, "using lstgetremotename2 with sockets of differing family: %i %i", ufd1->d.l.family, ufd2->d.s.family);
 	return(-1);
     }
     if(getremotename(ufd1->fd, &name1, &len1))
