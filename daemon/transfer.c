@@ -126,22 +126,19 @@ struct transfer *newtransfer(void)
     return(new);
 }
 
-void transferattach(struct transfer *transfer, struct transferiface *iface, void *data)
+void transferattach(struct transfer *transfer, struct socket *dpipe)
 {
-    if(transfer->iface != NULL)
-	transferdetach(transfer);
-    transfer->iface = iface;
-    transfer->ifacedata = data;
+    transferdetach(transfer);
+    getsock(transfer->datapipe = dpipe);
 }
 
 void transferdetach(struct transfer *transfer)
 {
-    if(transfer->iface != NULL)
-    {
-	transfer->iface->detach(transfer, transfer->ifacedata);
-	transfer->iface = NULL;
-	transfer->ifacedata = NULL;
+    if(transfer->datapipe != NULL) {
+	closesock(transfer->datapipe);
+	putsock(transfer->datapipe);
     }
+    transfer->datapipe = NULL;
 }
 
 struct transfer *finddownload(wchar_t *peerid)
@@ -150,7 +147,7 @@ struct transfer *finddownload(wchar_t *peerid)
 
     for(transfer = transfers; transfer != NULL; transfer = transfer->next)
     {
-	if((transfer->dir == TRNSD_DOWN) && (transfer->iface == NULL) && !wcscmp(peerid, transfer->peerid))
+	if((transfer->dir == TRNSD_DOWN) && (transfer->datapipe == NULL) && !wcscmp(peerid, transfer->peerid))
 	    break;
     }
     return(transfer);
@@ -168,7 +165,7 @@ struct transfer *hasupload(struct fnet *fnet, wchar_t *peerid)
     return(transfer);
 }
 
-struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nickid, struct transferiface *iface, void *data)
+struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nickid, struct socket *dpipe)
 {
     struct transfer *transfer;
     
@@ -182,7 +179,7 @@ struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nick
     transfer->dir = TRNSD_UP;
     if(fn != NULL)
 	getfnetnode(transfer->fn = fn);
-    transferattach(transfer, iface, data);
+    transferattach(transfer, dpipe);
     linktransfer(transfer);
     bumptransfer(transfer);
     return(transfer);
@@ -202,8 +199,7 @@ void resettransfer(struct transfer *transfer)
 {
     if(transfer->dir == TRNSD_DOWN)
     {
-	if(transfer->iface != NULL)
-	    transferdetach(transfer);
+	transferdetach(transfer);
 	killfilter(transfer);
 	transfersetstate(transfer, TRNS_WAITING);
 	transfersetactivity(transfer, L"reset");
@@ -232,21 +228,33 @@ static void transexpire(int cancelled, struct transfer *transfer)
 	transfer->timeout = 0;
 }
 
-static void transferread(struct socket *sk, struct transfer *transfer)
+static void localread(struct socket *sk, struct transfer *transfer)
 {
-    if(sockgetdatalen(sk) >= 65536)
-	sockblock(sk, 1);
-    if((transfer->iface != NULL) && (transfer->iface->gotdata != NULL))
-	transfer->iface->gotdata(transfer, transfer->ifacedata);
+    void *buf;
+    size_t blen;
+    
+    if(transfer->datapipe != NULL) {
+	buf = sockgetinbuf(sk, &blen);
+	sockqueue(transfer->datapipe, buf, blen);
+	if(sockqueuesize(transfer->datapipe) >= 65536)
+	    sockblock(sk, 1);
+	else
+	    sockblock(sk, 0);
+    } else {
+	if(sockgetdatalen(sk) >= 65536)
+	    sockblock(sk, 1);
+    }
 }
 
-static void transferwrite(struct socket *sk, struct transfer *transfer)
+static void localwrite(struct socket *sk, struct transfer *transfer)
 {
-    if((transfer->iface != NULL) && (transfer->iface->wantdata != NULL))
-	transfer->iface->wantdata(transfer, transfer->ifacedata);
+    void *buf;
+    size_t blen;
+    
+    
 }
 
-static void transfererr(struct socket *sk, int errno, struct transfer *transfer)
+static void localerr(struct socket *sk, int errno, struct transfer *transfer)
 {
     if((transfer->iface != NULL) && (transfer->iface->endofdata != NULL))
 	transfer->iface->endofdata(transfer, transfer->ifacedata);
@@ -335,9 +343,9 @@ void transfersetlocalend(struct transfer *transfer, struct socket *sk)
 	putsock(transfer->localend);
     getsock(transfer->localend = sk);
     sk->data = transfer;
-    sk->readcb = (void (*)(struct socket *, void *))transferread;
-    sk->writecb = (void (*)(struct socket *, void *))transferwrite;
-    sk->errcb = (void (*)(struct socket *, int, void *))transfererr;
+    sk->readcb = (void (*)(struct socket *, void *))localread;
+    sk->writecb = (void (*)(struct socket *, void *))localwrite;
+    sk->errcb = (void (*)(struct socket *, int, void *))localerr;
 }
 
 static int tryreq(struct transfer *transfer)
