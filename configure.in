@@ -1,5 +1,5 @@
 AC_INIT(daemon/main.c)
-AM_INIT_AUTOMAKE([doldaconnect], [1.2])
+AM_INIT_AUTOMAKE([doldaconnect], [1.3])
 AM_CONFIG_HEADER(config.h)
 
 DOLDA_AC_GROUP([Checking build chain])
