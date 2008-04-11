@@ -234,6 +234,15 @@ static void sksetstate(struct socket *sk, int state)
     sk->back->state = state;
 }
 
+struct socket *netsockpipe(void)
+{
+    struct socket *sk;
+    
+    sk = sockpair(0);
+    sksetstate(sk, SOCK_EST);
+    return(sk);
+}
+
 static void closeufd(struct ufd *ufd)
 {
     if(ufd->fd != -1)

@@ -122,6 +122,7 @@ struct dcpeer
     struct timer *timeout;
     struct qcmdqueue queue;
     struct transfer *transfer;
+    struct socket *trpipe;
     int state;
     int ptclose;      /* Close after transfer is complete */
     int accepted;     /* If false, we connected, otherwise, we accepted */
@@ -139,7 +140,6 @@ struct dcpeer
 };
 
 static struct fnet dcnet;
-static struct transferiface dctransfer;
 static struct socket *udpsock = NULL;
 static struct lport *tcpsock = NULL;
 static struct dcpeer *peers = NULL;
@@ -150,6 +150,7 @@ static char *xmllistname = NULL;
 static char *xmlbz2listname = NULL;
 static struct timer *listwritetimer = NULL;
 
+static struct socket *mktrpipe(struct dcpeer *peer);
 static void peerconnect(struct socket *sk, int err, struct fnetnode *fn);
 static void freedcpeer(struct dcpeer *peer);
 static void transread(struct socket *sk, struct dcpeer *peer);
@@ -1622,14 +1623,14 @@ static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, cha
 		peer->close = 1;
 		return;
 	    }
-	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, &dctransfer, peer);
+	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, peer->trpipe = mktrpipe(peer));
 	} else {
 	    if((transfer = finddownload(peer->wcsname)) == NULL)
 	    {
 		peer->close = 1;
 		return;
 	    }
-	    transferattach(transfer, &dctransfer, peer);
+	    transferattach(transfer, peer->trpipe = mktrpipe(peer));
 	    transfersetstate(transfer, TRNS_HS);
 	}
 	transfersetnick(transfer, peer->wcsname);
@@ -1674,10 +1675,10 @@ static void cmd_peerlock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 		return;
 	    }
 	    peer->direction = TRNSD_UP;
-	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, &dctransfer, peer);
+	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, peer->trpipe = mktrpipe(peer));
 	} else {
 	    peer->direction = TRNSD_DOWN;
-	    transferattach(transfer, &dctransfer, peer);
+	    transferattach(transfer, peer->trpipe = mktrpipe(peer));
 	    transfersetstate(transfer, TRNS_HS);
 	}
 	transfersetnick(transfer, peer->wcsname);
@@ -2674,6 +2675,15 @@ static struct command peercmds[] =
 };
 #undef cc
 
+static struct socket *mktrpipe(struct dcpeer *peer)
+{
+    struct socket *sk;
+    
+    sk = netsockpipe();
+    sk->data = peer;
+    return(sk);
+}
+
 static void dctransdetach(struct transfer *transfer, struct dcpeer *peer)
 {
     CBUNREG(transfer, trans_filterout, peer);
@@ -3121,6 +3131,10 @@ static void freedcpeer(struct dcpeer *peer)
 	peer->next->prev = peer->prev;
     if(peer->prev != NULL)
 	peer->prev->next = peer->next;
+    if(peer->trpipe != NULL) {
+	closesock(peer->trpipe);
+	putsock(peer->trpipe);
+    }
     if(peer->transfer != NULL)
     {
 	if(peer->transfer->dir == TRNSD_UP)
@@ -3207,14 +3221,6 @@ static void hubkill(struct fnetnode *fn)
     hub = (struct dchub *)fn->data;
     closesock(hub->sk);
 }
-
-static struct transferiface dctransfer =
-{
-    .detach = (void (*)(struct transfer *, void *))dctransdetach,
-    .gotdata = (void (*)(struct transfer *, void *))dctransgotdata,
-    .endofdata = (void (*)(struct transfer *, void *))dctransendofdata,
-    .wantdata = (void (*)(struct transfer *, void *))dcwantdata
-};
 
 static struct fnet dcnet =
 {

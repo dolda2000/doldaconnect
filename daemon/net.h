@@ -77,6 +77,7 @@ struct lport {
 
 void putsock(struct socket *sk);
 void getsock(struct socket *sk);
+struct socket *netsockpipe(void);
 struct lport *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct lport *, struct socket *, void *), void *data);
 struct lport *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct lport *, struct socket *, void *), void *data);
 struct lport *netcstcplisten(int port, int local, void (*func)(struct lport *, struct socket *, void *), void *data);

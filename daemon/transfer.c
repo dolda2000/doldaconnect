@@ -126,15 +126,68 @@ struct transfer *newtransfer(void)
     return(new);
 }
 
+static void localread(struct socket *sk, struct transfer *transfer)
+{
+    void *buf;
+    size_t blen;
+    
+    if((transfer->datapipe != NULL) && (sockqueueleft(transfer->datapipe) > 0)) {
+	buf = sockgetinbuf(sk, &blen);
+	sockqueue(transfer->datapipe, buf, blen);
+    }
+}
+
+static void dataread(struct socket *sk, struct transfer *transfer)
+{
+    void *buf;
+    size_t blen;
+    
+    if((transfer->localend != NULL) && (sockqueueleft(transfer->localend) > 0)) {
+	buf = sockgetinbuf(sk, &blen);
+	sockqueue(transfer->localend, buf, blen);
+    }
+}
+
+static void localwrite(struct socket *sk, struct transfer *transfer)
+{
+    if(transfer->datapipe != NULL)
+	dataread(transfer->datapipe, transfer);
+}
+
+static void datawrite(struct socket *sk, struct transfer *transfer)
+{
+    if(transfer->localend != NULL)
+	localread(transfer->localend, transfer);
+}
+
+static void localerr(struct socket *sk, int errno, struct transfer *transfer)
+{
+    if(transfer->datapipe != NULL)
+	closesock(transfer->datapipe);
+}
+
+static void dataerr(struct socket *sk, int errno, struct transfer *transfer)
+{
+    if(transfer->localend != NULL)
+	closesock(transfer->localend);
+}
+
 void transferattach(struct transfer *transfer, struct socket *dpipe)
 {
     transferdetach(transfer);
     getsock(transfer->datapipe = dpipe);
+    dpipe->readcb = (void (*)(struct socket *, void *))dataread;
+    dpipe->writecb = (void (*)(struct socket *, void *))datawrite;
+    dpipe->errcb = (void (*)(struct socket *, int, void *))dataerr;
+    dpipe->data = transfer;
 }
 
 void transferdetach(struct transfer *transfer)
 {
     if(transfer->datapipe != NULL) {
+	transfer->datapipe->readcb = NULL;
+	transfer->datapipe->writecb = NULL;
+	transfer->datapipe->errcb = NULL;
 	closesock(transfer->datapipe);
 	putsock(transfer->datapipe);
     }
@@ -228,39 +281,7 @@ static void transexpire(int cancelled, struct transfer *transfer)
 	transfer->timeout = 0;
 }
 
-static void localread(struct socket *sk, struct transfer *transfer)
-{
-    void *buf;
-    size_t blen;
-    
-    if(transfer->datapipe != NULL) {
-	buf = sockgetinbuf(sk, &blen);
-	sockqueue(transfer->datapipe, buf, blen);
-	if(sockqueuesize(transfer->datapipe) >= 65536)
-	    sockblock(sk, 1);
-	else
-	    sockblock(sk, 0);
-    } else {
-	if(sockgetdatalen(sk) >= 65536)
-	    sockblock(sk, 1);
-    }
-}
-
-static void localwrite(struct socket *sk, struct transfer *transfer)
-{
-    void *buf;
-    size_t blen;
-    
-    
-}
-
-static void localerr(struct socket *sk, int errno, struct transfer *transfer)
-{
-    if((transfer->iface != NULL) && (transfer->iface->endofdata != NULL))
-	transfer->iface->endofdata(transfer, transfer->ifacedata);
-}
-
-void transferputdata(struct transfer *transfer, void *buf, size_t size)
+static void transferputdata(struct transfer *transfer, void *buf, size_t size)
 {
     time(&transfer->activity);
     sockqueue(transfer->localend, buf, size);
@@ -269,7 +290,7 @@ void transferputdata(struct transfer *transfer, void *buf, size_t size)
     CBCHAINDOCB(transfer, trans_p, transfer);
 }
 
-void transferendofdata(struct transfer *transfer)
+static void transferendofdata(struct transfer *transfer)
 {
     if(transfer->curpos >= transfer->size)
     {
@@ -284,12 +305,12 @@ void transferendofdata(struct transfer *transfer)
     }
 }
 
-ssize_t transferdatasize(struct transfer *transfer)
+static ssize_t transferdatasize(struct transfer *transfer)
 {
     return(sockqueueleft(transfer->localend));
 }
 
-void *transfergetdata(struct transfer *transfer, size_t *size)
+static void *transfergetdata(struct transfer *transfer, size_t *size)
 {
     void *buf;
     
@@ -332,7 +353,7 @@ void transferstartul(struct transfer *transfer, struct socket *sk)
     transfersetstate(transfer, TRNS_MAIN);
     socksettos(sk, confgetint("transfer", "ultos"));
     if(transfer->localend != NULL)
-	transferread(transfer->localend, transfer);
+	localread(transfer->localend, transfer);
 }
 
 void transfersetlocalend(struct transfer *transfer, struct socket *sk)
@@ -740,6 +761,7 @@ static int run(void)
 {
     struct transfer *transfer, *next;
     
+    /*
     for(transfer = transfers; transfer != NULL; transfer = transfer->next)
     {
 	if((transfer->endpos >= 0) && (transfer->state == TRNS_MAIN) && (transfer->localend != NULL) && (transfer->localend->state == SOCK_EST) && (transfer->curpos >= transfer->endpos))
@@ -749,6 +771,7 @@ static int run(void)
 	    closesock(transfer->localend);
 	}
     }
+    */
     for(transfer = transfers; transfer != NULL; transfer = next)
     {
 	next = transfer->next;
