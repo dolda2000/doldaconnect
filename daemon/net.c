@@ -172,6 +172,7 @@ static struct socket *newsock(int type)
     struct socket *new;
     
     new = smalloc(sizeof(*new));
+    memset(new, 0, sizeof(*new));
     new->refcount = 2;
     new->fd = -1;
     new->isrealsocket = 1;
@@ -525,8 +526,12 @@ static void sockflush(struct socket *sk)
 	    ret = write(sk->fd, sk->outbuf.s.buf, sk->outbuf.s.datasize);
 	if(ret < 0)
 	{
-	    /* For now, assume transient error, since
-	     * the socket is polled for errors */
+	    if((errno != EINTR) && (errno != EAGAIN))
+	    {
+		if(sk->errcb != NULL)
+		    sk->errcb(sk, errno, sk->data);
+		closesock(sk);
+	    }
 	    break;
 	}
 	if(ret > 0)
