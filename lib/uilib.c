@@ -104,7 +104,8 @@ struct {
     int family;
     int sentcreds;
 } servinfo;
-char *dc_srv_local;
+char dc_srv_local_addr;
+char *dc_srv_local = &dc_srv_local_addr;
 
 static void message(int bits, char *format, ...)
 {
@@ -320,7 +321,6 @@ int dc_init(void)
 {
     if((ichandle = iconv_open("wchar_t", "utf-8")) == (iconv_t)-1)
 	return(-1);
-    dc_srv_local = sstrdup("");
     initcmds();
     return(0);
 }
