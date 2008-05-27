@@ -22,7 +22,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
-#include <attr/xattr.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -30,6 +29,10 @@
 #include "transfer.h"
 #include "module.h"
 #include "log.h"
+
+#ifdef HAVE_XATTR
+#include <attr/xattr.h>
+#endif
 
 struct trdata {
     size_t startpos;
@@ -62,6 +65,7 @@ void filelog(char *format, ...)
     fclose(out);
 }
 
+#ifdef HAVE_XATTR
 void xainc(wchar_t *file, char *an, off_t inc)
 {
     char buf[32];
@@ -88,26 +92,33 @@ void xainc(wchar_t *file, char *an, off_t inc)
     if(setxattr(fn, an, buf, al, 0) < 0)
 	flog(LOG_WARNING, "could not set xattr %s on %s: %s", an, fn, strerror(errno));
 }
+#endif
 
 void request(struct transfer *transfer, struct trdata *data)
 {
     filelog("request %ls", transfer->path);
+#ifdef HAVE_XATTR
     if(confgetint("reqstat", "xa"))
 	xainc(transfer->path, "user.dc-req", 1);
+#endif
 }
 
 void start(struct transfer *transfer, struct trdata *data)
 {
     filelog("start %ls at %zi", transfer->path, data->startpos);
+#ifdef HAVE_XATTR
     if(confgetint("reqstat", "xa"))
 	xainc(transfer->path, "user.dc-started", 1);
+#endif
 }
 
 void finish(struct transfer *transfer, struct trdata *data)
 {
     filelog("finish %ls at %zi, total %zi", transfer->path, transfer->curpos, transfer->curpos - data->startpos);
+#ifdef HAVE_XATTR
     if(confgetint("reqstat", "xa"))
 	xainc(transfer->path, "user.dc-bytes", transfer->curpos - data->startpos);
+#endif
 }
 
 static int chattr(struct transfer *transfer, wchar_t *attrib, struct trdata *data)

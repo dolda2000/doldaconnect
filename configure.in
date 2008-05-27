@@ -83,6 +83,21 @@ if test "$HAS_LIBNOTIFY" = yes; then
    	AC_DEFINE(HAVE_NOTIFY)
 fi
 
+# libattr check
+AH_TEMPLATE(HAVE_XATTR, [define to compile support for extended attributes])
+AC_ARG_WITH(xattr, [  --with-xattr            Enable XATTR support])
+DOLDA_PKG([HAS_XATTR], [test "$with_xattr" = no && HAS_XATTR=no],
+		       [AC_CHECK_LIB(attr, getxattr, [:], [HAS_XATTR=no])],
+		       [DOLDA_CHECK_HEADER(attr/xattr.h, [], [HAS_XATTR=no])],
+		       [XATTR_LIBS=-lattr])
+if test "$with_xattr" = yes -a "$HAS_XATTR" = no; then
+   	AC_MSG_ERROR([*** cannot find xattr support on this system])
+fi
+if test "$HAS_XATTR" = yes; then
+   	AC_DEFINE(HAVE_XATTR)
+fi
+AC_SUBST(XATTR_LIBS)
+
 # libpanelapplet check
 DOLDA_PKG([HAS_LIBPANELAPPLET], [PKG_CHECK_MODULES(PANELAPPLET, libpanelapplet-2.0, [], [HAS_LIBPANELAPPLET=no])])
 
