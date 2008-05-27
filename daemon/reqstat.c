@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
+#include <attr/xattr.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -61,19 +62,52 @@ void filelog(char *format, ...)
     fclose(out);
 }
 
+void xainc(wchar_t *file, char *an, off_t inc)
+{
+    char buf[32];
+    ssize_t al;
+    off_t val;
+    char *fn;
+    
+    if((fn = icswcstombs(file, NULL, NULL)) == NULL) {
+	flog(LOG_WARNING, "could not convert filename %ls into local charset: %s", file, strerror(errno));
+	return;
+    }
+    if((al = getxattr(fn, an, buf, sizeof(buf) - 1)) < 0) {
+	if(errno != ENOATTR) {
+	    flog(LOG_WARNING, "could not get xattr %s on %s: %s", an, fn, strerror(errno));
+	    return;
+	}
+	val = 0;
+    } else {
+	buf[al] = 0;
+	val = strtoll(buf, NULL, 10);
+    }
+    val += inc;
+    al = snprintf(buf, sizeof(buf), "%ji", (intmax_t)val);
+    if(setxattr(fn, an, buf, al, 0) < 0)
+	flog(LOG_WARNING, "could not set xattr %s on %s: %s", an, fn, strerror(errno));
+}
+
 void request(struct transfer *transfer, struct trdata *data)
 {
     filelog("request %ls", transfer->path);
+    if(confgetint("reqstat", "xa"))
+	xainc(transfer->path, "user.dc-req", 1);
 }
 
 void start(struct transfer *transfer, struct trdata *data)
 {
     filelog("start %ls at %zi", transfer->path, data->startpos);
+    if(confgetint("reqstat", "xa"))
+	xainc(transfer->path, "user.dc-started", 1);
 }
 
 void finish(struct transfer *transfer, struct trdata *data)
 {
     filelog("finish %ls at %zi, total %zi", transfer->path, transfer->curpos, transfer->curpos - data->startpos);
+    if(confgetint("reqstat", "xa"))
+	xainc(transfer->path, "user.dc-bytes", transfer->curpos - data->startpos);
 }
 
 static int chattr(struct transfer *transfer, wchar_t *attrib, struct trdata *data)
@@ -140,6 +174,12 @@ static struct configvar myvars[] = {
     /** The name of a file to log upload request information to. If
      * unspecified, upload requests will not be logged. */
     {CONF_VAR_STRING, "file", {.str = L""}},
+    /** If set to true, upload statistics of files will be accumulated
+     * in counters stored in extends attributes (see attr(5)) on the
+     * files themselves. The data accumulated is the number of
+     * requests, the number of successfully started uploads and the
+     * number of uploaded bytes. */
+    {CONF_VAR_BOOL, "xa", {.num = 0}},
     {CONF_VAR_END}
 };
 
