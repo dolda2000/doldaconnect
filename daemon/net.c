@@ -84,8 +84,9 @@ static struct configvar myvars[] =
     {CONF_VAR_INT, "diffserv-mindelay", {.num = 0}},
     /** If enabled, the IP TOS interface will be used to set Diffserv
      * codepoints on IPv4 sockets, by shifting the DSCP value two bits
-     * to the left (across the ECN bits). This may only work on
-     * Linux. */
+     * to the left (remember, the DSCP field in the IPv4 header is
+     * defined as the 6 uppermost bits of the TOS field, the lower two
+     * being left for ECN). This may only work on Linux. */
     {CONF_VAR_BOOL, "dscp-tos", {.num = 0}},
     {CONF_VAR_END}
 };
