@@ -66,8 +66,6 @@ static struct configvar myvars[] =
      * and net.visibleipv4 are unspecified the address of the hub
      * connection is used. */
     {CONF_VAR_STRING, "publicif", {.str = L""}},
-    /* Diffserv should be supported on IPv4, too, but I don't know the
-     * API to do that. */
     /** The Diffserv value to use on IPv6 connections when the
      * minimize cost TOS value is used (see the TOS VALUES
      * section). */
@@ -84,6 +82,11 @@ static struct configvar myvars[] =
      * minimize delay TOS value is used (see the TOS VALUES
      * section). */
     {CONF_VAR_INT, "diffserv-mindelay", {.num = 0}},
+    /** If enabled, the IP TOS interface will be used to set Diffserv
+     * codepoints on IPv4 sockets, by shifting the DSCP value to bits
+     * to the left (across the ECN bits). This may only work on
+     * Linux. */
+    {CONF_VAR_BOOL, "dscp-tos", {.num = 0}},
     {CONF_VAR_END}
 };
 
@@ -981,27 +984,41 @@ int pollsocks(int timeout)
 int socksettos(struct socket *sk, int tos)
 {
     int buf;
+    int dscp2tos;
     
     if(sk->family == AF_UNIX)
 	return(0); /* Unix sockets are always perfect. :) */
     if(sk->family == AF_INET)
     {
+	dscp2tos = confgetint("net", "dscp-tos");
 	switch(tos)
 	{
 	case 0:
 	    buf = 0;
 	    break;
 	case SOCK_TOS_MINCOST:
-	    buf = 0x02;
+	    if(dscp2tos)
+		buf = confgetint("net", "diffserv-mincost") << 2;
+	    else
+		buf = 0x02;
 	    break;
 	case SOCK_TOS_MAXREL:
-	    buf = 0x04;
+	    if(dscp2tos)
+		buf = confgetint("net", "diffserv-maxrel") << 2;
+	    else
+		buf = 0x04;
 	    break;
 	case SOCK_TOS_MAXTP:
-	    buf = 0x08;
+	    if(dscp2tos)
+		buf = confgetint("net", "diffserv-maxtp") << 2;
+	    else
+		buf = 0x08;
 	    break;
 	case SOCK_TOS_MINDELAY:
-	    buf = 0x10;
+	    if(dscp2tos)
+		buf = confgetint("net", "diffserv-mindelay") << 2;
+	    else
+		buf = 0x10;
 	    break;
 	default:
 	    flog(LOG_WARNING, "attempted to set unknown TOS value %i to IPv4 sock", tos);
