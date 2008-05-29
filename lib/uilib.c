@@ -104,8 +104,8 @@ struct {
     int family;
     int sentcreds;
 } servinfo;
-char dc_srv_local_addr;
-char *dc_srv_local = &dc_srv_local_addr;
+/* char dc_srv_local_addr; */
+char *dc_srv_local = (void *)&dc_srv_local;
 
 static void message(int bits, char *format, ...)
 {
