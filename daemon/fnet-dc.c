@@ -1323,7 +1323,6 @@ static void cmd_connecttome(struct socket *sk, struct fnetnode *fn, char *cmd, c
 {
     char *p;
     struct dchub *hub;
-    struct socket *newsk;
     struct sockaddr_in addr;
     
     hub = fn->data;
@@ -1340,7 +1339,7 @@ static void cmd_connecttome(struct socket *sk, struct fnetnode *fn, char *cmd, c
     addr.sin_port = htons(atoi(p));
     if(!inet_aton(args, &addr.sin_addr))
 	return;
-    newsk = netcsconn((struct sockaddr *)&addr, sizeof(addr), (void (*)(struct socket *, int, void *))peerconnect, fn);
+    putsock(netcsconn((struct sockaddr *)&addr, sizeof(addr), (void (*)(struct socket *, int, void *))peerconnect, fn));
     getfnetnode(fn);
     hubhandleaction(sk, fn, cmd, args);
 }

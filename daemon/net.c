@@ -1003,6 +1003,8 @@ struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(
 	memcpy(sk->ufd->d.s.remote = smalloc(addrlen), addr, sk->ufd->d.s.remotelen = addrlen);
 	sk->back->conncb = func;
 	sk->back->data = data;
+	getsock(sk->back);
+	putsock(sk);
 	if(!connect(sk->ufd->fd, addr, addrlen))
 	{
 	    sksetstate(sk, SOCK_EST);
@@ -1074,10 +1076,18 @@ static void runbatches(void)
 static void cleansocks(void)
 {
     struct ufd *ufd, *next;
+    int dead;
     
     for(ufd = ufds; ufd != NULL; ufd = next) {
 	next = ufd->next;
-	if(ufd->sk && ((ufd->fd < 0) || (sockgetdatalen(ufd->sk) == 0))) {
+	if(ufd->sk) {
+	    dead = (ufd->fd < 0);
+	    if(ufd->sk->state == SOCK_STL)
+		dead = 1;
+	    if((ufd->sk->state == SOCK_EST) && (sockgetdatalen(ufd->sk) == 0))
+		dead = 1;
+	    if(!dead)
+		continue;
 	    if(ufd->sk->eos == 1) {
 		ufd->sk->eos = 2;
 		closeufd(ufd);

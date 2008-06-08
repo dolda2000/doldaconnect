@@ -185,7 +185,7 @@ static void resolvecb(struct sockaddr *addr, int addrlen, struct fnetnode *data)
 	killfnetnode(data);
 	putfnetnode(data);
     } else {
-	netcsconn(addr, addrlen, (void (*)(struct socket *, int, void *))conncb, data);
+	putsock(netcsconn(addr, addrlen, (void (*)(struct socket *, int, void *))conncb, data));
     }
 }
 
