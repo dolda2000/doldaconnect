@@ -361,12 +361,15 @@ void getsock(struct socket *sk)
 static void sockdebug(int level, struct socket *sk, char *format, ...)
 {
     va_list args;
+    char *tb;
     
-    if((sk->dbgnm == NULL) || (level < sk->dbglvl))
+    if((sk->dbgnm == NULL) || (level > sk->dbglvl))
 	return;
     va_start(args, format);
-    vfprintf(stderr, format, args);
+    tb = vsprintf2(format, args);
     va_end(args);
+    fprintf(stderr, "%s: %s\n", sk->dbgnm, tb);
+    free(tb);
 }
 
 void socksetdebug(struct socket *sk, int level, char *nm, ...)
@@ -382,6 +385,7 @@ void socksetdebug(struct socket *sk, int level, char *nm, ...)
     free(tb);
     sk->dbglvl = level;
     sk->back->dbglvl = level;
+    sockdebug(1, sk, "enabled debugging");
 }
 
 static void freesock(struct socket *sk)
@@ -514,7 +518,7 @@ void *sockgetinbuf(struct socket *sk, size_t *size)
 	sk->buf.s.bufsize = sk->buf.s.datasize = 0;
 	sockread(sk);
     }
-    sockdebug(2, sk, "read %ji bytes", *size);
+    sockdebug(2, sk, "read %zi bytes", *size);
     return(buf);
 }
 
@@ -524,7 +528,7 @@ void sockqueue(struct socket *sk, void *data, size_t size)
     struct sockaddr *remote;
     socklen_t remotelen;
     
-    sockdebug(2, sk, "queued %ji bytes", size);
+    sockdebug(2, sk, "queued %zi bytes", size);
     if(size == 0)
 	return;
     if(sk->state == SOCK_STL)
