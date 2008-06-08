@@ -134,6 +134,7 @@ static void localread(struct socket *sk, struct transfer *transfer)
     if((transfer->datapipe != NULL) && (sockqueueleft(transfer->datapipe) > 0)) {
 	buf = sockgetinbuf(sk, &blen);
 	sockqueue(transfer->datapipe, buf, blen);
+	free(buf);
 	time(&transfer->activity);
 	transfer->curpos += blen;
 	bytesupload += blen;
@@ -149,6 +150,7 @@ static void dataread(struct socket *sk, struct transfer *transfer)
     if((transfer->localend != NULL) && (sockqueueleft(transfer->localend) > 0)) {
 	buf = sockgetinbuf(sk, &blen);
 	sockqueue(transfer->localend, buf, blen);
+	free(buf);
 	transfer->curpos += blen;
 	bytesdownload += blen;
 	CBCHAINDOCB(transfer, trans_p, transfer);
