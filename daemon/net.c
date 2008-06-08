@@ -390,6 +390,14 @@ void putsock(struct socket *sk)
     }
 }
 
+void quitsock(struct socket *sk)
+{
+    sk->readcb = NULL;
+    sk->writecb = NULL;
+    sk->errcb = NULL;
+    putsock(sk);
+}
+
 static void linksock(struct scons **list, struct socket *sk)
 {
     struct scons *sc;
@@ -770,6 +778,18 @@ size_t sockgetdatalen(struct socket *sk)
 /* { */
 /*     return(sockgetdatalen(sk->back)); */
 /* } */
+
+size_t socktqueuesize(struct socket *sk)
+{
+    size_t ret;
+    
+    ret = 0;
+    while(1) {
+	ret += sockgetdatalen(sk->back);
+	if((sk = sk->back->pnext) == NULL)
+	    return(ret);
+    }
+}
 
 ssize_t sockqueueleft(struct socket *sk)
 {

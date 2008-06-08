@@ -87,6 +87,7 @@ void freedgbuf(struct dgrambuf *dg);
 void sockqueue(struct socket *sk, void *data, size_t size);
 void sockerror(struct socket *sk, int en);
 /* size_t sockqueuesize(struct socket *sk); */
+size_t socktqueuesize(struct socket *sk);
 ssize_t sockqueueleft(struct socket *sk);
 int netresolve(char *addr, void (*callback)(struct sockaddr *addr, int addrlen, void *data), void *data);
 struct socket *netcsdgram(struct sockaddr *name, socklen_t namelen);
@@ -109,5 +110,6 @@ void sockpushdata(struct socket *sk, void *buf, size_t size);
 int sockpeeraddr(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf);
 int getucred(struct socket *sk, uid_t *uid, gid_t *gid);
 int sockfamily(struct socket *sk);
+void quitsock(struct socket *sk);
 
 #endif

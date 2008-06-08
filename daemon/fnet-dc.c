@@ -1623,14 +1623,14 @@ static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, cha
 		peer->close = 1;
 		return;
 	    }
-	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, peer->trpipe = mktrpipe(peer));
+	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, (peer->trpipe = mktrpipe(peer))->back);
 	} else {
 	    if((transfer = finddownload(peer->wcsname)) == NULL)
 	    {
 		peer->close = 1;
 		return;
 	    }
-	    transferattach(transfer, peer->trpipe = mktrpipe(peer));
+	    transferattach(transfer, (peer->trpipe = mktrpipe(peer))->back);
 	    transfersetstate(transfer, TRNS_HS);
 	}
 	transfersetnick(transfer, peer->wcsname);
@@ -1675,10 +1675,10 @@ static void cmd_peerlock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 		return;
 	    }
 	    peer->direction = TRNSD_UP;
-	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, peer->trpipe = mktrpipe(peer));
+	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, (peer->trpipe = mktrpipe(peer))->back);
 	} else {
 	    peer->direction = TRNSD_DOWN;
-	    transferattach(transfer, peer->trpipe = mktrpipe(peer));
+	    transferattach(transfer, (peer->trpipe = mktrpipe(peer))->back);
 	    transfersetstate(transfer, TRNS_HS);
 	}
 	transfersetnick(transfer, peer->wcsname);
@@ -2675,22 +2675,6 @@ static struct command peercmds[] =
 };
 #undef cc
 
-static struct socket *mktrpipe(struct dcpeer *peer)
-{
-    struct socket *sk;
-    
-    sk = netsockpipe();
-    sk->data = peer;
-    return(sk);
-}
-
-static void dctransdetach(struct transfer *transfer, struct dcpeer *peer)
-{
-    CBUNREG(transfer, trans_filterout, peer);
-    peer->transfer = NULL;
-    peer->close = 1;
-}
-
 static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
 {
     int ret;
@@ -2703,26 +2687,30 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
     {
 	if(sockqueueleft(peer->sk) > 0)
 	{
-	    if((buf = transfergetdata(transfer, &bufsize)) != NULL)
+	    if((buf = sockgetinbuf(peer->trpipe, &bufsize)) != NULL)
 	    {
-		if(peer->compress == CPRS_NONE)
-		{
-		    sockqueue(peer->sk, buf, bufsize);
-		} else if(peer->compress == CPRS_ZLIB) {
-		    cstr = peer->cprsdata;
-		    cstr->next_in = buf;
-		    cstr->avail_in = bufsize;
-		    while(cstr->avail_in > 0)
+		if((transfer->endpos >= 0) && (transfer->curpos + bufsize >= transfer->endpos))
+		    bufsize = transfer->endpos - transfer->curpos;
+		if(bufsize > 0) {
+		    if(peer->compress == CPRS_NONE)
 		    {
-			cstr->next_out = outbuf;
-			cstr->avail_out = sizeof(outbuf);
-			if((ret = deflate(cstr, 0)) != Z_OK)
+			sockqueue(peer->sk, buf, bufsize);
+		    } else if(peer->compress == CPRS_ZLIB) {
+			cstr = peer->cprsdata;
+			cstr->next_in = buf;
+			cstr->avail_in = bufsize;
+			while(cstr->avail_in > 0)
 			{
-			    flog(LOG_WARNING, "bug? deflate() did not return Z_OK (but rather %i)", ret);
-			    freedcpeer(peer);
-			    return;
+			    cstr->next_out = outbuf;
+			    cstr->avail_out = sizeof(outbuf);
+			    if((ret = deflate(cstr, 0)) != Z_OK)
+			    {
+				flog(LOG_WARNING, "bug? deflate() did not return Z_OK (but rather %i)", ret);
+				freedcpeer(peer);
+				return;
+			    }
+			    sockqueue(peer->sk, outbuf, sizeof(outbuf) - cstr->avail_out);
 			}
-			sockqueue(peer->sk, outbuf, sizeof(outbuf) - cstr->avail_out);
 		    }
 		}
 		free(buf);
@@ -2766,19 +2754,40 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
     }
 }
 
-static void dctransendofdata(struct transfer *transfer, struct dcpeer *peer)
+void trpiperead(struct socket *sk, struct dcpeer *peer)
+{
+    dctransgotdata(peer->transfer, peer);
+}
+
+void trpipewrite(struct socket *sk, struct dcpeer *peer)
+{
+}
+
+void trpipeerr(struct socket *sk, int errno, struct dcpeer *peer)
 {
     peer->state = PEER_SYNC;
-    dctransgotdata(transfer, peer);
+    dctransgotdata(peer->transfer, peer);
+    CBUNREG(peer->transfer, trans_filterout, peer);
+}
+
+static struct socket *mktrpipe(struct dcpeer *peer)
+{
+    struct socket *sk;
+    
+    sk = netsockpipe();
+    sk->data = peer;
+    sk->readcb = (void (*)(struct socket *, void *))trpiperead;
+    sk->writecb = (void (*)(struct socket *, void *))trpipewrite;
+    sk->errcb = (void (*)(struct socket *, int, void *))trpipeerr;
+    return(sk);
 }
 
 static void transread(struct socket *sk, struct dcpeer *peer)
 {
     void *buf;
     size_t bufsize;
-    struct transfer *transfer;
     
-    if(transferdatasize(peer->transfer) < 0)
+    if(sockqueueleft(peer->trpipe) < 0)
 	return;
     if((buf = sockgetinbuf(sk, &bufsize)) == NULL)
 	return;
@@ -2788,21 +2797,15 @@ static void transread(struct socket *sk, struct dcpeer *peer)
 	freedcpeer(peer);
 	return;
     }
-    transferputdata(peer->transfer, buf, bufsize);
+    sockqueue(peer->trpipe, buf, bufsize);
     free(buf);
     if(peer->transfer->curpos >= peer->transfer->size)
     {
-	transfer = peer->transfer;
-	transferdetach(transfer);
-	transferendofdata(transfer);
+	closesock(peer->trpipe);
+	quitsock(peer->trpipe);
+	peer->close = 1;
 	return;
     }
-}
-
-static void dcwantdata(struct transfer *transfer, struct dcpeer *peer)
-{
-    if(transferdatasize(transfer) > 0)
-	transread(peer->sk, peer);
 }
 
 static void transerr(struct socket *sk, int err, struct dcpeer *peer)
@@ -2814,8 +2817,9 @@ static void transerr(struct socket *sk, int err, struct dcpeer *peer)
 	freedcpeer(peer);
 	return;
     }
-    transferdetach(transfer);
-    transferendofdata(transfer);
+    closesock(peer->trpipe);
+    quitsock(peer->trpipe);
+    peer->close = 1;
 }
 
 static void transwrite(struct socket *sk, struct dcpeer *peer)
@@ -3133,10 +3137,11 @@ static void freedcpeer(struct dcpeer *peer)
 	peer->prev->next = peer->next;
     if(peer->trpipe != NULL) {
 	closesock(peer->trpipe);
-	putsock(peer->trpipe);
+	quitsock(peer->trpipe);
     }
     if(peer->transfer != NULL)
     {
+	CBUNREG(peer->transfer, trans_filterout, peer);
 	if(peer->transfer->dir == TRNSD_UP)
 	    peer->transfer->close = 1;
 	if(peer->transfer->dir == TRNSD_DOWN)

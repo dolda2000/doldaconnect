@@ -134,6 +134,10 @@ static void localread(struct socket *sk, struct transfer *transfer)
     if((transfer->datapipe != NULL) && (sockqueueleft(transfer->datapipe) > 0)) {
 	buf = sockgetinbuf(sk, &blen);
 	sockqueue(transfer->datapipe, buf, blen);
+	time(&transfer->activity);
+	transfer->curpos += blen;
+	bytesupload += blen;
+	CBCHAINDOCB(transfer, trans_p, transfer);
     }
 }
 
@@ -145,6 +149,9 @@ static void dataread(struct socket *sk, struct transfer *transfer)
     if((transfer->localend != NULL) && (sockqueueleft(transfer->localend) > 0)) {
 	buf = sockgetinbuf(sk, &blen);
 	sockqueue(transfer->localend, buf, blen);
+	transfer->curpos += blen;
+	bytesdownload += blen;
+	CBCHAINDOCB(transfer, trans_p, transfer);
     }
 }
 
@@ -168,8 +175,14 @@ static void localerr(struct socket *sk, int errno, struct transfer *transfer)
 
 static void dataerr(struct socket *sk, int errno, struct transfer *transfer)
 {
-    if(transfer->localend != NULL)
+    if(transfer->curpos >= transfer->size) {
+	transfersetstate(transfer, TRNS_DONE);
 	closesock(transfer->localend);
+	quitsock(transfer->localend);
+	transfer->localend = NULL;
+    } else {
+	resettransfer(transfer);
+    }
 }
 
 void transferattach(struct transfer *transfer, struct socket *dpipe)
@@ -185,11 +198,8 @@ void transferattach(struct transfer *transfer, struct socket *dpipe)
 void transferdetach(struct transfer *transfer)
 {
     if(transfer->datapipe != NULL) {
-	transfer->datapipe->readcb = NULL;
-	transfer->datapipe->writecb = NULL;
-	transfer->datapipe->errcb = NULL;
 	closesock(transfer->datapipe);
-	putsock(transfer->datapipe);
+	quitsock(transfer->datapipe);
     }
     transfer->datapipe = NULL;
 }
@@ -279,59 +289,6 @@ static void transexpire(int cancelled, struct transfer *transfer)
 	bumptransfer(transfer);
     else
 	transfer->timeout = 0;
-}
-
-static void transferputdata(struct transfer *transfer, void *buf, size_t size)
-{
-    time(&transfer->activity);
-    sockqueue(transfer->localend, buf, size);
-    transfer->curpos += size;
-    bytesdownload += size;
-    CBCHAINDOCB(transfer, trans_p, transfer);
-}
-
-static void transferendofdata(struct transfer *transfer)
-{
-    if(transfer->curpos >= transfer->size)
-    {
-	transfersetstate(transfer, TRNS_DONE);
-	transfer->localend->readcb = NULL;
-	transfer->localend->writecb = NULL;
-	transfer->localend->errcb = NULL;
-	putsock(transfer->localend);
-	transfer->localend = NULL;
-    } else {
-	resettransfer(transfer);
-    }
-}
-
-static ssize_t transferdatasize(struct transfer *transfer)
-{
-    return(sockqueueleft(transfer->localend));
-}
-
-static void *transfergetdata(struct transfer *transfer, size_t *size)
-{
-    void *buf;
-    
-    if(transfer->localend == NULL)
-	return(NULL);
-    time(&transfer->activity);
-    if((buf = sockgetinbuf(transfer->localend, size)) == NULL)
-	return(NULL);
-    if((transfer->endpos >= 0) && (transfer->curpos + *size >= transfer->endpos))
-    {
-	if((*size = transfer->endpos - transfer->curpos) == 0) {
-	    free(buf);
-	    buf = NULL;
-	} else {
-	    buf = srealloc(buf, *size);
-	}
-    }
-    transfer->curpos += *size;
-    bytesupload += *size;
-    CBCHAINDOCB(transfer, trans_p, transfer);
-    return(buf);
 }
 
 void transferprepul(struct transfer *transfer, off_t size, off_t start, off_t end, struct socket *lesk)
