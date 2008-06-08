@@ -3289,7 +3289,6 @@ static void peerconnect(struct socket *sk, int err, struct fnetnode *fn)
     if(err != 0)
     {
 	putfnetnode(fn);
-	putsock(sk);
 	return;
     }
     hub = fn->data;
@@ -3301,7 +3300,6 @@ static void peerconnect(struct socket *sk, int err, struct fnetnode *fn)
     sk->errcb = (void (*)(struct socket *, int, void *))peererror;
     sk->data = peer;
     socksettos(sk, confgetint("fnet", "fnptos"));
-    putsock(sk);
     peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
     sendmynick(peer);
     sendpeerlock(peer);

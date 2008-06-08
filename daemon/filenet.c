@@ -176,7 +176,6 @@ static void conncb(struct socket *sk, int err, struct fnetnode *data)
     data->fnet->connect(data, sk);
     data->connected = 1;
     putfnetnode(data);
-    putsock(sk);
 }
 
 static void resolvecb(struct sockaddr *addr, int addrlen, struct fnetnode *data)
