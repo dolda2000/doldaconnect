@@ -66,6 +66,8 @@ struct socket
     void (*writecb)(struct socket *sk, void *data);
     struct ufd *ufd;
     void *data;
+    char *dbgnm;
+    int dbglvl;
 };
 
 struct lport {
@@ -111,5 +113,6 @@ int sockpeeraddr(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf
 int getucred(struct socket *sk, uid_t *uid, gid_t *gid);
 int sockfamily(struct socket *sk);
 void quitsock(struct socket *sk);
+void socksetdebug(struct socket *sk, int level, char *nm, ...);
 
 #endif

@@ -358,10 +358,37 @@ void getsock(struct socket *sk)
     sk->refcount++;
 }
 
+static void sockdebug(int level, struct socket *sk, char *format, ...)
+{
+    va_list args;
+    
+    if((sk->dbgnm == NULL) || (level < sk->dbglvl))
+	return;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+}
+
+void socksetdebug(struct socket *sk, int level, char *nm, ...)
+{
+    va_list args;
+    char *tb;
+    
+    va_start(args, nm);
+    tb = vsprintf2(nm, args);
+    va_end(args);
+    sk->dbgnm = sprintf2("%s (f)", tb);
+    sk->back->dbgnm = sprintf2("%s (b)", tb);
+    free(tb);
+    sk->dbglvl = level;
+    sk->back->dbglvl = level;
+}
+
 static void freesock(struct socket *sk)
 {
     struct dgrambuf *buf;
     
+    sockdebug(1, sk, "freeing socket");
     if(sk->dgram) {
 	while((buf = sk->buf.d.f) != NULL) {
 	    sk->buf.d.f = buf->next;
@@ -371,6 +398,8 @@ static void freesock(struct socket *sk)
 	if(sk->buf.s.buf != NULL)
 	    free(sk->buf.s.buf);
     }
+    if(sk->dbgnm != NULL)
+	free(sk->dbgnm);
     free(sk);
     numsocks--;
 }
@@ -476,6 +505,7 @@ void *sockgetinbuf(struct socket *sk, size_t *size)
 	if((sk->buf.s.buf == NULL) || (sk->buf.s.datasize == 0))
 	{
 	    *size = 0;
+	    sockdebug(2, sk, "read 0 bytes", *size);
 	    return(NULL);
 	}
 	buf = sk->buf.s.buf;
@@ -484,6 +514,7 @@ void *sockgetinbuf(struct socket *sk, size_t *size)
 	sk->buf.s.bufsize = sk->buf.s.datasize = 0;
 	sockread(sk);
     }
+    sockdebug(2, sk, "read %ji bytes", *size);
     return(buf);
 }
 
@@ -493,6 +524,7 @@ void sockqueue(struct socket *sk, void *data, size_t size)
     struct sockaddr *remote;
     socklen_t remotelen;
     
+    sockdebug(2, sk, "queued %ji bytes", size);
     if(size == 0)
 	return;
     if(sk->state == SOCK_STL)
@@ -753,6 +785,7 @@ static int sockflush(struct ufd *ufd)
 
 void closesock(struct socket *sk)
 {
+    sockdebug(1, sk, "closed");
     sksetstate(sk, SOCK_STL);
     if(sk->back->eos == 0)
 	sk->back->eos = 1;
