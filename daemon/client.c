@@ -294,8 +294,10 @@ static void readhashcache(void)
     if((stream = fopen(hcname, "r")) == NULL)
     {
 	flog(LOG_WARNING, "could not open hash cache %s: %s", hcname, strerror(errno));
+	free(hcname);
 	return;
     }
+    free(hcname);
     while(hashcache != NULL)
 	freehashcache(hashcache);
     line = 0;
@@ -369,8 +371,10 @@ static void writehashcache(int now)
     if((stream = fopen(hcname, "w")) == NULL)
     {
 	flog(LOG_WARNING, "could not write hash cache %s: %s", hcname, strerror(errno));
+	free(hcname);
 	return;
     }
+    free(hcname);
     fprintf(stream, "# Dolda Connect hash cache file\n");
     fprintf(stream, "# Generated automatically, do not edit\n");
     fprintf(stream, "# Format: DEVICE INODE MTIME [HASH...]\n");
