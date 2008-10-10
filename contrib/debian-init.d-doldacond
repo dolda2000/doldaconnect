@@ -1,6 +1,12 @@
 #!/bin/sh
 
 PATH=/usr/local/bin:/usr/local/sbin:$PATH
+# Protect auto-files against sudo invocations of the init script
+HOME=/root
+# If you use PAM authentication with pam_krb5 and Kerberos
+# authentication simultaneously, uncomment the following line to
+# avoid segfaults in libcom_err:
+#LD_PRELOAD=/usr/lib/libkrb4.so; export LD_PRELOAD
 
 . /lib/lsb/init-functions
 
@@ -8,6 +14,9 @@ start() {
     LANG=en_US.UTF-8
     export LANG
     log_begin_msg "Starting Dolda Connect daemon..."
+    log_progress_msg lists
+    rm -f /tmp/dc-filelist-*
+    log_progress_msg daemon
     start-stop-daemon -S -p /var/run/doldacond.pid -qx /usr/local/bin/doldacond -- -s -p /var/run/doldacond.pid
     log_end_msg $?
 }
