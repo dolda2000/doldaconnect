@@ -872,7 +872,7 @@ static void cmd_hubname(struct socket *sk, struct fnetnode *fn, char *cmd, char 
     struct dchub *hub;
     
     hub = fn->data;
-    if(hub->nativename == NULL)
+    if(hub->nativename != NULL)
 	free(hub->nativename);
     hub->nativename = sstrdup(args);
     buf = icmbstowcs(args, hub->charset);
