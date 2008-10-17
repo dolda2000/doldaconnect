@@ -2118,6 +2118,7 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
     } else if(fd >= 0) {
 	if((wbuf = adc2path(argv[1])) != NULL)
 	    transfersetpath(peer->transfer, wbuf);
+	free(wbuf);
 	peer->transfer->flags.b.minislot = 1;
     }
     if(fd < 0)

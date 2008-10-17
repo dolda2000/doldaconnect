@@ -22,5 +22,4 @@ Documentation:
 
 Code cleanups:
  * Clean up local variables in the library.
-
-Other: See output of "grep -r XXX ."
+ * See output of "grep -r XXX ."

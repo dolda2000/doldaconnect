@@ -40,8 +40,6 @@ struct child
     pid_t pid;
     void (*callback)(pid_t pid, int status, void *data);
     void *data;
-    int status;
-    volatile int finished;
 };
 
 void childcallback(pid_t pid, void (*func)(pid_t, int, void *), void *data);
