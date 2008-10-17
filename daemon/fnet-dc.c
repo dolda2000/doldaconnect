@@ -2829,7 +2829,6 @@ static struct socket *mktrpipe(struct dcpeer *peer)
     struct socket *sk;
     
     sk = netsockpipe();
-    socksetdebug(sk, 2, "trpipe");
     sk->data = peer;
     sk->readcb = (void (*)(struct socket *, void *))trpiperead;
     sk->writecb = (void (*)(struct socket *, void *))trpipewrite;
@@ -3114,7 +3113,6 @@ static struct dcpeer *newdcpeer(struct socket *sk)
     new = smalloc(sizeof(*new));
     memset(new, 0, sizeof(*new));
     new->transfer = NULL;
-    socksetdebug(sk, 2, "peersock");
     getsock(sk);
     new->sk = sk;
     if(confgetint("dc", "dcppemu"))

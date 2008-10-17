@@ -325,7 +325,6 @@ void transfersetlocalend(struct transfer *transfer, struct socket *sk)
 {
     if(transfer->localend != NULL)
 	putsock(transfer->localend);
-    socksetdebug(sk, 2, "localend");
     getsock(transfer->localend = sk);
     sk->data = transfer;
     sk->readcb = (void (*)(struct socket *, void *))localread;
