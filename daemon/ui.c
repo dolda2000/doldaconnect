@@ -1216,7 +1216,6 @@ static void cmd_filtercmd(struct socket *sk, struct uidata *data, int argc, wcha
     for(pp = cargv; *pp; pp++)
 	free(*pp);
     free(cargv);
-    free(filtercmd);
     data->fcmdsk = wrapsock(pipe);
     data->fcmdpid = pid;
     if(data->fcmdbuf != NULL)
