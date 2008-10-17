@@ -25,6 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include <locale.h>
+#include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -91,20 +92,24 @@ int cmd_lsdl(int argc, wchar_t **argv)
 {
     struct dc_response *resp;
     struct dc_intresp *ires;
+    wchar_t *file, *p;
     
     resp = dc_gettaggedrespsync(dc_queuecmd(NULL, NULL, L"lstrans", NULL));
     if(resp->code == 200) {
 	if(interactive) {
-	    printf("ID      S USER            FILE\n");
-	    printf("------- - --------------- ----------------------------------------------------\n");
+	    printf("ID      S USER       PROGRESS      FILE\n");
+	    printf("------- - ---------- ------------- -------------------------------------------\n");
 	}
 	while((ires = dc_interpret(resp)) != NULL) {
 	    if(ires->argv[1].val.num == DC_TRNSD_DOWN) {
+		file = ires->argv[5].val.str;
+		if((p = wcsrchr(file, L'/')) != NULL)
+		    file = p + 1;
 		if(interactive) {
-		    wcslimit(ires->argv[4].val.str, 15);
-		    wcslimitr(ires->argv[5].val.str, 52);
+		    wcslimit(ires->argv[4].val.str, 10);
+		    wcslimit(file, 43);
 		}
-		printf("%-7i %c %-15ls %ls\n", ires->argv[0].val.num, "SHED"[ires->argv[2].val.num], ires->argv[4].val.str, ires->argv[5].val.str);
+		printf("%-7i %c %-10ls %'-13ji %ls\n", ires->argv[0].val.num, "SHED"[ires->argv[2].val.num], ires->argv[4].val.str, (intmax_t)ires->argv[7].val.lnum, file);
 	    }
 	    dc_freeires(ires);
 	}
