@@ -133,6 +133,8 @@ static void localread(struct socket *sk, struct transfer *transfer)
     
     if((transfer->datapipe != NULL) && (sockqueueleft(transfer->datapipe) > 0)) {
 	buf = sockgetinbuf(sk, &blen);
+	if((transfer->endpos >= 0) && (transfer->curpos + blen > transfer->endpos))
+	    blen = transfer->endpos - transfer->curpos;
 	sockqueue(transfer->datapipe, buf, blen);
 	free(buf);
 	time(&transfer->activity);
@@ -149,6 +151,8 @@ static void dataread(struct socket *sk, struct transfer *transfer)
     
     if((transfer->localend != NULL) && (sockqueueleft(transfer->localend) > 0)) {
 	buf = sockgetinbuf(sk, &blen);
+	if((transfer->endpos >= 0) && (transfer->curpos + blen > transfer->endpos))
+	    blen = transfer->endpos - transfer->curpos;
 	sockqueue(transfer->localend, buf, blen);
 	free(buf);
 	transfer->curpos += blen;
@@ -179,9 +183,11 @@ static void dataerr(struct socket *sk, int errno, struct transfer *transfer)
 {
     if(transfer->curpos >= transfer->size) {
 	transfersetstate(transfer, TRNS_DONE);
-	closesock(transfer->localend);
-	quitsock(transfer->localend);
-	transfer->localend = NULL;
+	if(transfer->localend != NULL) {
+	    closesock(transfer->localend);
+	    quitsock(transfer->localend);
+	    transfer->localend = NULL;
+	}
     } else {
 	resettransfer(transfer);
     }
@@ -319,6 +325,7 @@ void transfersetlocalend(struct transfer *transfer, struct socket *sk)
 {
     if(transfer->localend != NULL)
 	putsock(transfer->localend);
+    socksetdebug(sk, 2, "localend");
     getsock(transfer->localend = sk);
     sk->data = transfer;
     sk->readcb = (void (*)(struct socket *, void *))localread;
