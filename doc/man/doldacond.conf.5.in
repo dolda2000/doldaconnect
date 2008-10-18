@@ -208,7 +208,7 @@ set DSCP values, so it has been implemented as an option (see the
 Even though Linux lacks an explicit API to set the DSCP field in IPv4,
 the TOS API is "DSCP compliant" in the interesting way that it masks
 away the two least significant bits. Therefore, the minimum cost TOS
-value cannot currently be set on Linux.
+value cannot currently be set on Linux without patching the kernel.
 .TP
 4
 I have not examined how these issues compare to other operating
