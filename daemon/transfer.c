@@ -193,7 +193,7 @@ static void dataerr(struct socket *sk, int errno, struct transfer *transfer)
 	    resettransfer(transfer);
 	}
     } else if(transfer->dir == TRNSD_UP) {
-	    transfer->close = 1;
+	transfer->close = 1;
     }
 }
 
