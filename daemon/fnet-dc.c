@@ -738,7 +738,6 @@ static void requestfile(struct dcpeer *peer)
 	    peer->close = 1;
 	    return;
 	}
-	CBREG(peer->transfer, trans_filterout, (int (*)(struct transfer *, wchar_t *, wchar_t *, void *))trresumecb, NULL, peer);
 	return;
     }
     if(supports(peer, "adcget"))
@@ -1634,6 +1633,7 @@ static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, cha
 	}
 	transfersetnick(transfer, peer->wcsname);
 	peer->transfer = transfer;
+	CBREG(peer->transfer, trans_filterout, (int (*)(struct transfer *, wchar_t *, wchar_t *, void *))trresumecb, NULL, peer);
 	if(peer->extended)
 	    sendsupports(peer);
 	qstrf(sk, "$Direction %s %i|", (peer->direction == TRNSD_UP)?"Upload":"Download", rand() % 10000);
@@ -1682,6 +1682,7 @@ static void cmd_peerlock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	}
 	transfersetnick(transfer, peer->wcsname);
 	peer->transfer = transfer;
+	CBREG(peer->transfer, trans_filterout, (int (*)(struct transfer *, wchar_t *, wchar_t *, void *))trresumecb, NULL, peer);
 	qstrf(sk, "$Direction %s %i|", (peer->direction == TRNSD_UP)?"Upload":"Download", rand() % 10000);
 	qstrf(sk, "$Key %s|", key);
 	free(key);
@@ -2735,7 +2736,7 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
 		}
 		if(peer->ptclose)
 		{
-		    freedcpeer(peer);
+		    peer->close = 1;
 		} else {
 		    if(peer->timeout == NULL)
 			peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
@@ -2749,6 +2750,19 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
 	    }
 	}
     }
+}
+
+static void peerdetach(struct dcpeer *peer)
+{
+    CBUNREG(peer->transfer, trans_filterout, peer);
+    closesock(peer->trpipe);
+    quitsock(peer->trpipe);
+    peer->trpipe = NULL;
+    if(peer->transfer->dir == TRNSD_UP)
+	peer->transfer->close = 1;
+    else if(peer->transfer->dir == TRNSD_DOWN)
+	resettransfer(peer->transfer);
+    peer->transfer = NULL;
 }
 
 static void transread(struct socket *sk, struct dcpeer *peer)
@@ -2771,10 +2785,7 @@ static void transread(struct socket *sk, struct dcpeer *peer)
     }
     if(peer->transfer->curpos >= peer->transfer->size)
     {
-	closesock(peer->trpipe);
-	quitsock(peer->trpipe);
-	peer->trpipe = NULL;
-	peer->transfer = NULL;
+	peerdetach(peer);
 	peer->close = 1;
 	return;
     }
@@ -2789,10 +2800,7 @@ static void transerr(struct socket *sk, int err, struct dcpeer *peer)
 	freedcpeer(peer);
 	return;
     }
-    closesock(peer->trpipe);
-    quitsock(peer->trpipe);
-    peer->trpipe = NULL;
-    peer->transfer = NULL;
+    peerdetach(peer);
     peer->close = 1;
 }
 
@@ -2822,7 +2830,10 @@ static void trpipeerr(struct socket *sk, int errno, struct dcpeer *peer)
 {
     peer->state = PEER_SYNC;
     dctransgotdata(peer->transfer, peer);
-    CBUNREG(peer->transfer, trans_filterout, peer);
+    peerdetach(peer);
+    if(peer->state != PEER_CMD) {
+	peer->close = 1;
+    }
 }
 
 static struct socket *mktrpipe(struct dcpeer *peer)
@@ -3113,7 +3124,6 @@ static struct dcpeer *newdcpeer(struct socket *sk)
     
     new = smalloc(sizeof(*new));
     memset(new, 0, sizeof(*new));
-    new->transfer = NULL;
     getsock(sk);
     new->sk = sk;
     if(confgetint("dc", "dcppemu"))
@@ -3138,18 +3148,8 @@ static void freedcpeer(struct dcpeer *peer)
 	peer->next->prev = peer->prev;
     if(peer->prev != NULL)
 	peer->prev->next = peer->next;
-    if(peer->trpipe != NULL) {
-	closesock(peer->trpipe);
-	quitsock(peer->trpipe);
-    }
     if(peer->transfer != NULL)
-    {
-	CBUNREG(peer->transfer, trans_filterout, peer);
-	if(peer->transfer->dir == TRNSD_UP)
-	    peer->transfer->close = 1;
-	if(peer->transfer->dir == TRNSD_DOWN)
-	    resettransfer(peer->transfer);
-    }
+	peerdetach(peer);
     if(peer->timeout != NULL)
 	canceltimer(peer->timeout);
     if(peer->sk->data == peer)
