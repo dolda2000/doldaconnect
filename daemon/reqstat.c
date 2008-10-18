@@ -73,6 +73,8 @@ void xainc(wchar_t *file, char *an, off_t inc)
     off_t val;
     char *fn;
     
+    if(file[0] != L'/')
+	return;
     if((fn = icswcstombs(file, NULL, NULL)) == NULL) {
 	flog(LOG_WARNING, "could not convert filename %ls into local charset: %s", file, strerror(errno));
 	return;
