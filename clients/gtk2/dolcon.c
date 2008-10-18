@@ -2256,7 +2256,7 @@ int main(int argc, char **argv)
     }
     dc_init();
     signal(SIGCHLD, SIG_IGN);
-    pubhubaddr = sstrdup("http://www.hublist.org/PublicHubList.xml.bz2");
+    pubhubaddr = sstrdup("http://dchublist.com/hublist.xml.bz2");
     dcserver = sstrdup("");
     if((pwent = getpwuid(getuid())) == NULL)
     {
