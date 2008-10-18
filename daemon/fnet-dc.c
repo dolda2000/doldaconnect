@@ -2758,10 +2758,6 @@ static void peerdetach(struct dcpeer *peer)
     closesock(peer->trpipe);
     quitsock(peer->trpipe);
     peer->trpipe = NULL;
-    if(peer->transfer->dir == TRNSD_UP)
-	peer->transfer->close = 1;
-    else if(peer->transfer->dir == TRNSD_DOWN)
-	resettransfer(peer->transfer);
     peer->transfer = NULL;
 }
 
@@ -2831,9 +2827,8 @@ static void trpipeerr(struct socket *sk, int errno, struct dcpeer *peer)
     peer->state = PEER_SYNC;
     dctransgotdata(peer->transfer, peer);
     peerdetach(peer);
-    if(peer->state != PEER_CMD) {
+    if(peer->state != PEER_CMD)
 	peer->close = 1;
-    }
 }
 
 static struct socket *mktrpipe(struct dcpeer *peer)

@@ -189,7 +189,10 @@ static void dataerr(struct socket *sk, int errno, struct transfer *transfer)
 	    transfer->localend = NULL;
 	}
     } else {
-	resettransfer(transfer);
+	if(transfer->dir == TRNSD_DOWN)
+	    resettransfer(transfer);
+	else if(transfer->dir == TRNSD_UP)
+	    transfer->close = 1;
     }
 }
 
