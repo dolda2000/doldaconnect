@@ -10,6 +10,7 @@ necessary if you build from a tarball):
  * autoconf
  * automake
  * libtool
+ * pkg-config
  * guile-1.8-dev (Yes, this really is necessary, in order to get the
    		  GUILE_FLAGS autoconf macro into aclocal.m4)
 
