@@ -1,0 +1,10 @@
+			  Release Checklist
+
+ * Build dist tarball and copy to public_html.
+ * Build autopackages, by running the autopackage/makeall script.
+ * Copy the *.package{,.meta} files to public_html.
+ * Update AP's LUAU XML files.
+ * Update the AP symlink.
+ * Update the home page.
+ * Update Freshmeat.
+ * Copy the doc directory to public_html.
