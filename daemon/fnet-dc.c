@@ -161,6 +161,7 @@ static void updatexmllist(void);
 static void updatexmlbz2list(void);
 static void requestfile(struct dcpeer *peer);
 static void updatelists(int now);
+static int trdestroycb(struct transfer *transfer, struct dcpeer *peer);
 
 static int reservedchar(unsigned char c)
 {
@@ -1585,6 +1586,13 @@ static void cmd_mynick(struct socket *sk, struct dcpeer *peer, char *cmd, char *
     }
 }
 
+static void peerattach(struct dcpeer *peer, struct transfer *transfer)
+{
+    peer->transfer = transfer;
+    CBREG(peer->transfer, trans_filterout, (int (*)(struct transfer *, wchar_t *, wchar_t *, void *))trresumecb, NULL, peer);
+    CBREG(peer->transfer, trans_destroy, (int (*)(struct transfer *, void *))trdestroycb, NULL, peer);
+}
+
 static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
     char *p;
@@ -1632,8 +1640,7 @@ static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, cha
 	    transfersetstate(transfer, TRNS_HS);
 	}
 	transfersetnick(transfer, peer->wcsname);
-	peer->transfer = transfer;
-	CBREG(peer->transfer, trans_filterout, (int (*)(struct transfer *, wchar_t *, wchar_t *, void *))trresumecb, NULL, peer);
+	peerattach(peer, transfer);
 	if(peer->extended)
 	    sendsupports(peer);
 	qstrf(sk, "$Direction %s %i|", (peer->direction == TRNSD_UP)?"Upload":"Download", rand() % 10000);
@@ -1681,8 +1688,7 @@ static void cmd_peerlock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	    transfersetstate(transfer, TRNS_HS);
 	}
 	transfersetnick(transfer, peer->wcsname);
-	peer->transfer = transfer;
-	CBREG(peer->transfer, trans_filterout, (int (*)(struct transfer *, wchar_t *, wchar_t *, void *))trresumecb, NULL, peer);
+	peerattach(peer, transfer);
 	qstrf(sk, "$Direction %s %i|", (peer->direction == TRNSD_UP)?"Upload":"Download", rand() % 10000);
 	qstrf(sk, "$Key %s|", key);
 	free(key);
@@ -2755,10 +2761,18 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
 static void peerdetach(struct dcpeer *peer)
 {
     CBUNREG(peer->transfer, trans_filterout, peer);
+    CBUNREG(peer->transfer, trans_destroy, peer);
     closesock(peer->trpipe);
     quitsock(peer->trpipe);
     peer->trpipe = NULL;
     peer->transfer = NULL;
+}
+
+static int trdestroycb(struct transfer *transfer, struct dcpeer *peer)
+{
+    peerdetach(peer);
+    peer->close = 1;
+    return(0);
 }
 
 static void transread(struct socket *sk, struct dcpeer *peer)
@@ -2766,6 +2780,10 @@ static void transread(struct socket *sk, struct dcpeer *peer)
     void *buf;
     size_t bufsize;
     
+    if(peer->transfer == NULL) {
+	freedcpeer(peer);
+	return;
+    }
     if(sockqueueleft(peer->trpipe) < 0)
 	return;
     if((buf = sockgetinbuf(sk, &bufsize)) != NULL)

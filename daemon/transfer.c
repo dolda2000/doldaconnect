@@ -181,17 +181,18 @@ static void localerr(struct socket *sk, int errno, struct transfer *transfer)
 
 static void dataerr(struct socket *sk, int errno, struct transfer *transfer)
 {
-    if(transfer->curpos >= transfer->size) {
-	transfersetstate(transfer, TRNS_DONE);
-	if(transfer->localend != NULL) {
-	    closesock(transfer->localend);
-	    quitsock(transfer->localend);
-	    transfer->localend = NULL;
-	}
-    } else {
-	if(transfer->dir == TRNSD_DOWN)
+    if(transfer->dir == TRNSD_DOWN) {
+	if(transfer->curpos >= transfer->size) {
+	    transfersetstate(transfer, TRNS_DONE);
+	    if(transfer->localend != NULL) {
+		closesock(transfer->localend);
+		quitsock(transfer->localend);
+		transfer->localend = NULL;
+	    }
+	} else {
 	    resettransfer(transfer);
-	else if(transfer->dir == TRNSD_UP)
+	}
+    } else if(transfer->dir == TRNSD_UP) {
 	    transfer->close = 1;
     }
 }
