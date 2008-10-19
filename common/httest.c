@@ -94,6 +94,7 @@ void get(char *url)
     }
     c = htconnect(u);
     freeurl(u);
+    c->autoredir = 1;
     while(1) {
 	pfd.fd = c->fd;
 	pfd.events = htpollflags(c);

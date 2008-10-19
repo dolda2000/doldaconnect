@@ -136,11 +136,39 @@ void freehtconn(struct htconn *cn)
 	free(cn->databuf);
     if(cn->resstr != NULL)
 	free(cn->resstr);
+    while(cn->headers)
+	freestrpair(cn->headers, &cn->headers);
     freeurl(cn->url);
     freeaddrinfo(cn->ailist);
     if(cn->fd != -1)
 	close(cn->fd);
     free(cn);
+}
+
+static int resethtconn(struct htconn *cn, struct hturlinfo *ui)
+{
+    if(cn->fd != -1)
+	close(cn->fd);
+    if(cn->resstr != NULL)
+	free(cn->resstr);
+    freeurl(cn->url);
+    freeaddrinfo(cn->ailist);
+    while(cn->headers)
+	freestrpair(cn->headers, &cn->headers);
+    
+    cn->state = STATE_SYN;
+    cn->fd = -1;
+    cn->outbufdata = cn->inbufdata = cn->databufdata = 0;
+    cn->rescode = 0;
+    cn->resstr = NULL;
+    cn->tlen = -1;
+    cn->rxd = 0;
+    cn->chl = 0;
+    cn->url = dupurl(ui);
+    cn->ailist = resolvtcp(ui->host, ui->port);
+    cn->curai = NULL;
+    
+    return(htprocess(cn, 0));
 }
 
 struct htconn *htconnect(struct hturlinfo *ui)
@@ -257,6 +285,7 @@ int htprocess(struct htconn *cn, int pollflags)
     socklen_t optlen;
     char rxbuf[1024];
     char *p, *p2, *p3;
+    struct hturlinfo *ui;
     
     if(cn->state == STATE_SYN) {
 	if(cn->fd != -1) {
@@ -418,8 +447,14 @@ int htprocess(struct htconn *cn, int pollflags)
 	}
 	if(cn->state == STATE_RXBODY) {
 	    if(ret == 0) {
-		HTDEBUG("EOF in body, flagging as done\n");
-		cn->state = STATE_DONE;
+		if(cn->tlen == -1) {
+		    HTDEBUG("EOF in body without Content-Length, flagging as done\n");
+		    cn->state = STATE_DONE;
+		} else {
+		    HTDEBUG("got premature if in body with Content-Length, flagging EPROTO\n");
+		    errno = EPROTO;
+		    return(-1);
+		}
 	    } else {
 		bufcat(cn->databuf, cn->inbuf, cn->inbufdata);
 		HTDEBUG("transferred %i bytes from inbuf to databuf, %i bytes now in databuf\n", cn->inbufdata, cn->databufdata);
@@ -473,5 +508,23 @@ int htprocess(struct htconn *cn, int pollflags)
 	    }
 	}
     } while(!done);
+    if((cn->state == STATE_DONE) && cn->autoredir) {
+	if((cn->rescode == 301) || (cn->rescode == 302) || (cn->rescode == 303) || (cn->rescode == 307)) {
+	    if((p = spfind(cn->headers, "location")) == NULL) {
+		HTDEBUG("got redirect without Location, flagging EPROTO\n");
+		errno = EPROTO;
+		return(-1);
+	    }
+	    if((ui = parseurl(p)) == NULL) {
+		HTDEBUG("unparsable URL in redirection (%s), flagging EPROTO\n", p);
+		errno = EPROTO;
+		return(-1);
+	    }
+	    HTDEBUG("autohandling redirect (%i, ->%s)\n", cn->rescode, p);
+	    ret = resethtconn(cn, ui);
+	    freeurl(ui);
+	    return(ret);
+	}
+    }
     return((cn->state == STATE_DONE)?1:0);
 }
