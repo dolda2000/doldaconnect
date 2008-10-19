@@ -45,6 +45,7 @@ struct htconn {
     char *resstr;
     struct strpair *headers;
     ssize_t tlen, rxd, chl;
+    int autoredir;
 };
 
 struct htcookie {
