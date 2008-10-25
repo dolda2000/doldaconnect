@@ -82,8 +82,7 @@
 
 (define-public dc-getfnetnodes
   (lambda ()
-    (map (lambda (o) (car o))
-	 fnetnodes)))
+    (map cdr fnetnodes)))
 
 (define fn-updattr
   (lambda (id attr val)
@@ -129,15 +128,19 @@
 				     (notify 'dstr (cdr nform))
 				     (set! fnetnodes (delq nform fnetnodes))))))))
 
-(define-public dc-fnproc-reg
+(define-public dc-trnproc-reg
   (lambda (event proc)
     (set! trn-procs (cons (list event proc)
 			  trn-procs))))
 
+(define-public dc-gettransfers
+  (lambda ()
+    (map cdr transfers)))
+
 (define dc-handle-trn
   (lambda ()
     (dc-tr-update)
-    (let* ((notify (lambda (event data) (for-each (lambda (o) (if (eq? event (car o)) ((cadr o) data))) trn-procs)))
+    (let* ((notify (lambda (event data) (for-each (lambda (o) (if (or (not (car o)) (eq? event (car o))) ((cadr o) data))) trn-procs)))
 	   (update (lambda (tf attr val)
 		     (set-cdr! (assq attr (cdr tf)) val)
 		     (notify attr (cdr tf))))
@@ -158,22 +161,22 @@
 							(cons (cons (car ires) new)
 							      transfers))
 						  (notify 'creat new))))
-      (dc-loop-reg ".notify" 611 (lambda r er) (let* ((ires (dc-intresp r))
-						      (trform (assq (car ires) transfers)))
-						 (if trform (update trform 'state (list-ref '(wait hs main done) (cadr ires))))))
-      (dc-loop-reg ".notify" 612 (lambda r er) (ua r 'nick))
-      (dc-loop-reg ".notify" 613 (lambda r er) (ua r 'size))
-      (dc-loop-reg ".notify" 614 (lambda r er) (let* ((ires (dc-intresp r))
+      (dc-loop-reg ".notify" 611 (lambda (r er) (let* ((ires (dc-intresp r))
+						       (trform (assq (car ires) transfers)))
+						  (if trform (update trform 'state (list-ref '(wait hs main done) (cadr ires)))))))
+      (dc-loop-reg ".notify" 612 (lambda (r er) (ua r 'nick)))
+      (dc-loop-reg ".notify" 613 (lambda (r er) (ua r 'size)))
+      (dc-loop-reg ".notify" 614 (lambda (r er) (let* ((ires (dc-intresp r))
 						      (trform (assq (car ires)) transfers))
-						 (if trform (notify 'error (cons (cdr trform) (list-ref '(#f notfound noslots) (cadr ires)))))))
-      (dc-loop-reg ".notify" 615 (lambda r er) (ua r 'pos))
-      (dc-loop-reg ".notify" 616 (lambda r er) (ua r 'path))
-      (dc-loop-reg ".notify" 617 (lambda r er) (let* ((ires (dc-intresp r))
+						 (if trform (notify 'error (cons (cdr trform) (list-ref '(#f notfound noslots) (cadr ires))))))))
+      (dc-loop-reg ".notify" 615 (lambda (r er) (ua r 'pos)))
+      (dc-loop-reg ".notify" 616 (lambda (r er) (ua r 'path)))
+      (dc-loop-reg ".notify" 617 (lambda (r er) (let* ((ires (dc-intresp r))
 						      (trform (assq (car ires) transfers)))
 						 (if trform
 						     (begin (notify 'dstr (cons (cdr trform) (cadr ires)))
-							    (set! transfers (delq trform transfers))))))
-      (dc-loop-reg ".notify" 618 (lambda r er) (ua r 'hash)))))
+							    (set! transfers (delq trform transfers)))))))
+      (dc-loop-reg ".notify" 618 (lambda (r er) (ua r 'hash))))))
 
 (define-public dc-msgproc-reg
   (lambda (proc)
