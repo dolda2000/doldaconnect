@@ -106,6 +106,7 @@ static struct timer *hashwritetimer = NULL;
 static pid_t hashjob = -1;
 struct sharecache *shareroot = NULL;
 static struct timer *scantimer = NULL;
+int sharedfiles = 0;
 unsigned long long sharesize = 0;
 GCBCHAIN(sharechangecb, unsigned long long);
 
@@ -293,8 +294,10 @@ static void readhashcache(void)
     if((stream = fopen(hcname, "r")) == NULL)
     {
 	flog(LOG_WARNING, "could not open hash cache %s: %s", hcname, strerror(errno));
+	free(hcname);
 	return;
     }
+    free(hcname);
     while(hashcache != NULL)
 	freehashcache(hashcache);
     line = 0;
@@ -368,8 +371,10 @@ static void writehashcache(int now)
     if((stream = fopen(hcname, "w")) == NULL)
     {
 	flog(LOG_WARNING, "could not write hash cache %s: %s", hcname, strerror(errno));
+	free(hcname);
 	return;
     }
+    free(hcname);
     fprintf(stream, "# Dolda Connect hash cache file\n");
     fprintf(stream, "# Generated automatically, do not edit\n");
     fprintf(stream, "# Format: DEVICE INODE MTIME [HASH...]\n");
@@ -648,6 +653,8 @@ static void freecache(struct sharecache *node)
     CBCHAINDOCB(node, share_delete, node);
     CBCHAINFREE(node, share_delete);
     sharesize -= node->size;
+    if(node->f.b.type == FILE_REG)
+	sharedfiles--;
     if(node->path != NULL)
 	free(node->path);
     if(node->name != NULL)
@@ -938,6 +945,7 @@ int doscan(int quantum)
 	    if(S_ISREG(sb.st_mode))
 	    {
 		sharesize += (n->size = sb.st_size);
+		sharedfiles++;
 	    } else {
 		n->size = 0;
 	    }
@@ -1082,6 +1090,8 @@ static void terminate(void)
 {
     if(hashjob != 0)
 	kill(hashjob, SIGHUP);
+    if(hashwritetimer != NULL)
+	writehashcache(1);
     while(shares != NULL)
 	freesharepoint(shares);
     freecache(shareroot);

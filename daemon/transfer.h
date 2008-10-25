@@ -40,16 +40,6 @@
 #define TRNSE_NOTFOUND 1
 #define TRNSE_NOSLOTS 2
 
-struct transfer;
-
-struct transferiface
-{
-    void (*detach)(struct transfer *transfer, void *data);
-    void (*gotdata)(struct transfer *transfer, void *data);
-    void (*endofdata)(struct transfer *transfer, void *data);
-    void (*wantdata)(struct transfer *transfer, void *data);
-};
-
 struct transfer
 {
     struct transfer *next, *prev;
@@ -68,15 +58,13 @@ struct transfer
     time_t timeout, activity, lastreq;
     wchar_t *actdesc;
     struct fnet *fnet;
-    struct transferiface *iface;
     wchar_t *peerid, *peernick;
     wchar_t *path;
     uid_t owner;
     int state, dir, error;
-    size_t size, curpos, endpos;
+    off_t size, curpos, endpos;
     struct fnetnode *fn;
-    void *ifacedata;
-    struct socket *localend;
+    struct socket *localend, *datapipe;
     struct wcspair *args;
     pid_t filter;
     struct authhandle *auth;
@@ -99,23 +87,19 @@ int slotsleft(void);
 void bumptransfer(struct transfer *transfer);
 struct transfer *findtransfer(int id);
 struct transfer *hasupload(struct fnet *fnet, wchar_t *peerid);
-struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nickid, struct transferiface *iface, void *data);
+struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nickid, struct socket *dpipe);
 void transfersetnick(struct transfer *transfer, wchar_t *newnick);
 void transfersetpath(struct transfer *transfer, wchar_t *newpath);
 void transfersetstate(struct transfer *transfer, int newstate);
-void transfersetsize(struct transfer *transfer, int newsize);
+void transfersetsize(struct transfer *transfer, off_t newsize);
 void transferseterror(struct transfer *transfer, int error);
 void transfersetactivity(struct transfer *transfer, wchar_t *desc);
-void transferattach(struct transfer *transfer, struct transferiface *iface, void *data);
+void transferattach(struct transfer *transfer, struct socket *dpipe);
 void transferdetach(struct transfer *transfer);
 void resettransfer(struct transfer *transfer);
 void transfersetlocalend(struct transfer *transfer, struct socket *sk);
-void *transfergetdata(struct transfer *transfer, size_t *size);
 int forkfilter(struct transfer *transfer);
-void transferputdata(struct transfer *transfer, void *buf, size_t size);
-size_t transferdatasize(struct transfer *transfer);
-void transferendofdata(struct transfer *transfer);
-void transferprepul(struct transfer *transfer, size_t size, size_t start, size_t end, struct socket *lesk);
+void transferprepul(struct transfer *transfer, off_t size, off_t start, off_t end, struct socket *lesk);
 void transferstartul(struct transfer *transfer, struct socket *sk);
 void transfersethash(struct transfer *transfer, struct hash *hash);
 struct transfer *finddownload(wchar_t *peerid);

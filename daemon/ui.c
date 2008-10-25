@@ -34,6 +34,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -62,6 +63,7 @@
 #define NOTIF_STR 2
 #define NOTIF_FLOAT 3
 #define NOTIF_ID 4
+#define NOTIF_OFF 5
 #define NOTIF_PEND 0
 #define NOTIF_WAIT 1
 
@@ -105,6 +107,7 @@ struct notif
 	union
 	{
 	    int n;
+	    off_t o;
 	    wchar_t *s;
 	    double d;
 	} d;
@@ -116,6 +119,7 @@ struct uidata
     struct uidata *next, *prev;
     struct socket *sk;
     struct qcommand *queue, *queuelast;
+    size_t queuesize;
     struct authhandle *auth;
     int close;
     union
@@ -167,8 +171,8 @@ static void notifappend(struct notif *notif, ...);
 
 struct uiuser *users = NULL;
 struct uidata *actives = NULL;
-struct socket *tcpsocket = NULL;
-struct socket *unixsocket = NULL;
+struct lport *tcpsocket = NULL;
+struct lport *unixsocket = NULL;
 static time_t starttime;
 
 static wchar_t *quoteword(wchar_t *word)
@@ -232,6 +236,12 @@ static void sq(struct socket *sk, int cont, ...)
 	    {
 		freepart = 1;
 		part = swprintf2(L"%i", va_arg(al, int));
+	    } else if(!wcscmp(tpart, L"zi")) {
+		freepart = 1;
+		part = swprintf2(L"%zi", va_arg(al, size_t));
+	    } else if(!wcscmp(tpart, L"oi")) {
+		freepart = 1;
+		part = swprintf2(L"%ji", (intmax_t)va_arg(al, off_t));
 	    } else if(!wcscmp(tpart, L"s")) {
 		freepart = 1;
 		part = icmbstowcs(sarg = va_arg(al, char *), NULL);
@@ -330,38 +340,40 @@ static void cmd_connect(struct socket *sk, struct uidata *data, int argc, wchar_
 {
     int valid;
     struct in6_addr mv4lo;
+    struct sockaddr *remote;
     
     if(confgetint("ui", "onlylocal"))
     {
-	switch(sk->remote->sa_family)
-	{
-	case AF_INET:
-	    valid = ((struct sockaddr_in *)sk->remote)->sin_addr.s_addr == INADDR_LOOPBACK;
-	    break;
-	case AF_INET6:
-	    inet_pton(AF_INET6, "::ffff:127.0.0.1", &mv4lo);
-	    valid = 0;
-	    if(!memcmp(&((struct sockaddr_in6 *)sk->remote)->sin6_addr, &in6addr_loopback, sizeof(in6addr_loopback)))
+	valid = 0;
+	if(!sockpeeraddr(sk, &remote, NULL)) {
+	    switch(remote->sa_family)
+	    {
+	    case AF_INET:
+		valid = ((struct sockaddr_in *)remote)->sin_addr.s_addr == INADDR_LOOPBACK;
+		break;
+	    case AF_INET6:
+		inet_pton(AF_INET6, "::ffff:127.0.0.1", &mv4lo);
+		valid = 0;
+		if(!memcmp(&((struct sockaddr_in6 *)remote)->sin6_addr, &in6addr_loopback, sizeof(in6addr_loopback)))
+		    valid = 1;
+		if(!memcmp(&((struct sockaddr_in6 *)remote)->sin6_addr, &mv4lo, sizeof(in6addr_loopback)))
+		    valid = 1;
+		break;
+	    case AF_UNIX:
 		valid = 1;
-	    if(!memcmp(&((struct sockaddr_in6 *)sk->remote)->sin6_addr, &mv4lo, sizeof(in6addr_loopback)))
-		valid = 1;
-	    break;
-	case AF_UNIX:
-	    valid = 1;
-	    break;
-	default:
-	    valid = 0;
-	    break;
+		break;
+	    }
+	    free(remote);
 	}
 	if(!valid)
 	{
 	    sq(sk, 0, L"502", L"Only localhost connections allowed to this host", NULL);
-	    sk->close = 1;
+	    closesock(sk);
 	    data->close = 1;
 	    return;
 	}
     }
-    sq(sk, 0, L"201", L"1", L"2", L"Dolda Connect daemon v" VERSION, NULL);
+    sq(sk, 0, L"201", L"1", L"3", L"Dolda Connect daemon v" VERSION, NULL);
 }
 
 static void cmd_notfound(struct socket *sk, struct uidata *data, int argc, wchar_t **argv)
@@ -453,20 +465,20 @@ static void cmd_login(struct socket *sk, struct uidata *data, int argc, wchar_t 
 	if(data->uid == -1)
 	{
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but no account existed", data->username, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but no account existed", data->username, formatsockpeer(sk));
 	    logout(data);
 	} else if((data->userinfo == NULL) || (data->userinfo->perms & PERM_DISALLOW)) {
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but was not authorized", data->username, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but was not authorized", data->username, formatsockpeer(sk));
 	    logout(data);
 	} else {
 	    sq(sk, 0, L"200", L"Welcome", NULL);
-	    flog(LOG_INFO, "%ls (UID %i) logged in from %s", data->username, data->uid, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "%ls (UID %i) logged in from %s", data->username, data->uid, formatsockpeer(sk));
 	}
 	break;
     case AUTH_DENIED:
 	sq(sk, 0, L"506", L"Authentication error", L"%ls", (data->auth->text == NULL)?L"":(data->auth->text), NULL);
-	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formataddress(sk->remote, sk->remotelen));
+	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formatsockpeer(sk));
 	logout(data);
 	break;
     case AUTH_PASS:
@@ -527,20 +539,20 @@ static void cmd_pass(struct socket *sk, struct uidata *data, int argc, wchar_t *
 	if(data->uid == -1)
 	{
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but no account existed", data->username, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but no account existed", data->username, formatsockpeer(sk));
 	    logout(data);
 	} else if((data->userinfo == NULL) || (data->userinfo->perms & PERM_DISALLOW)) {
 	    sq(sk, 0, L"506", L"Authentication error", NULL);
-	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but was not authorized", data->username, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "user %ls authenticated successfully from %s, but was not authorized", data->username, formatsockpeer(sk));
 	    logout(data);
 	} else {
 	    sq(sk, 0, L"200", L"Welcome", NULL);
-	    flog(LOG_INFO, "%ls (UID %i) logged in from %s", data->username, data->uid, formataddress(sk->remote, sk->remotelen));
+	    flog(LOG_INFO, "%ls (UID %i) logged in from %s", data->username, data->uid, formatsockpeer(sk));
 	}
 	break;
     case AUTH_DENIED:
 	sq(sk, 0, L"506", L"Authentication error", L"%ls", (data->auth->text == NULL)?L"":(data->auth->text), NULL);
-	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formataddress(sk->remote, sk->remotelen));
+	flog(LOG_INFO, "authentication failed for %ls from %s", data->username, formatsockpeer(sk));
 	logout(data);
 	break;
     case AUTH_PASS:
@@ -686,7 +698,7 @@ static void cmd_lspeers(struct socket *sk, struct uidata *data, int argc, wchar_
 {
     int i;
     struct fnetnode *fn;
-    struct fnetpeer *peer;
+    struct fnetpeer *peer, *npeer;
     
     haveargs(2);
     if((fn = findfnetnode(wcstol(argv[1], NULL, 0))) == NULL)
@@ -696,11 +708,12 @@ static void cmd_lspeers(struct socket *sk, struct uidata *data, int argc, wchar_
     }
     if(fn->peers == NULL)
     {
-	sq(sk, 0, L"201", L"No peers avaiable", NULL);
+	sq(sk, 0, L"201", L"No peers available", NULL);
     } else {
-	for(peer = fn->peers; peer != NULL; peer = peer->next)
+	for(peer = btreeiter(fn->peers); peer != NULL; peer = npeer)
 	{
-	    sq(sk, 2 | ((peer->next != NULL)?1:0), L"200", L"%ls", peer->id, L"%ls", peer->nick, NULL);
+	    npeer = btreeiter(NULL);
+	    sq(sk, 2 | ((npeer != NULL)?1:0), L"200", L"%ls", peer->id, L"%ls", peer->nick, NULL);
 	    for(i = 0; i < peer->dinum; i++)
 	    {
 		if(peer->peerdi[i].datum->datatype == FNPD_INT)
@@ -764,7 +777,7 @@ static void cmd_download(struct socket *sk, struct uidata *data, int argc, wchar
 	linktransfer(transfer);
     }
     if(argc > 4)
-	transfersetsize(transfer, wcstol(argv[4], NULL, 0));
+	transfersetsize(transfer, wcstoll(argv[4], NULL, 0));
     if(argc > 5)
     {
 	for(i = 5; i < argc; i += 2)
@@ -796,7 +809,7 @@ static void cmd_lstrans(struct socket *sk, struct uidata *data, int argc, wchar_
 		   L"%i", pt->state, pt->peerid,
 		   (pt->peernick == NULL)?L"":(pt->peernick),
 		   (pt->path == NULL)?L"":(pt->path),
-		   L"%i", pt->size, L"%i", pt->curpos,
+		   L"%oi", pt->size, L"%oi", pt->curpos,
 		   (pt->hash == NULL)?L"":unparsehash(pt->hash),
 		   NULL);
 	    pt = transfer;
@@ -809,7 +822,7 @@ static void cmd_lstrans(struct socket *sk, struct uidata *data, int argc, wchar_
 	   L"%i", pt->state, pt->peerid,
 	   (pt->peernick == NULL)?L"":(pt->peernick),
 	   (pt->path == NULL)?L"":(pt->path),
-	   L"%i", pt->size, L"%i", pt->curpos,
+	   L"%oi", pt->size, L"%oi", pt->curpos,
 	   (pt->hash == NULL)?L"":unparsehash(pt->hash),
 	   NULL);
 }
@@ -1048,7 +1061,7 @@ static void cmd_lssr(struct socket *sk, struct uidata *data, int argc, wchar_t *
 	for(sr = srch->results; sr != NULL; sr = sr->next)
 	{
 	    sq(sk, (sr->next != NULL)?1:0, L"200", L"%ls", sr->filename,
-	       sr->fnet->name, L"%ls", sr->peerid, L"%i", sr->size,
+	       sr->fnet->name, L"%ls", sr->peerid, L"%oi", sr->size,
 	       L"%i", sr->slots, L"%i", (sr->fn == NULL)?-1:(sr->fn->id),
 	       L"%f", sr->time,
 	       L"%ls", (sr->hash == NULL)?L"":unparsehash(sr->hash), NULL);
@@ -1412,6 +1425,7 @@ static struct qcommand *unlinkqcmd(struct uidata *data)
     qcmd = data->queue;
     if(qcmd != NULL)
     {
+	data->queuesize--;
 	data->queue = qcmd->next;
 	if(qcmd == data->queuelast)
 	    data->queuelast = qcmd->next;
@@ -1433,6 +1447,9 @@ static void notifappendv(struct notif *notif, va_list args)
 	case NOTIF_INT:
 	case NOTIF_ID:
 	    notif->argv[ca].d.n = va_arg(args, int);
+	    break;
+	case NOTIF_OFF:
+	    notif->argv[ca].d.o = va_arg(args, off_t);
 	    break;
 	case NOTIF_STR:
 	    notif->argv[ca].d.s = swcsdup(va_arg(args, wchar_t *));
@@ -1548,6 +1565,7 @@ static void freeuidata(struct uidata *data)
 	actives = data->next;
     data->sk->readcb = NULL;
     data->sk->errcb = NULL;
+    closesock(data->sk);
     putsock(data->sk);
     while((qcmd = unlinkqcmd(data)) != NULL)
 	freequeuecmd(qcmd);
@@ -1598,6 +1616,7 @@ static void queuecmd(struct uidata *data, struct command *cmd, int argc, wchar_t
     data->queuelast = new;
     if(data->queue == NULL)
 	data->queue = new;
+    data->queuesize++;
 }
 
 static struct uidata *newuidata(struct socket *sk)
@@ -1790,6 +1809,11 @@ static void uiread(struct socket *sk, struct uidata *data)
 	    break;
 	}
     }
+    if(data->cbdata > 16384)
+    {
+	/* Kill clients that send us unreasonably long lines */
+	data->close = 1;
+    }
 }
 
 static void uierror(struct socket *sk, int err, struct uidata *data)
@@ -1799,7 +1823,7 @@ static void uierror(struct socket *sk, int err, struct uidata *data)
     freeuidata(data);
 }
 
-static void uiaccept(struct socket *sk, struct socket *newsk, void *data)
+static void uiaccept(struct lport *lp, struct socket *newsk, void *data)
 {
     struct uidata *uidata;
     
@@ -1844,7 +1868,7 @@ static int srchres(struct search *srch, struct srchres *sr, void *uudata)
     {
 	if(haspriv(data, PERM_SRCH) && data->notify.b.srch && !wcscmp(srch->owner, data->username))
 	{
-	    newnotif(data, 622, NOTIF_ID, srch->id, NOTIF_STR, sr->filename, NOTIF_STR, sr->fnet->name, NOTIF_STR, sr->peerid, NOTIF_INT, sr->size,
+	    newnotif(data, 622, NOTIF_ID, srch->id, NOTIF_STR, sr->filename, NOTIF_STR, sr->fnet->name, NOTIF_STR, sr->peerid, NOTIF_OFF, sr->size,
 		     NOTIF_INT, sr->slots, NOTIF_INT, (sr->fn == NULL)?-1:(sr->fn->id), NOTIF_FLOAT, sr->time, NOTIF_STR, (sr->hash == NULL)?L"":unparsehash(sr->hash), NOTIF_END);
 	}
     }
@@ -2007,7 +2031,7 @@ static int transferchattr(struct transfer *transfer, wchar_t *attrib, void *uuda
 	for(data = actives; data != NULL; data = data->next)
 	{
 	    if(haspriv(data, PERM_TRANS) && data->notify.b.tract && ((transfer->owner == 0) || (transfer->owner == data->uid)))
-		newnotif(data, 613, NOTIF_ID, transfer->id, NOTIF_INT, transfer->size, NOTIF_END);
+		newnotif(data, 613, NOTIF_ID, transfer->id, NOTIF_OFF, transfer->size, NOTIF_END);
 	}
     } else if(!wcscmp(attrib, L"error")) {
 	for(data = actives; data != NULL; data = data->next)
@@ -2041,9 +2065,9 @@ static int transferprog(struct transfer *transfer, void *uudata)
 	if(haspriv(data, PERM_TRANS) && data->notify.b.trprog && ((transfer->owner == 0) || (transfer->owner == data->uid)))
 	{
 	    if((notif = findnotif(data->fnotif, 1, NOTIF_PEND, 615, transfer->id)) != NULL)
-		notif->argv[1].d.n = transfer->curpos;
+		notif->argv[1].d.o = transfer->curpos;
 	    else
-		newnotif(data, 615, NOTIF_ID, transfer->id, NOTIF_INT, transfer->curpos, NOTIF_END)->rlimit = 0.5;
+		newnotif(data, 615, NOTIF_ID, transfer->id, NOTIF_OFF, transfer->curpos, NOTIF_END)->rlimit = 0.5;
 	}
     }
     return(0);
@@ -2213,7 +2237,7 @@ static struct sockaddr_un *makeunixname(void)
 
 static int tcpportupdate(struct configvar *var, void *uudata)
 {
-    struct socket *newsock;
+    struct lport *newsock;
     
     newsock = NULL;
     if((var->val.num != -1) && ((newsock = netcstcplisten(var->val.num, 1, uiaccept, NULL)) == NULL))
@@ -2223,7 +2247,7 @@ static int tcpportupdate(struct configvar *var, void *uudata)
     }
     if(tcpsocket != NULL)
     {
-	putsock(tcpsocket);
+	closelport(tcpsocket);
 	tcpsocket = NULL;
     }
     tcpsocket = newsock;
@@ -2232,7 +2256,7 @@ static int tcpportupdate(struct configvar *var, void *uudata)
 
 static int unixsockupdate(struct configvar *var, void *uudata)
 {
-    struct socket *newsock;
+    struct lport *newsock;
     struct sockaddr_un *un;
     mode_t ou;
     
@@ -2247,7 +2271,7 @@ static int unixsockupdate(struct configvar *var, void *uudata)
     umask(ou);
     if(unixsocket != NULL)
     {
-	putsock(unixsocket);
+	closelport(unixsocket);
 	unixsocket = NULL;
     }
     unixsocket = newsock;
@@ -2358,6 +2382,9 @@ static int run(void)
 		case NOTIF_ID:
 		    sq(data->sk, 2, L"%i", notif->argv[i].d.n, NULL);
 		    break;
+		case NOTIF_OFF:
+		    sq(data->sk, 2, L"%oi", notif->argv[i].d.o, NULL);
+		    break;
 		case NOTIF_STR:
 		    if(notif->argv[i].d.s[0] == L'%')
 			sq(data->sk, 2, L"%ls", notif->argv[i].d.s, NULL);
@@ -2384,6 +2411,15 @@ static int run(void)
 	    freequeuecmd(qcmd);
 	    return(1);
 	}
+	if(data->queuesize > 10)
+	{
+	    /* Clients should not be queue up commands at all, since
+	     * they should not send a new command before receiving a
+	     * reply to the previous command. Therefore, we
+	     * mercilessly massacre clients which are stacking up too
+	     * many commands. */
+	    data->close = 1;
+	}
     }
     return(0);
 }
@@ -2393,9 +2429,9 @@ static void terminate(void)
     while(users != NULL)
 	freeuser(users);
     if(tcpsocket != NULL)
-	putsock(tcpsocket);
+	closelport(tcpsocket);
     if(unixsocket != NULL)
-	putsock(unixsocket);
+	closelport(unixsocket);
 }
 
 static struct configvar myvars[] =

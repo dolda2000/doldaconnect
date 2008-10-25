@@ -21,12 +21,12 @@
 .\" Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111,
 .\" USA.
 .\"
-.TH DOLCON 1 "2007-09-30" "" "Dolda Connect manual"
+.TH DOLCON 1 "2008-02-14" "" "Dolda Connect manual"
 .SH NAME
 dolcon \- Graphical user interface for Dolda Connect
 .SH SYNOPSIS
 .B dolcon
-[ \fB-hl\fP ]
+[ \fB-hlV\fP ]
 .SH DESCRIPTION
 The \fBdolcon\fP program runs a graphical user interface for Dolda
 Connect. It controls the \fBdoldacond\fP(8) daemon, which is the
@@ -45,6 +45,9 @@ Directly on startup, automatically connect to the doldacond server
 running locally on the machine (that is, via a Unix socket). This
 option is primarily intended for use by the GUI shell of Dolda
 Connect.
+.TP
+.B -V
+Displays version and build information on stdout and exits.
 .SH FILES
 Configuration options for \fBdolcon\fP will be stored in the files
 ~/.dolconrc. It is saved when the program exits normally.

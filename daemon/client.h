@@ -58,7 +58,7 @@ struct sharecache
     struct sharecache *next, *prev, *child, *parent;
     char *path;
     wchar_t *name;
-    size_t size;
+    off_t size;
     time_t mtime;
     dev_t dev;
     ino_t inode;
@@ -93,6 +93,7 @@ int hashcmp(struct hash *h1, struct hash *h2);
 void scanshares(void);
 
 extern struct sharecache *shareroot;
+extern int sharedfiles;
 extern unsigned long long sharesize;
 EGCBCHAIN(sharechangecb, unsigned long long);
 

@@ -139,6 +139,19 @@ static struct wcslist *newsl(struct wcslist **list, wchar_t *str)
     return(ln);
 }
 
+static int wcsexists(wchar_t *h, wchar_t *n)
+{
+    size_t hl = wcslen(h), nl = wcslen(n);
+    wchar_t lh[hl + 1], ln[nl + 1];
+    int i;
+    
+    for(i = 0; i <= hl; i++)
+	lh[i] = towlower(h[i]);
+    for(i = 0; i <= nl; i++)
+	ln[i] = towlower(n[i]);
+    return(wcsstr(lh, ln) != NULL);
+}
+
 static void slmerge1(struct wcslist **list, wchar_t *str)
 {
     size_t len;
@@ -1085,9 +1098,7 @@ static int srisvalid(struct srchres *sr, struct sexpr *sexpr)
 	free(buf);
 	return(!ret);
     case SOP_LINKRE:
-	p = sr->filename;
-	if(sr->fnet->filebasename != NULL)
-	    p = sr->fnet->filebasename(p);
+	p = fnfilebasename(sr->filename);
 	if((buf = icwcstombs(p, "UTF-8")) == NULL)
 	    return(0);
 	ret = regexec(&sexpr->d.re.cre, buf, 0, NULL, 0);
@@ -1096,9 +1107,7 @@ static int srisvalid(struct srchres *sr, struct sexpr *sexpr)
     case SOP_NAMESS:
 	return(wcsexists(sr->filename, sexpr->d.s));
     case SOP_LINKSS:
-	p = sr->filename;
-	if(sr->fnet->filebasename != NULL)
-	    p = sr->fnet->filebasename(p);
+	p = fnfilebasename(sr->filename);
 	return(wcsexists(p, sexpr->d.s));
     case SOP_SIZELT:
 	return(sr->size < sexpr->d.n);

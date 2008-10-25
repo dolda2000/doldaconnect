@@ -93,7 +93,7 @@ struct dc_transfer
     int dir, state;
     wchar_t *peerid, *peernick;
     wchar_t *path;
-    int size, curpos;
+    dc_lnum_t size, curpos;
     int found;
     int error;
     time_t errortime;

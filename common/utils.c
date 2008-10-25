@@ -29,13 +29,21 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <netinet/in.h>
-#include <alloca.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include <utils.h>
 #include <log.h>
+
+struct treeiter {
+    struct {
+	struct btree *n;
+	int s;
+    } *st;
+    size_t stsize;
+    int sp;
+};
 
 static char *base64set = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static int base64rev[] = {
@@ -409,34 +417,13 @@ double ntime(void)
     return((double)tv.tv_sec + ((double)tv.tv_usec / 1000000.0));
 }
 
-int wcsexists(wchar_t *h, wchar_t *n)
+wchar_t *wcslower(wchar_t *wcs)
 {
-    int i, o, nl, hl;
-    wchar_t *ln, *lh;
+    wchar_t *p;
     
-    ln = alloca(sizeof(*ln) * (nl = wcslen(n)));
-    for(i = 0; i < nl; i++)
-	ln[i] = towlower(n[i]);
-    lh = alloca(sizeof(*lh) * (hl = wcslen(h)));
-    if(nl > hl)
-	return(0);
-    for(i = 0; i < nl; i++)
-	lh[i] = towlower(h[i]);
-    i = 0;
-    while(1)
-    {
-	for(o = 0; o < nl; o++)
-	{
-	    if(lh[i + o] != ln[o])
-		break;
-	}
-	if(o == nl)
-	    return(1);
-	if(i == hl - nl)
-	    return(0);
-	lh[i + nl] = towlower(h[i + nl]);
-	i++;
-    }
+    for(p = wcs; *p != L'\0'; p++)
+	*p = towlower(*p);
+    return(wcs);
 }
 
 #ifndef HAVE_WCSCASECMP
@@ -890,4 +877,233 @@ wchar_t *wpfind(struct wcspair *list, wchar_t *key)
 	    return(list->val);
     }
     return(NULL);
+}
+
+static int btheight(struct btree *tree)
+{
+    if(tree == NULL)
+	return(0);
+    return(tree->h);
+}
+
+static void btsetheight(struct btree *tree)
+{
+    int lh, rh;
+    
+    if(tree == NULL)
+	return;
+    lh = btheight(tree->l);
+    rh = btheight(tree->r);
+    tree->h = ((lh > rh)?lh:rh) + 1;
+}
+
+static void bbtrl(struct btree **tree);
+
+static void bbtrr(struct btree **tree)
+{
+    struct btree *m, *l, *r;
+    
+    if(btheight((*tree)->l->r) > btheight((*tree)->l->l))
+	bbtrl(&(*tree)->l);
+    r = (*tree);
+    l = r->l;
+    m = l->r;
+    r->l = m;
+    btsetheight(r);
+    l->r = r;
+    btsetheight(l);
+    *tree = l;
+}
+
+static void bbtrl(struct btree **tree)
+{
+    struct btree *m, *l, *r;
+    
+    if(btheight((*tree)->r->l) > btheight((*tree)->r->r))
+	bbtrr(&(*tree)->r);
+    l = (*tree);
+    r = l->r;
+    m = r->l;
+    l->r = m;
+    btsetheight(l);
+    r->l = l;
+    btsetheight(r);
+    *tree = r;
+}
+
+int bbtreedel(struct btree **tree, void *item, int (*cmp)(void *, void *))
+{
+    int c, r;
+    struct btree *s, **sp, *o;
+
+    if(*tree == NULL)
+	return(0);
+    if((c = cmp(item, (*tree)->d)) < 0) {
+	r = bbtreedel(&(*tree)->l, item, cmp);
+    } else if(c > 0) {
+	r = bbtreedel(&(*tree)->r, item, cmp);
+    } else {
+	r = 1;
+	o = *tree;
+	if(((*tree)->r != NULL) && ((*tree)->l != NULL)) {
+	    sp = &(*tree)->r;
+	    s = *sp;
+	    while(s->l != NULL) {
+		sp = &(s->l);
+		s = *sp;
+	    }
+	    *sp = NULL;
+	    s->l = (*tree)->l;
+	    s->r = (*tree)->r;
+	    *tree = s;
+	} else if((*tree)->l != NULL) {
+	    *tree = (*tree)->l;
+	} else if((*tree)->r != NULL) {
+	    *tree = (*tree)->r;
+	} else {
+	    *tree = NULL;
+	}
+	free(o);
+    }
+    if(*tree != NULL) {
+	btsetheight(*tree);
+	if(btheight((*tree)->l) > btheight((*tree)->r) + 1)
+	    bbtrr(tree);
+	if(btheight((*tree)->r) > btheight((*tree)->l) + 1)
+	    bbtrl(tree);
+    }
+    return(r);
+}
+
+int bbtreeput(struct btree **tree, void *item, int (*cmp)(void *, void *))
+{
+    int c, r;
+    
+    if(*tree == NULL) {
+	*tree = smalloc(sizeof(**tree));
+	(*tree)->l = (*tree)->r = NULL;
+	(*tree)->d = item;
+	(*tree)->h = 1;
+	return(1);
+    }
+    if((c = cmp(item, (*tree)->d)) < 0)
+	r = bbtreeput(&(*tree)->l, item, cmp);
+    else if(c > 0)
+	r = bbtreeput(&(*tree)->r, item, cmp);
+    else
+	return(0);
+    btsetheight(*tree);
+    if(btheight((*tree)->l) > btheight((*tree)->r) + 1)
+	bbtrr(tree);
+    if(btheight((*tree)->r) > btheight((*tree)->l) + 1)
+	bbtrl(tree);
+    return(r);
+}
+
+void *btreeget(struct btree *tree, void *key, int (*cmp)(void *, void *))
+{
+    int c;
+    
+    while(1) {
+	if(tree == NULL)
+	    return(NULL);
+	c = cmp(key, tree->d);
+	if(c < 0)
+	    tree = tree->l;
+	else if(c > 0)
+	    tree = tree->r;
+	else
+	    return(tree->d);
+    }
+}
+
+void btreefree(struct btree *tree)
+{
+    if(tree == NULL)
+	return;
+    btreefree(tree->l);
+    btreefree(tree->r);
+    free(tree);
+}
+
+static void *btreenext(void **iterp)
+{
+    struct treeiter *iter;
+    int s;
+    struct btree *n;
+    
+    if((iter = *iterp) == NULL)
+	return(NULL);
+    while(1) {
+	s = iter->st[iter->sp].s;
+	n = iter->st[iter->sp].n;
+	if(s == 0) {
+	    iter->st[iter->sp].s = 1;
+	    if(n->l != NULL) {
+		iter->sp++;
+		sizebuf2(iter->st, iter->sp + 1, 1);
+		iter->st[iter->sp].s = 0;
+		iter->st[iter->sp].n = n->l;
+	    }
+	} else if(s == 1) {
+	    iter->st[iter->sp].s = 2;
+	    return(iter->st[iter->sp].n->d);
+	} else if(s == 2) {
+	    iter->st[iter->sp].s = 3;
+	    if(n->r != NULL) {
+		iter->sp++;
+		sizebuf2(iter->st, iter->sp + 1, 1);
+		iter->st[iter->sp].s = 0;
+		iter->st[iter->sp].n = n->r;
+	    }
+	} else {
+	    iter->sp--;
+	    if(iter->sp < 0) {
+		free(iter->st);
+		free(iter);
+		*iterp = NULL;
+		return(NULL);
+	    }
+	}
+    }
+}
+
+static void *btreefirst(struct btree *tree, void **iterp)
+{
+    struct treeiter *iter;
+    
+    if(tree == NULL) {
+	*iterp = NULL;
+	return(NULL);
+    }
+    *iterp = iter = memset(smalloc(sizeof(*iter)), 0, sizeof(*iter));
+    sizebuf2(iter->st, 1, 1);
+    iter->st[0].n = tree;
+    iter->st[0].s = 0;
+    return(btreenext(iterp));
+}
+
+static void btreestop(void **iterp)
+{
+    struct treeiter *iter;
+    
+    if((iter = *iterp) == NULL)
+	return;
+    if(iter->st != NULL)
+	free(iter->st);
+    free(iter);
+    *iterp = NULL;
+}
+
+void *btreeiter(struct btree *tree)
+{
+    static void *iter = NULL;
+    
+    if(tree == NULL) {
+	return(btreenext(&iter));
+    } else {
+	if(iter != NULL)
+	    btreestop(&iter);
+	return(btreefirst(tree, &iter));
+    }
 }

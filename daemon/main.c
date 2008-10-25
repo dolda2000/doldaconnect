@@ -91,7 +91,6 @@ void childcallback(pid_t pid, void (*func)(pid_t, int, void *), void *data)
     new->pid = pid;
     new->callback = func;
     new->data = data;
-    new->finished = 0;
     new->prev = NULL;
     new->next = children;
     if(children != NULL)
@@ -139,9 +138,6 @@ static void terminate(void)
 
 static void handler(int signum)
 {
-    pid_t pid;
-    int status;
-    struct child *child;
     FILE *dumpfile;
     extern int numfnetnodes, numtransfers, numdcpeers;
     
@@ -155,18 +151,7 @@ static void handler(int signum)
 	running = 0;
 	break;
     case SIGCHLD:
-	while((pid = waitpid(-1, &status, WNOHANG)) > 0)
-	{
-	    for(child = children; child != NULL; child = child->next)
-	    {
-		if(child->pid == pid)
-		{
-		    child->finished = 1;
-		    child->status = status;
-		}
-	    }
-	    childrendone = 1;
-	}
+	childrendone = 1;
 	break;
     case SIGUSR1:
 	flog(LOG_NOTICE, "forking and dumping core upon SIGUSR1");
@@ -182,6 +167,32 @@ static void handler(int signum)
 	fprintf(dumpfile, "%i %i %i\n", numfnetnodes, numtransfers, numdcpeers);
 	fclose(dumpfile);
 	break;
+    }
+}
+
+static void checkchildren(void)
+{
+    pid_t pid;
+    int status;
+    struct child *child;
+
+    while((pid = waitpid(-1, &status, WNOHANG)) > 0)
+    {
+	for(child = children; child != NULL; child = child->next)
+	{
+	    if(child->pid == pid)
+	    {
+		child->callback(pid, status, child->data);
+		if(child == children)
+		    children = child->next;
+		if(child->prev != NULL)
+		    child->prev->next = child->next;
+		if(child->next != NULL)
+		    child->next->prev = child->prev;
+		free(child);
+		break;
+	    }
+	}
     }
 }
 
@@ -383,7 +394,6 @@ int main(int argc, char **argv)
     int delay, immsyslog;
     struct module *mod;
     struct timer *timer;
-    struct child *child;
     double now;
     
     now = ntime();
@@ -534,11 +544,10 @@ int main(int argc, char **argv)
 		    delay = (int)((timer->at - now) * 1000.0);
 	    }
 	}
+	/* Of course, there's a race condition here that should be
+	 * solved with pselect, but it doesn't matter a lot. */
 	if(childrendone)
-	{
 	    delay = 0;
-	    childrendone = 0;
-	}
 	pollsocks(delay);
 	now = ntime();
 	do
@@ -558,24 +567,11 @@ int main(int argc, char **argv)
 		break;
 	    }
 	} while(timer != NULL);
-	do
+	if(childrendone)
 	{
-	    for(child = children; child != NULL; child = child->next)
-	    {
-		if(child->finished)
-		{
-		    child->callback(child->pid, child->status, child->data);
-		    if(child == children)
-			children = child->next;
-		    if(child->prev != NULL)
-			child->prev->next = child->next;
-		    if(child->next != NULL)
-			child->next->prev = child->prev;
-		    free(child);
-		    break;
-		}
-	    }
-	} while(child != NULL);
+	    childrendone = 0;
+	    checkchildren();
+	}
     }
     flog(LOG_INFO, "terminating...");
     terminate();

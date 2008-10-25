@@ -37,6 +37,12 @@ struct strpair {
     char *val;
 };
 
+struct btree {
+    struct btree *l, *r;
+    int h;
+    void *d;
+};
+
 /* "Safe" functions */
 #ifdef DAEMON
 #define LOGOOM(size) flog(LOG_CRIT, "%s (%s:%i): out of memory (alloc %zi)", __FUNCTION__, __FILE__, __LINE__, (size))
@@ -87,7 +93,7 @@ wchar_t *wcstolower(wchar_t *wcs);
 wchar_t ucptowc(int ucp);
 void _sizebuf(void **buf, size_t *bufsize, size_t reqsize, size_t elsize, int algo);
 double ntime(void);
-int wcsexists(wchar_t *h, wchar_t *n);
+wchar_t *wcslower(wchar_t *wcs);
 #ifndef HAVE_WCSCASECMP
 int wcscasecmp(const wchar_t *s1, const wchar_t *s2);
 #endif
@@ -106,6 +112,11 @@ char *spfind(struct strpair *list, char *key);
 struct wcspair *newwcspair(wchar_t *key, wchar_t *val, struct wcspair **list);
 void freewcspair(struct wcspair *pair, struct wcspair **list);
 wchar_t *wpfind(struct wcspair *list, wchar_t *key);
+int bbtreedel(struct btree **tree, void *item, int (*cmp)(void *, void *));
+int bbtreeput(struct btree **tree, void *item, int (*cmp)(void *, void *));
+void *btreeget(struct btree *tree, void *key, int (*cmp)(void *, void *));
+void *btreeiter(struct btree *tree);
+void btreefree(struct btree *tree);
 
 #define sizebuf(b, bs, rs, es, a) _sizebuf((void **)(void *)(b), (bs), (rs), (es), (a))
 #define sizebuf2(b, rs, a) _sizebuf((void **)(void *)(&(b)), &(b ## size), (rs), sizeof(*(b)), (a))

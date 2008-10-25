@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <string.h>
 #include <netinet/in.h>
@@ -49,13 +50,18 @@
 
 struct command {
     wchar_t *name;
-    int minargs, needsender;
+    int minargs, needsid, needsender;
     void (*func)(struct fnetnode *fn, wchar_t *command, wchar_t *sender, int argc, wchar_t **argv);
 };
 
 struct qcmd {
     struct qcmd *next;
     wchar_t **args;
+};
+
+struct qcmdqueue {
+    struct qcmd *f, *l;
+    int size;
 };
 
 struct adchub {
@@ -69,12 +75,14 @@ struct adchub {
     iconv_t ich;
     int state;
     struct wcspair *hubinf;
-    struct qcmd *queue;
+    struct qcmdqueue queue;
 };
 
-static wchar_t *eoc;
+static wchar_t *eoc, *ns, *fmt;
 /* I've never understood why both of these are necessary, but... */
 static wchar_t *privid, *cid;
+struct socket *udpsock;
+struct lport *tcpsock;
 
 static wchar_t **parseadc(wchar_t *cmdline)
 {
@@ -149,40 +157,69 @@ static void sendadc1(struct socket *sk, int sep, wchar_t *arg)
 
 static void sendadc(struct socket *sk, int sep, ...)
 {
+    int i;
     va_list args;
     wchar_t *arg;
-    int i;
+    wchar_t *type, *buf;
     
     va_start(args, sep);
     for(i = 0; (arg = va_arg(args, wchar_t *)) != NULL; i++) {
-	if(arg == eoc)
+	if(arg == eoc) {
 	    sendeoc(sk);
-	else
-	    sendadc1(sk, (i == 0)?sep:1, arg);
+	} else if(arg == ns) {
+	    sep = 0;
+	} else if(arg == fmt) {
+	    type = va_arg(args, wchar_t *);
+	    if(!wcscmp(type, L"i")) {
+		buf = swprintf2(L"%i", va_arg(args, int));
+	    } else if(!wcscmp(type, L"mi")) {
+		buf = swprintf2(L"%ji", va_arg(args, intmax_t));
+	    }
+	    sendadc1(sk, sep, buf);
+	    free(buf);
+	    sep = 1;
+	} else {
+	    sendadc1(sk, sep, arg);
+	    sep = 1;
+	}
     }
     va_end(args);
 }
 
-static struct qcmd *newqcmd(struct qcmd **queue, wchar_t **args)
+static wchar_t *findkv(wchar_t **argv, wchar_t *name)
+{
+    while(*argv != NULL) {
+	if(!wcsncmp(*argv, name, 2))
+	    return((*argv) + 2);
+    }
+    return(NULL);
+}
+
+static struct qcmd *newqcmd(struct qcmdqueue *queue, wchar_t **args)
 {
     struct qcmd *new;
     
-    while(*queue != NULL)
-	queue = &((*queue)->next);
     new = smalloc(sizeof(*new));
     new->next = NULL;
     new->args = args;
-    *queue = new;
+    if(queue->l == NULL)
+	queue->f = new;
+    else
+	queue->l->next = new;
+    queue->l = new;
+    queue->size++;
     return(new);
 }
 
-static struct qcmd *ulqcmd(struct qcmd **queue)
+static struct qcmd *ulqcmd(struct qcmdqueue *queue)
 {
     struct qcmd *ret;
     
-    if((ret = *queue) == NULL)
+    if((ret = queue->f) == NULL)
 	return(NULL);
-    *queue = ret->next;
+    if((queue->f = ret->next) == NULL)
+	queue->l = NULL;
+    queue->size--;
     return(ret);
 }
 
@@ -190,6 +227,32 @@ static void freeqcmd(struct qcmd *qcmd)
 {
     freeparr(qcmd->args);
     free(qcmd);
+}
+
+static void sendinf(struct fnetnode *fn)
+{
+    struct adchub *hub = fn->data;
+    struct socket *sk = hub->sk;
+    struct sockaddr_in *a4;
+    socklen_t alen;
+    
+    sendadc(sk, 0, L"BINF", hub->sid, NULL);
+    sendadc(sk, 1, L"PD", ns, privid, L"ID", ns, cid, NULL);
+    sendadc(sk, 1, L"VEDolda ", ns, icsmbstowcs(VERSION, "us-ascii", NULL), NULL);
+    sendadc(sk, 1, L"NI", ns, fn->mynick, NULL);
+    sendadc(sk, 1, L"SS", ns, fmt, L"mi", (intmax_t)sharesize, L"SF", ns, fmt, L"i", sharedfiles, NULL);
+    if(sockfamily(sk) == AF_INET)
+	sendadc(sk, 1, L"I40.0.0.0", NULL);
+    else if(sockfamily(sk) == AF_INET6)
+	sendadc(sk, 1, L"I6::", NULL);
+    sendadc(sk, 1, L"SL", ns, fmt, L"i", confgetint("transfer", "slot"), NULL);
+    if(tcpsock != NULL) {
+	if((sockfamily(sk) == AF_INET) && !sockgetremotename(udpsock, (struct sockaddr **)&a4, &alen)) {
+	    sendadc(sk, 1, L"U4", ns, fmt, L"i", ntohs(a4->sin_port), NULL);
+	    free(a4);
+	}
+    }
+    sendadc(sk, 1, eoc, NULL);
 }
 
 #define ADC_CMDFN(name) static void name(struct fnetnode *fn, wchar_t *command, wchar_t *sender, int argc, wchar_t **argv)
@@ -239,23 +302,26 @@ ADC_CMDFN(cmd_sid)
     hub->sid = swcsdup(argv[1]);
     if(hub->state == ADC_PROTOCOL) {
 	hub->state = ADC_IDENTIFY;
+	sendinf(fn);
     }
 }
 
 ADC_CMDFN(cmd_inf)
 {
     ADC_CMDCOM;
+    wchar_t *p;
     
     if(sender == NULL) {
-	
+	if((p = findkv(argv, L"NI")) != NULL)
+	    fnetsetname(fn, p);
     }
 }
 
 static struct command hubcmds[] = {
-    {L"SUP", 1, 0, cmd_sup},
-    {L"SID", 2, 0, cmd_sid},
-    {L"INF", 0, 0, cmd_inf},
-    {NULL, 0, 0, NULL}
+    {L"SUP", 1, 0, 0, cmd_sup},
+    {L"SID", 2, 0, 0, cmd_sid},
+    {L"INF", 1, 0, 0, cmd_inf},
+    {NULL, 0, 0, 0, NULL}
 };
 
 static void dispatch(struct qcmd *qcmd, struct fnetnode *fn)
@@ -287,11 +353,19 @@ static void dispatch(struct qcmd *qcmd, struct fnetnode *fn)
 	if(!wcscmp(cmd->name, qcmd->args[0] + 1)) {
 	    if(argc < cmd->minargs)
 		return;
-	    cmd->func(fn, cmdnm, sender, argc, qcmd->args);
+	    cmd->func(fn, cmdnm, sender, argc, argv);
 	    return;
 	}
     }
     flog(LOG_DEBUG, "unknown adc command: %ls", qcmd->args[0]);
+}
+
+static void peeraccept(struct lport *lp, struct socket *newsk, void *uudata)
+{
+}
+
+static void udpread(struct socket *sk, void *uudata)
+{
 }
 
 static void hubread(struct socket *sk, struct fnetnode *fn)
@@ -369,7 +443,7 @@ static void hubconnect(struct fnetnode *fn, struct socket *sk)
 	return;
     }
     fn->data = hub;
-    sendadc(sk, 0, L"HSUP", L"ADBASE", eoc, NULL);
+    sendadc(sk, 0, L"HSUP", L"ADBASE", L"ADTIGR", eoc, NULL);
 }
 
 static void hubdestroy(struct fnetnode *fn)
@@ -390,7 +464,7 @@ static void hubkill(struct fnetnode *fn)
     struct adchub *hub;
     
     hub = fn->data;
-    hub->sk->close = 1;
+    closesock(hub->sk);
 }
 
 static int hubsetnick(struct fnetnode *fn, wchar_t *newnick)
@@ -446,18 +520,78 @@ static void preinit(int hup)
     regfnet(adcnet);
 }
 
-static int init(int hup)
+static void makepid(char *idbuf)
 {
     int i;
+    int fd, ret;
+    
+    i = 0;
+    if((fd = open("/dev/urandom", O_RDONLY)) >= 0) {
+	for(i = 0; i < 24; i += ret) {
+	    if((ret = read(fd, idbuf + i, 24 - i)) <= 0) {
+		flog(LOG_WARNING, "could not read random data from /dev/urandom for ADC PID: %s", (errno == 0)?"EOF":strerror(errno));
+		break;
+	    }
+	}
+	close(fd);
+    } else {
+	flog(LOG_WARNING, "could not open /dev/urandom: %s", strerror(errno));
+    }
+    if(i != 24) {
+	for(i = 0; i < sizeof(idbuf); i++)
+	    idbuf[i] = rand() % 256;
+    }
+}
+
+static int updateudpport(struct configvar *var, void *uudata)
+{
+    struct sockaddr_in addr;
+    struct socket *newsock;
+    
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(var->val.num);
+    if((newsock = netcsdgram((struct sockaddr *)&addr, sizeof(addr))) == NULL)
+    {
+	flog(LOG_WARNING, "could not create new DC UDP socket, reverting to old: %s", strerror(errno));
+	return(0);
+    }
+    newsock->readcb = udpread;
+    if(udpsock != NULL)
+	putsock(udpsock);
+    udpsock = newsock;
+    return(0);
+}
+
+static int updatetcpport(struct configvar *var, void *uudata)
+{
+    struct sockaddr_in addr;
+    struct lport *newsock;
+    
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(var->val.num);
+    if((newsock = netcslisten(SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), peeraccept, NULL)) == NULL)
+	flog(LOG_INFO, "could not listen to a remote address, going into passive mode");
+    if(tcpsock != NULL)
+	closelport(tcpsock);
+    tcpsock = newsock;
+    return(0);
+}
+
+static int init(int hup)
+{
     char idbuf[24], *id32;
     struct tigerhash th;
+    struct sockaddr_in addr;
     
     if(!hup) {
 	eoc = swcsdup(L"");
+	ns = swcsdup(L"");
+	fmt = swcsdup(L"");
 	
 	if((privid = fetchvar("adc.pid", NULL)) == NULL) {
-	    for(i = 0; i < sizeof(idbuf); i++)
-		idbuf[i] = rand() % 256;
+	    makepid(idbuf);
 	    id32 = base32encode(idbuf, sizeof(idbuf));
 	    id32[39] = 0;
 	    privid = icmbstowcs(id32, "us-ascii");
@@ -475,6 +609,23 @@ static int init(int hup)
 	id32[39] = 0;
 	cid = icmbstowcs(id32, "us-ascii");
 	free(id32);
+	
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(confgetint("adc", "udpport"));
+	if((udpsock = netcsdgram((struct sockaddr *)&addr, sizeof(addr))) == NULL) {
+	    flog(LOG_CRIT, "could not create ADC UDP socket: %s", strerror(errno));
+	    return(1);
+	}
+	udpsock->readcb = udpread;
+	addr.sin_port = htons(confgetint("adc", "tcpport"));
+	if((tcpsock = netcslisten(SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), peeraccept, NULL)) == NULL) {
+	    flog(LOG_CRIT, "could not create ADC TCP socket: %s", strerror(errno));
+	    return(1);
+	}
+	CBREG(confgetvar("adc", "udpport"), conf_update, updateudpport, NULL, NULL);
+	CBREG(confgetvar("adc", "tcpport"), conf_update, updatetcpport, NULL, NULL);
+	CBREG(confgetvar("net", "mode"), conf_update, updatetcpport, NULL, NULL);
     }
     return(0);
 }

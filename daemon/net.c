@@ -28,7 +28,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <sys/poll.h>
+#include <sys/select.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -66,8 +66,6 @@ static struct configvar myvars[] =
      * and net.visibleipv4 are unspecified the address of the hub
      * connection is used. */
     {CONF_VAR_STRING, "publicif", {.str = L""}},
-    /* Diffserv should be supported on IPv4, too, but I don't know the
-     * API to do that. */
     /** The Diffserv value to use on IPv6 connections when the
      * minimize cost TOS value is used (see the TOS VALUES
      * section). */
@@ -84,10 +82,52 @@ static struct configvar myvars[] =
      * minimize delay TOS value is used (see the TOS VALUES
      * section). */
     {CONF_VAR_INT, "diffserv-mindelay", {.num = 0}},
+    /** If enabled, the IP TOS interface will be used to set Diffserv
+     * codepoints on IPv4 sockets, by shifting the DSCP value two bits
+     * to the left (remember, the DSCP field in the IPv4 header is
+     * defined as the 6 uppermost bits of the TOS field, the lower two
+     * being left for ECN). This may only work on Linux. */
+    {CONF_VAR_BOOL, "dscp-tos", {.num = 0}},
     {CONF_VAR_END}
 };
 
-static struct socket *sockets = NULL;
+#define UFD_SOCK 0
+#define UFD_PIPE 1
+#define UFD_LISTEN 2
+
+struct scons {
+    struct scons *n, *p;
+    struct socket *s;
+};
+
+struct ufd {
+    struct ufd *next, *prev;
+    int fd;
+    int type;
+    int ignread;
+    struct socket *sk;
+    union {
+	struct {
+	    int family;
+	    int type;
+	    struct sockaddr *remote;
+	    socklen_t remotelen;
+	    struct {
+		uid_t uid;
+		gid_t gid;
+	    } ucred;
+	} s;
+	struct {
+	    struct lport *lp;
+	    int family;
+	} l;
+    } d;
+};
+
+static int getlocalname(int fd, struct sockaddr **namebuf, socklen_t *lenbuf);
+
+static struct ufd *ufds = NULL;
+static struct scons *rbatch, *wbatch, *cbatch;
 int numsocks = 0;
 
 /* XXX: Get autoconf for all this... */
@@ -167,92 +207,154 @@ int getpublicaddr(int af, struct sockaddr **addr, socklen_t *lenbuf)
     return(1);
 }
 
-static struct socket *newsock(int type)
+static struct socket *newsock1(int dgram)
 {
     struct socket *new;
     
-    new = smalloc(sizeof(*new));
-    new->refcount = 2;
-    new->fd = -1;
-    new->isrealsocket = 1;
-    new->family = -1;
-    new->tos = 0;
-    new->type = type;
+    new = memset(smalloc(sizeof(*new)), 0, sizeof(*new));
+    new->refcount = 1;
     new->state = -1;
-    new->ignread = 0;
-    new->close = 0;
-    new->remote = NULL;
-    new->remotelen = 0;
-    new->ucred.uid = -1;
-    new->ucred.gid = -1;
-    switch(type)
-    {
-    case SOCK_STREAM:
-	new->outbuf.s.buf = NULL;
-	new->outbuf.s.bufsize = 0;
-	new->outbuf.s.datasize = 0;
-	new->inbuf.s.buf = NULL;
-	new->inbuf.s.bufsize = 0;
-	new->inbuf.s.datasize = 0;
-	break;
-    case SOCK_DGRAM:
-	new->outbuf.d.f = new->outbuf.d.l = NULL;
-	new->inbuf.d.f = new->inbuf.d.l = NULL;
-	break;
-    }
-    new->conncb = NULL;
-    new->errcb = NULL;
-    new->readcb = NULL;
-    new->writecb = NULL;
-    new->acceptcb = NULL;
-    new->next = sockets;
-    new->prev = NULL;
-    if(sockets != NULL)
-	sockets->prev = new;
-    sockets = new;
+    new->dgram = dgram;
+    new->maxbuf = 65536;
     numsocks++;
     return(new);
+}
+
+static struct socket *sockpair(int dgram)
+{
+    struct socket *s1, *s2;
+    
+    s1 = newsock1(dgram);
+    s2 = newsock1(dgram);
+    s1->back = s2;
+    s2->back = s1;
+    putsock(s2);
+    return(s1);
+}
+
+static void sksetstate(struct socket *sk, int state)
+{
+    sk->state = state;
+    sk->back->state = state;
+}
+
+struct socket *netsockpipe(void)
+{
+    struct socket *sk;
+    
+    sk = sockpair(0);
+    sksetstate(sk, SOCK_EST);
+    return(sk);
+}
+
+static void closeufd(struct ufd *ufd)
+{
+    if(ufd->fd != -1)
+	close(ufd->fd);
+    ufd->fd = -1;
+}
+
+static void freeufd(struct ufd *ufd)
+{
+    if(ufd->next != NULL)
+	ufd->next->prev = ufd->prev;
+    if(ufd->prev != NULL)
+	ufd->prev->next = ufd->next;
+    if(ufd == ufds)
+	ufds = ufd->next;
+    closeufd(ufd);
+    if(ufd->sk != NULL)
+	putsock(ufd->sk);
+    if(ufd->type == UFD_SOCK) {
+	if(ufd->d.s.remote != NULL)
+	    free(ufd->d.s.remote);
+    }
+    free(ufd);
+}
+
+static struct ufd *mkufd(int fd, int type, struct socket *sk)
+{
+    struct ufd *ufd;
+    
+    ufd = memset(smalloc(sizeof(*ufd)), 0, sizeof(*ufd));
+    ufd->fd = fd;
+    ufd->type = type;
+    if(sk != NULL) {
+	getsock(ufd->sk = sk);
+	sk->ufd = ufd;
+    }
+    if(type == UFD_SOCK) {
+	ufd->d.s.ucred.uid = -1;
+	ufd->d.s.ucred.gid = -1;
+    }
+    ufd->next = ufds;
+    if(ufds)
+	ufds->prev = ufd;
+    ufds = ufd;
+    return(ufd);
+}
+
+static struct ufd *dupufd(struct ufd *ufd)
+{
+    struct ufd *nufd;
+    struct socket *nsk;
+    
+    if(ufd->sk != NULL)
+	nsk = sockpair(ufd->sk->dgram);
+    else
+	nsk = NULL;
+    nufd = mkufd(ufd->fd, ufd->type, nsk);
+    if(nsk != NULL)
+	putsock(nsk);
+    if((nufd->fd = dup(ufd->fd)) < 0)
+    {
+	flog(LOG_WARNING, "could not dup() fd: %s", strerror(errno));
+	freeufd(nufd);
+	return(NULL);
+    }
+    sksetstate(nsk, SOCK_EST);
+    if(ufd->type == UFD_SOCK) {
+	nufd->d.s.family = ufd->d.s.family;
+	nufd->d.s.type = ufd->d.s.type;
+	nufd->d.s.ucred.uid = ufd->d.s.ucred.uid;
+	nufd->d.s.ucred.gid = ufd->d.s.ucred.gid;
+	if(ufd->d.s.remote != NULL)
+	    nufd->d.s.remote = memcpy(smalloc(ufd->d.s.remotelen), ufd->d.s.remote, nufd->d.s.remotelen = ufd->d.s.remotelen);
+    } else if(ufd->type == UFD_LISTEN) {
+	nufd->d.l.family = ufd->d.l.family;
+    }
+    return(nufd);
 }
 
 static struct socket *mksock(int domain, int type)
 {
     int fd;
-    struct socket *new;
+    struct socket *sk;
+    struct ufd *ufd;
     
     if((fd = socket(domain, type, 0)) < 0)
     {
 	flog(LOG_CRIT, "could not create socket: %s", strerror(errno));
 	return(NULL);
     }
-    new = newsock(type);
-    new->fd = fd;
-    new->family = domain;
+    sk = sockpair(type == SOCK_DGRAM);
+    ufd = mkufd(fd, UFD_SOCK, sk);
+    ufd->d.s.family = domain;
+    ufd->d.s.type = type;
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-    return(new);
+    return(sk);
 }
 
 struct socket *wrapsock(int fd)
 {
-    struct socket *new;
+    struct socket *sk;
+    struct ufd *ufd;
     
-    new = newsock(SOCK_STREAM);
-    new->fd = fd;
-    new->state = SOCK_EST;
-    new->isrealsocket = 0;
+    sk = sockpair(0);
+    ufd = mkufd(fd, UFD_PIPE, sk->back);
+    sksetstate(sk, SOCK_EST);
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-    return(new);
-}
-
-static void unlinksock(struct socket *sk)
-{
-    if(sk->prev != NULL)
-	sk->prev->next = sk->next;
-    if(sk->next != NULL)
-	sk->next->prev = sk->prev;
-    if(sk == sockets)
-	sockets = sk->next;
-    putsock(sk);
-    numsocks--;
+    return(sk);
 }
 
 void getsock(struct socket *sk)
@@ -260,59 +362,140 @@ void getsock(struct socket *sk)
     sk->refcount++;
 }
 
-void putsock(struct socket *sk)
+static void sockdebug(int level, struct socket *sk, char *format, ...)
+{
+    va_list args;
+    char *tb;
+    
+    if((sk->dbgnm == NULL) || (level > sk->dbglvl))
+	return;
+    va_start(args, format);
+    tb = vsprintf2(format, args);
+    va_end(args);
+    fprintf(stderr, "%s: %s\n", sk->dbgnm, tb);
+    free(tb);
+}
+
+void socksetdebug(struct socket *sk, int level, char *nm, ...)
+{
+    va_list args;
+    char *tb;
+    
+    va_start(args, nm);
+    tb = vsprintf2(nm, args);
+    va_end(args);
+    sk->dbgnm = sprintf2("%s (f)", tb);
+    sk->back->dbgnm = sprintf2("%s (b)", tb);
+    free(tb);
+    sk->dbglvl = level;
+    sk->back->dbglvl = level;
+    sockdebug(1, sk, "enabled debugging");
+}
+
+static void freesock(struct socket *sk)
 {
     struct dgrambuf *buf;
     
-    if(--(sk->refcount) == 0)
-    {
-	switch(sk->type)
-	{
-	case SOCK_STREAM:
-	    if(sk->outbuf.s.buf != NULL)
-		free(sk->outbuf.s.buf);
-	    if(sk->inbuf.s.buf != NULL)
-		free(sk->inbuf.s.buf);
-	    break;
-	case SOCK_DGRAM:
-	    while((buf = sk->outbuf.d.f) != NULL)
-	    {
-		sk->outbuf.d.f = buf->next;
-		free(buf->data);
-		free(buf->addr);
-		free(buf);
-	    }
-	    while((buf = sk->inbuf.d.f) != NULL)
-	    {
-		sk->inbuf.d.f = buf->next;
-		free(buf->data);
-		free(buf->addr);
-		free(buf);
-	    }
-	    break;
+    sockdebug(1, sk, "freeing socket");
+    if(sk->dgram) {
+	while((buf = sk->buf.d.f) != NULL) {
+	    sk->buf.d.f = buf->next;
+	    freedgbuf(buf);
 	}
-	closesock(sk);
-	if(sk->remote != NULL)
-	    free(sk->remote);
-	free(sk);
+    } else {
+	if(sk->buf.s.buf != NULL)
+	    free(sk->buf.s.buf);
     }
+    if(sk->dbgnm != NULL)
+	free(sk->dbgnm);
+    free(sk);
+    numsocks--;
+}
+
+void putsock(struct socket *sk)
+{
+    struct socket *back;
+    
+    if(--(sk->refcount) < 0) {
+	flog(LOG_CRIT, "BUG: socket refcount < 0");
+	abort();
+    }
+    if((sk->refcount == 0) && (sk->back->refcount == 0)) {
+	back = sk->back;
+	freesock(sk);
+	freesock(back);
+    }
+}
+
+void quitsock(struct socket *sk)
+{
+    sk->readcb = NULL;
+    sk->writecb = NULL;
+    sk->errcb = NULL;
+    putsock(sk);
+}
+
+static void linksock(struct scons **list, struct socket *sk)
+{
+    struct scons *sc;
+    
+    for(sc = *list; sc != NULL; sc = sc->n) {
+	if(sc->s == sk)
+	    return;
+    }
+    sc = smalloc(sizeof(*sc));
+    getsock(sc->s = sk);
+    sc->n = *list;
+    sc->p = NULL;
+    if(*list)
+	(*list)->p = sc;
+    *list = sc;
 }
 
 void sockpushdata(struct socket *sk, void *buf, size_t size)
 {
-    switch(sk->type)
-    {
-    case SOCK_STREAM:
-	sizebuf(&sk->inbuf.s.buf, &sk->inbuf.s.bufsize, sk->inbuf.s.datasize + size, 1, 1);
-	memmove(sk->inbuf.s.buf + size, sk->inbuf.s.buf, sk->inbuf.s.datasize);
-	memcpy(sk->inbuf.s.buf, buf, size);
-	sk->inbuf.s.datasize += size;
-	break;
-    case SOCK_DGRAM:
+    if(size == 0)
+	return;
+    if(sk->dgram) {
 	/* XXX */
-	break;
+    } else {
+	sizebuf(&sk->buf.s.buf, &sk->buf.s.bufsize, sk->buf.s.datasize + size, 1, 1);
+	memmove(sk->buf.s.buf + size, sk->buf.s.buf, sk->buf.s.datasize);
+	memcpy(sk->buf.s.buf, buf, size);
+	sk->buf.s.datasize += size;
+	linksock(&rbatch, sk);
     }
-    return;
+}
+
+/* Read as the preterite of `read' */
+void sockread(struct socket *sk)
+{
+    if((sockgetdatalen(sk) == 0) && (sk->eos == 1))
+	linksock(&rbatch, sk);
+    linksock(&wbatch, sk->back);
+}
+
+void freedgbuf(struct dgrambuf *dg)
+{
+    if(dg->data != NULL)
+	free(dg->data);
+    if(dg->addr != NULL)
+	free(dg->addr);
+    free(dg);
+}
+
+struct dgrambuf *sockgetdgbuf(struct socket *sk)
+{
+    struct dgrambuf *dbuf;
+    
+    if((dbuf = sk->buf.d.f) == NULL)
+	return(NULL);
+    sk->buf.d.f = dbuf->next;
+    if(dbuf->next == NULL)
+	sk->buf.d.l = NULL;
+    dbuf->next = NULL;
+    sockread(sk);
+    return(dbuf);
 }
 
 void *sockgetinbuf(struct socket *sk, size_t *size)
@@ -320,35 +503,93 @@ void *sockgetinbuf(struct socket *sk, size_t *size)
     void *buf;
     struct dgrambuf *dbuf;
     
-    switch(sk->type)
-    {
-    case SOCK_STREAM:
-	if((sk->inbuf.s.buf == NULL) || (sk->inbuf.s.datasize == 0))
-	{
-	    *size = 0;
-	    return(NULL);
-	}
-	buf = sk->inbuf.s.buf;
-	*size = sk->inbuf.s.datasize;
-	sk->inbuf.s.buf = NULL;
-	sk->inbuf.s.bufsize = sk->inbuf.s.datasize = 0;
-	return(buf);
-    case SOCK_DGRAM:
-	if((dbuf = sk->inbuf.d.f) == NULL)
-	    return(NULL);
-	sk->inbuf.d.f = dbuf->next;
-	if(dbuf->next == NULL)
-	    sk->inbuf.d.l = NULL;
+    if(sk->dgram) {
+	dbuf = sockgetdgbuf(sk);
 	buf = dbuf->data;
 	*size = dbuf->size;
 	free(dbuf->addr);
 	free(dbuf);
-	return(buf);
+    } else {
+	if((sk->buf.s.buf == NULL) || (sk->buf.s.datasize == 0))
+	{
+	    *size = 0;
+	    sockdebug(2, sk, "read 0 bytes", *size);
+	    return(NULL);
+	}
+	buf = sk->buf.s.buf;
+	*size = sk->buf.s.datasize;
+	sk->buf.s.buf = NULL;
+	sk->buf.s.bufsize = sk->buf.s.datasize = 0;
+	sockread(sk);
     }
-    return(NULL);
+    sockdebug(2, sk, "read %zi bytes", *size);
+    return(buf);
 }
 
-static void recvcmsg(struct socket *sk, struct msghdr *msg)
+void sockqueue(struct socket *sk, void *data, size_t size)
+{
+    struct dgrambuf *new;
+    struct sockaddr *remote;
+    socklen_t remotelen;
+    
+    sockdebug(2, sk, "queued %zi bytes", size);
+    if(size == 0)
+	return;
+    if(sk->state == SOCK_STL)
+	return;
+    if(sk->dgram) {
+	if(sockpeeraddr(sk, &remote, &remotelen))
+	    return;
+	new = smalloc(sizeof(*new));
+	new->next = NULL;
+	memcpy(new->data = smalloc(size), data, new->size = size);
+	new->addr = remote;
+	new->addrlen = remotelen;
+	if(sk->back->buf.d.l == NULL)
+	{
+	    sk->back->buf.d.l = sk->back->buf.d.f = new;
+	} else {
+	    sk->back->buf.d.l->next = new;
+	    sk->back->buf.d.l = new;
+	}
+    } else {
+	sizebuf(&(sk->back->buf.s.buf), &(sk->back->buf.s.bufsize), sk->back->buf.s.datasize + size, 1, 1);
+	memcpy(sk->back->buf.s.buf + sk->back->buf.s.datasize, data, size);
+	sk->back->buf.s.datasize += size;
+    }
+    linksock(&rbatch, sk->back);
+}
+
+void sockqueuedg(struct socket *sk, struct dgrambuf *dg)
+{
+    if(sk->state == SOCK_STL) {
+	freedgbuf(dg);
+	return;
+    }
+    if(!sk->dgram) {
+	flog(LOG_ERR, "BUG: sockqueuedg called on non-dgram socket");
+	freedgbuf(dg);
+	return;
+    }
+    dg->next = NULL;
+    if(sk->back->buf.d.l == NULL)
+    {
+	sk->back->buf.d.l = sk->back->buf.d.f = dg;
+    } else {
+	sk->back->buf.d.l->next = dg;
+	sk->back->buf.d.l = dg;
+    }
+    linksock(&rbatch, sk->back);
+}
+
+void sockerror(struct socket *sk, int en)
+{
+    sksetstate(sk, SOCK_STL);
+    if(sk->back->errcb != NULL)
+	sk->back->errcb(sk->back, en, sk->back->data);
+}
+
+static void recvcmsg(struct ufd *ufd, struct msghdr *msg)
 {
     struct cmsghdr *cmsg;
     
@@ -358,90 +599,64 @@ static void recvcmsg(struct socket *sk, struct msghdr *msg)
 	if((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SCM_CREDENTIALS))
 	{
 	    struct ucred *cred;
-	    if(sk->ucred.uid == -1)
+	    if(ufd->d.s.ucred.uid == -1)
 	    {
 		cred = (struct ucred *)CMSG_DATA(cmsg);
-		sk->ucred.uid = cred->uid;
-		sk->ucred.gid = cred->gid;
+		ufd->d.s.ucred.uid = cred->uid;
+		ufd->d.s.ucred.gid = cred->gid;
 	    }
 	}
 #endif
     }
 }
 
-static void sockrecv(struct socket *sk)
+static int ufddgram(struct ufd *ufd)
+{
+    int dgram;
+
+    if(ufd->type == UFD_SOCK) {
+	dgram = ufd->d.s.type == SOCK_DGRAM;
+    } else if(ufd->type == UFD_PIPE) {
+	dgram = 0;
+    } else {
+	flog(LOG_ERR, "BUG: calling ufddgram on ufd of bad type %i", ufd->type);
+	return(-1);
+    }
+    if(ufd->sk == NULL) {
+	flog(LOG_ERR, "BUG: calling ufddgram on socketless ufd (type %i)", ufd->type);
+	return(-1);
+    }
+    if(dgram != ufd->sk->dgram) {
+	flog(LOG_ERR, "BUG: ufd/socket dgram value mismatch");
+	return(-1);
+    }
+    return(dgram);
+}
+
+static void sockrecv(struct ufd *ufd)
 {
     int ret, inq;
+    int dgram;
     struct dgrambuf *dbuf;
     struct msghdr msg;
     char cbuf[65536];
     struct iovec bufvec;
+    void *buf;
     
     memset(&msg, 0, sizeof(msg));
     msg.msg_iov = &bufvec;
     msg.msg_iovlen = 1;
     msg.msg_control = cbuf;
     msg.msg_controllen = sizeof(cbuf);
-    switch(sk->type)
-    {
-    case SOCK_STREAM:
+    if((dgram = ufddgram(ufd)) < 0)
+	return;
+    if(dgram) {
 #if defined(HAVE_LINUX_SOCKIOS_H) && defined(SIOCINQ)
-	/* SIOCINQ is Linux-specific AFAIK, but I really have no idea
-	 * how to read the inqueue size on other OSs */
-	if(ioctl(sk->fd, SIOCINQ, &inq))
+	if(ioctl(ufd->fd, SIOCINQ, &inq))
 	{
 	    /* I don't really know what could go wrong here, so let's
 	     * assume it's transient. */
-	    flog(LOG_WARNING, "SIOCINQ return %s on socket %i, falling back to 2048 bytes", strerror(errno), sk->fd);
-	    inq = 2048;
-	}
-#else
-	inq = 2048;
-#endif
-	if(inq > 65536)
-	    inq = 65536;
-	sizebuf(&sk->inbuf.s.buf, &sk->inbuf.s.bufsize, sk->inbuf.s.datasize + inq, 1, 1);
-	if(sk->isrealsocket)
-	{
-	    bufvec.iov_base = sk->inbuf.s.buf + sk->inbuf.s.datasize;
-	    bufvec.iov_len = inq;
-	    ret = recvmsg(sk->fd, &msg, 0);
-	} else {
-	    ret = read(sk->fd, sk->inbuf.s.buf + sk->inbuf.s.datasize, inq);
-	    msg.msg_controllen = 0;
-	    msg.msg_flags = 0;
-	}
-	if(ret < 0)
-	{
-	    if((errno == EINTR) || (errno == EAGAIN))
-		return;
-	    if(sk->errcb != NULL)
-		sk->errcb(sk, errno, sk->data);
-	    closesock(sk);
-	    return;
-	}
-	if(msg.msg_flags & MSG_CTRUNC)
-	    flog(LOG_DEBUG, "ancillary data was truncated");
-	else
-	    recvcmsg(sk, &msg);
-	if(ret == 0)
-	{
-	    if(sk->errcb != NULL)
-		sk->errcb(sk, 0, sk->data);
-	    closesock(sk);
-	    return;
-	}
-	sk->inbuf.s.datasize += ret;
-	if(sk->readcb != NULL)
-	    sk->readcb(sk, sk->data);
-	break;
-    case SOCK_DGRAM:
-#if defined(HAVE_LINUX_SOCKIOS_H) && defined(SIOCINQ)
-	if(ioctl(sk->fd, SIOCINQ, &inq))
-	{
-	    /* I don't really know what could go wrong here, so let's
-	     * assume it's transient. */
-	    flog(LOG_WARNING, "SIOCINQ return %s on socket %i", strerror(errno), sk->fd);
+	    flog(LOG_WARNING, "SIOCINQ return %s on socket %i", strerror(errno), ufd->fd);
 	    return;
 	}
 #else
@@ -450,148 +665,139 @@ static void sockrecv(struct socket *sk)
 	dbuf = smalloc(sizeof(*dbuf));
 	dbuf->data = smalloc(inq);
 	dbuf->addr = smalloc(dbuf->addrlen = sizeof(struct sockaddr_storage));
-	/*
-	ret = recvfrom(sk->fd, dbuf->data, inq, 0, dbuf->addr, &dbuf->addrlen);
-	*/
 	msg.msg_name = dbuf->addr;
 	msg.msg_namelen = dbuf->addrlen;
 	bufvec.iov_base = dbuf->data;
 	bufvec.iov_len = inq;
-	ret = recvmsg(sk->fd, &msg, 0);
+	ret = recvmsg(ufd->fd, &msg, 0);
 	dbuf->addrlen = msg.msg_namelen;
 	if(ret < 0)
 	{
-	    free(dbuf->addr);
-	    free(dbuf->data);
-	    free(dbuf);
+	    freedgbuf(dbuf);
 	    if((errno == EINTR) || (errno == EAGAIN))
 		return;
-	    if(sk->errcb != NULL)
-		sk->errcb(sk, errno, sk->data);
-	    closesock(sk);
+	    closeufd(ufd);
+	    sockerror(ufd->sk, errno);
 	    return;
 	}
 	if(msg.msg_flags & MSG_CTRUNC)
 	    flog(LOG_DEBUG, "ancillary data was truncated");
 	else
-	    recvcmsg(sk, &msg);
+	    recvcmsg(ufd, &msg);
 	/* On UDP/IPv[46], ret == 0 doesn't mean EOF (since UDP can't
 	 * have EOF), but rather an empty packet. I don't know if any
 	 * other potential DGRAM protocols might have an EOF
 	 * condition, so let's play safe. */
 	if(ret == 0)
 	{
-	    free(dbuf->addr);
-	    free(dbuf->data);
-	    free(dbuf);
-	    if(!((sk->family == AF_INET) || (sk->family == AF_INET6)))
+	    freedgbuf(dbuf);
+	    if((ufd->type != UFD_SOCK) || !((ufd->d.s.family == AF_INET) || (ufd->d.s.family == AF_INET6)))
 	    {
-		if(sk->errcb != NULL)
-		    sk->errcb(sk, 0, sk->data);
-		closesock(sk);
+		closesock(ufd->sk);
+		closeufd(ufd);
 	    }
 	    return;
 	}
 	dbuf->addr = srealloc(dbuf->addr, dbuf->addrlen);
 	dbuf->data = srealloc(dbuf->data, dbuf->size = ret);
 	dbuf->next = NULL;
-	if(sk->inbuf.d.l != NULL)
-	    sk->inbuf.d.l->next = dbuf;
+	sockqueuedg(ufd->sk, dbuf);
+    } else {
+#if defined(HAVE_LINUX_SOCKIOS_H) && defined(SIOCINQ)
+	/* SIOCINQ is Linux-specific AFAIK, but I really have no idea
+	 * how to read the inqueue size on other OSs */
+	if(ufd->type == UFD_SOCK) {
+	    if(ioctl(ufd->fd, SIOCINQ, &inq))
+	    {
+		/* I don't really know what could go wrong here, so let's
+		 * assume it's transient. */
+		flog(LOG_WARNING, "SIOCINQ return %s on socket %i, falling back to 2048 bytes", strerror(errno), ufd->fd);
+		inq = 2048;
+	    }
+	} else {
+	    /* There are perils when trying to use SIOCINQ on files >2GiB... */
+	    inq = 65536;
+	}
+#else
+	inq = 2048;
+#endif
+	if(inq > 65536)
+	    inq = 65536;
+	/* This part could be optimized by telling the kernel to read
+	 * directly into ufd->sk->back->buf, but that would be uglier
+	 * by not using the socket function interface. */
+	buf = smalloc(inq);
+	if(ufd->type == UFD_SOCK)
+	{
+	    bufvec.iov_base = buf;
+	    bufvec.iov_len = inq;
+	    ret = recvmsg(ufd->fd, &msg, 0);
+	} else {
+	    ret = read(ufd->fd, buf, inq);
+	    msg.msg_controllen = 0;
+	    msg.msg_flags = 0;
+	}
+	if(ret < 0)
+	{
+	    free(buf);
+	    if((errno == EINTR) || (errno == EAGAIN))
+		return;
+	    closeufd(ufd);
+	    sockerror(ufd->sk, errno);
+	    return;
+	}
+	if(msg.msg_flags & MSG_CTRUNC)
+	    flog(LOG_DEBUG, "ancillary data was truncated");
 	else
-	    sk->inbuf.d.f = dbuf;
-	sk->inbuf.d.l = dbuf;
-	if(sk->readcb != NULL)
-	    sk->readcb(sk, sk->data);
-	break;
+	    recvcmsg(ufd, &msg);
+	if(ret == 0)
+	{
+	    free(buf);
+	    closeufd(ufd);
+	    closesock(ufd->sk);
+	    return;
+	}
+	sockqueue(ufd->sk, buf, ret);
+	free(buf);
     }
 }
 
-static void sockflush(struct socket *sk)
+static int sockflush(struct ufd *ufd)
 {
     int ret;
     struct dgrambuf *dbuf;
+    int dgram;
     
-    switch(sk->type)
-    {
-    case SOCK_STREAM:
-	if(sk->isrealsocket)
-	    ret = send(sk->fd, sk->outbuf.s.buf, sk->outbuf.s.datasize, MSG_DONTWAIT | MSG_NOSIGNAL);
-	else
-	    ret = write(sk->fd, sk->outbuf.s.buf, sk->outbuf.s.datasize);
-	if(ret < 0)
-	{
-	    /* For now, assume transient error, since
-	     * the socket is polled for errors */
-	    break;
-	}
-	if(ret > 0)
-	{
-	    memmove(sk->outbuf.s.buf, ((char *)sk->outbuf.s.buf) + ret, sk->outbuf.s.datasize -= ret);
-	    if(sk->writecb != NULL)
-		sk->writecb(sk, sk->data);
-	}
-	break;
-    case SOCK_DGRAM:
-	dbuf = sk->outbuf.d.f;
-	if((sk->outbuf.d.f = dbuf->next) == NULL)
-	    sk->outbuf.d.l = NULL;
-	sendto(sk->fd, dbuf->data, dbuf->size, MSG_DONTWAIT | MSG_NOSIGNAL, dbuf->addr, dbuf->addrlen);
-	free(dbuf->data);
-	free(dbuf->addr);
-	free(dbuf);
-	if(sk->writecb != NULL)
-	    sk->writecb(sk, sk->data);
-	break;
+    if((dgram = ufddgram(ufd)) < 0) {
+	errno = EBADFD;
+	return(-1);
     }
+    if(dgram) {
+	dbuf = sockgetdgbuf(ufd->sk);
+	sendto(ufd->fd, dbuf->data, dbuf->size, MSG_DONTWAIT | MSG_NOSIGNAL, dbuf->addr, dbuf->addrlen);
+	freedgbuf(dbuf);
+    } else {
+	if(ufd->type == UFD_SOCK)
+	    ret = send(ufd->fd, ufd->sk->buf.s.buf, ufd->sk->buf.s.datasize, MSG_DONTWAIT | MSG_NOSIGNAL);
+	else
+	    ret = write(ufd->fd, ufd->sk->buf.s.buf, ufd->sk->buf.s.datasize);
+	if(ret < 0)
+	    return(-1);
+	if(ret > 0) {
+	    memmove(ufd->sk->buf.s.buf, ((char *)ufd->sk->buf.s.buf) + ret, ufd->sk->buf.s.datasize -= ret);
+	    sockread(ufd->sk);
+	}
+    }
+    return(0);
 }
 
 void closesock(struct socket *sk)
 {
-    struct sockaddr_un *un;
-    
-    if((sk->family == AF_UNIX) && !sockgetlocalname(sk, (struct sockaddr **)(void *)&un, NULL) && (un->sun_family == PF_UNIX))
-    {
-	if((sk->state == SOCK_LST) && strchr(un->sun_path, '/'))
-	{
-	    if(unlink(un->sun_path))
-		flog(LOG_WARNING, "could not unlink Unix socket %s: %s", un->sun_path, strerror(errno));
-	}
-    }
-    sk->state = SOCK_STL;
-    close(sk->fd);
-    sk->fd = -1;
-    sk->close = 0;
-}
-
-void sockqueue(struct socket *sk, void *data, size_t size)
-{
-    struct dgrambuf *new;
-    
-    if(sk->state == SOCK_STL)
-	return;
-    switch(sk->type)
-    {
-    case SOCK_STREAM:
-	sizebuf(&(sk->outbuf.s.buf), &(sk->outbuf.s.bufsize), sk->outbuf.s.datasize + size, 1, 1);
-	memcpy(sk->outbuf.s.buf + sk->outbuf.s.datasize, data, size);
-	sk->outbuf.s.datasize += size;
-	break;
-    case SOCK_DGRAM:
-	if(sk->remote == NULL)
-	    return;
-	new = smalloc(sizeof(*new));
-	new->next = NULL;
-	memcpy(new->data = smalloc(size), data, new->size = size);
-	memcpy(new->addr = smalloc(sk->remotelen), sk->remote, new->addrlen = sk->remotelen);
-	if(sk->outbuf.d.l == NULL)
-	{
-	    sk->outbuf.d.l = sk->outbuf.d.f = new;
-	} else {
-	    sk->outbuf.d.l->next = new;
-	    sk->outbuf.d.l = new;
-	}
-	break;
-    }
+    sockdebug(1, sk, "closed");
+    sksetstate(sk, SOCK_STL);
+    if(sk->back->eos == 0)
+	sk->back->eos = 1;
+    linksock(&rbatch, sk->back);
 }
 
 size_t sockgetdatalen(struct socket *sk)
@@ -599,49 +805,48 @@ size_t sockgetdatalen(struct socket *sk)
     struct dgrambuf *b;
     size_t ret;
     
-    switch(sk->type)
-    {
-    case SOCK_STREAM:
-	ret = sk->inbuf.s.datasize;
-	break;
-    case SOCK_DGRAM:
+    if(sk->dgram) {
 	ret = 0;
-	for(b = sk->inbuf.d.f; b != NULL; b = b->next)
+	for(b = sk->buf.d.f; b != NULL; b = b->next)
 	    ret += b->size;
-	break;
+    } else {
+	ret = sk->buf.s.datasize;
     }
     return(ret);
 }
 
-size_t sockqueuesize(struct socket *sk)
+/* size_t sockqueuesize(struct socket *sk) */
+/* { */
+/*     return(sockgetdatalen(sk->back)); */
+/* } */
+
+size_t socktqueuesize(struct socket *sk)
 {
-    struct dgrambuf *b;
     size_t ret;
     
-    switch(sk->type)
-    {
-    case SOCK_STREAM:
-	ret = sk->outbuf.s.datasize;
-	break;
-    case SOCK_DGRAM:
-	ret = 0;
-	for(b = sk->outbuf.d.f; b != NULL; b = b->next)
-	    ret += b->size;
-	break;
+    ret = 0;
+    while(1) {
+	ret += sockgetdatalen(sk->back);
+	if((sk = sk->back->pnext) == NULL)
+	    return(ret);
     }
-    return(ret);
+}
+
+ssize_t sockqueueleft(struct socket *sk)
+{
+    return(sk->back->maxbuf - sockgetdatalen(sk->back));
 }
 
 /*
  * Seriously, I don't know if it's naughty or not to remove
  * pre-existing Unix sockets.
  */
-static int rebindunix(struct socket *sk, struct sockaddr *name, socklen_t namelen)
+static int rebindunix(struct ufd *ufd, struct sockaddr *name, socklen_t namelen)
 {
     struct sockaddr_un *un;
     struct stat sb;
     
-    if((sk->family != AF_UNIX) || (name->sa_family != PF_UNIX))
+    if((ufd->d.l.family != AF_UNIX) || (name->sa_family != PF_UNIX))
 	return(-1);
     un = (struct sockaddr_un *)name;
     if(stat(un->sun_path, &sb))
@@ -650,9 +855,22 @@ static int rebindunix(struct socket *sk, struct sockaddr *name, socklen_t namele
 	return(-1);
     if(unlink(un->sun_path))
 	return(-1);
-    if(bind(sk->fd, name, namelen) < 0)
+    if(bind(ufd->fd, name, namelen) < 0)
 	return(-1);
     return(0);
+}
+
+void closelport(struct lport *lp)
+{
+    struct ufd *ufd;
+    struct sockaddr_un *un;
+    
+    ufd = lp->ufd;
+    if((ufd->d.l.family == AF_UNIX) && !getlocalname(ufd->fd, (struct sockaddr **)(void *)&un, NULL) && (un->sun_family == PF_UNIX) && strchr(un->sun_path, '/')) {
+	if(unlink(un->sun_path))
+	    flog(LOG_WARNING, "could not unlink Unix socket %s: %s", un->sun_path, strerror(errno));
+    }
+    freeufd(lp->ufd);
 }
 
 /*
@@ -663,9 +881,11 @@ static int rebindunix(struct socket *sk, struct sockaddr *name, socklen_t namele
  * netcslisten() instead.
 */
 
-struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data)
+struct lport *netcslistenlocal(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct lport *, struct socket *, void *), void *data)
 {
-    struct socket *sk;
+    struct lport *lp;
+    struct ufd *ufd;
+    int fd;
     int intbuf;
     
     /* I don't know if this is actually correct (it probably isn't),
@@ -674,30 +894,32 @@ struct socket *netcslistenlocal(int type, struct sockaddr *name, socklen_t namel
      * smoother implementation. If it breaks something on your
      * platform, please tell me so.
      */
-    if((sk = mksock(name->sa_family, type)) == NULL)
+    if((fd = socket(name->sa_family, type, 0)) < 0)
 	return(NULL);
-    sk->state = SOCK_LST;
-    if(confgetint("net", "reuseaddr"))
-    {
+    if(confgetint("net", "reuseaddr")) {
 	intbuf = 1;
-	setsockopt(sk->fd, SOL_SOCKET, SO_REUSEADDR, &intbuf, sizeof(intbuf));
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &intbuf, sizeof(intbuf));
     }
-    if((bind(sk->fd, name, namelen) < 0) && ((errno != EADDRINUSE) || (rebindunix(sk, name, namelen) < 0)))
-    {
-	putsock(sk);
+    ufd = mkufd(fd, UFD_LISTEN, NULL);
+    ufd->d.l.family = name->sa_family;
+    lp = memset(smalloc(sizeof(*lp)), 0, sizeof(*lp));
+    lp->ufd = ufd;
+    ufd->d.l.lp = lp;
+    if((bind(fd, name, namelen) < 0) && ((errno != EADDRINUSE) || (rebindunix(ufd, name, namelen) < 0))) {
+	freeufd(ufd);
 	return(NULL);
     }
-    if(listen(sk->fd, 16) < 0)
+    if(listen(fd, 16) < 0)
     {
-	putsock(sk);
+	freeufd(ufd);
 	return(NULL);
     }
-    sk->acceptcb = func;
-    sk->data = data;
-    return(sk);
+    lp->acceptcb = func;
+    lp->data = data;
+    return(lp);
 }
 
-struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct socket *, struct socket *, void *), void *data)
+struct lport *netcslisten(int type, struct sockaddr *name, socklen_t namelen, void (*func)(struct lport *, struct socket *, void *), void *data)
 {
     if(confgetint("net", "mode") == 1)
     {
@@ -710,14 +932,14 @@ struct socket *netcslisten(int type, struct sockaddr *name, socklen_t namelen, v
     return(NULL);
 }
 
-struct socket *netcstcplisten(int port, int local, void (*func)(struct socket *, struct socket *, void *), void *data)
+struct lport *netcstcplisten(int port, int local, void (*func)(struct lport *, struct socket *, void *), void *data)
 {
     struct sockaddr_in addr;
 #ifdef HAVE_IPV6
     struct sockaddr_in6 addr6;
 #endif
-    struct socket *(*csfunc)(int, struct sockaddr *, socklen_t, void (*)(struct socket *, struct socket *, void *), void *);
-    struct socket *ret;
+    struct lport *(*csfunc)(int, struct sockaddr *, socklen_t, void (*)(struct lport *, struct socket *, void *), void *);
+    struct lport *ret;
     
     if(local)
 	csfunc = netcslistenlocal;
@@ -749,42 +971,27 @@ struct socket *netcsdgram(struct sockaddr *name, socklen_t namelen)
     {
 	if((sk = mksock(name->sa_family, SOCK_DGRAM)) == NULL)
 	    return(NULL);
-	if(bind(sk->fd, name, namelen) < 0)
+	if(bind(sk->ufd->fd, name, namelen) < 0)
 	{
 	    putsock(sk);
 	    return(NULL);
 	}
-	sk->state = SOCK_EST;
-	return(sk);
+	sksetstate(sk, SOCK_EST);
+	return(sk->back);
     }
     errno = EOPNOTSUPP;
     return(NULL);
 }
 
-struct socket *netdupsock(struct socket *sk)
+struct socket *netdgramconn(struct socket *sk, struct sockaddr *addr, socklen_t addrlen)
 {
-    struct socket *newsk;
+    struct ufd *nufd;
     
-    newsk = newsock(sk->type);
-    if((newsk->fd = dup(sk->fd)) < 0)
-    {
-	flog(LOG_WARNING, "could not dup() socket: %s", strerror(errno));
-	putsock(newsk);
-	return(NULL);
-    }
-    newsk->state = sk->state;
-    newsk->ignread = sk->ignread;
-    if(sk->remote != NULL)
-	memcpy(newsk->remote = smalloc(sk->remotelen), sk->remote, newsk->remotelen = sk->remotelen);
-    return(newsk);
-}
-
-void netdgramconn(struct socket *sk, struct sockaddr *addr, socklen_t addrlen)
-{
-    if(sk->remote != NULL)
-	free(sk->remote);
-    memcpy(sk->remote = smalloc(addrlen), addr, sk->remotelen = addrlen);
-    sk->ignread = 1;
+    nufd = dupufd(sk->back->ufd);
+    getsock(sk = nufd->sk->back);
+    memcpy(nufd->d.s.remote = smalloc(addrlen), addr, nufd->d.s.remotelen = addrlen);
+    nufd->ignread = 1;
+    return(sk);
 }
 
 struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(struct socket *, int, void *), void *data)
@@ -797,19 +1004,21 @@ struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(
     {
 	if((sk = mksock(addr->sa_family, SOCK_STREAM)) == NULL)
 	    return(NULL);
-	memcpy(sk->remote = smalloc(addrlen), addr, sk->remotelen = addrlen);
-	if(!connect(sk->fd, addr, addrlen))
+	memcpy(sk->ufd->d.s.remote = smalloc(addrlen), addr, sk->ufd->d.s.remotelen = addrlen);
+	sk->back->conncb = func;
+	sk->back->data = data;
+	getsock(sk->back);
+	putsock(sk);
+	if(!connect(sk->ufd->fd, addr, addrlen))
 	{
-	    sk->state = SOCK_EST;
-	    func(sk, 0, data);
-	    return(sk);
+	    sksetstate(sk, SOCK_EST);
+	    linksock(&cbatch, sk->back);
+	    return(sk->back);
 	}
 	if(errno == EINPROGRESS)
 	{
-	    sk->state = SOCK_SYN;
-	    sk->conncb = func;
-	    sk->data = data;
-	    return(sk);
+	    sksetstate(sk, SOCK_SYN);
+	    return(sk->back);
 	}
 	putsock(sk);
 	return(NULL);
@@ -818,215 +1027,267 @@ struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(
     return(NULL);
 }
 
-static void acceptunix(struct socket *sk)
+static void acceptunix(struct ufd *ufd)
 {
     int buf;
     
     buf = 1;
 #if UNIX_AUTH_STYLE == 1
-    if(setsockopt(sk->fd, SOL_SOCKET, SO_PASSCRED, &buf, sizeof(buf)) < 0)
-	flog(LOG_WARNING, "could not enable SO_PASSCRED on Unix socket %i: %s", sk->fd, strerror(errno));
+    if(setsockopt(ufd->fd, SOL_SOCKET, SO_PASSCRED, &buf, sizeof(buf)) < 0)
+	flog(LOG_WARNING, "could not enable SO_PASSCRED on Unix socket %i: %s", ufd->fd, strerror(errno));
 #elif UNIX_AUTH_STYLE == 2
-    if(getpeereid(sk->fd, &sk->ucred.uid, &sk->ucred.gid) < 0)
+    if(getpeereid(ufd->fd, &ufd->d.s.ucred.uid, &ufd->d.s.ucred.gid) < 0)
     {
-	flog(LOG_WARNING, "could not get peer creds on Unix socket %i: %s", sk->fd, strerror(errno));
-	sk->ucred.uid = -1;
-	sk->ucred.gid = -1;
+	flog(LOG_WARNING, "could not get peer creds on Unix socket %i: %s", ufd->fd, strerror(errno));
+	ufd->d.s.ucred.uid = -1;
+	ufd->d.s.ucred.gid = -1;
     }
 #endif
 }
 
+static void runbatches(void)
+{
+    struct scons *sc, *nsc;
+
+    for(sc = cbatch, cbatch = NULL; sc; sc = nsc) {
+	nsc = sc->n;
+	if(sc->s->conncb != NULL)
+	    sc->s->conncb(sc->s, 0, sc->s->data);
+	putsock(sc->s);
+	free(sc);
+    }
+    for(sc = rbatch, rbatch = NULL; sc; sc = nsc) {
+	nsc = sc->n;
+	if(sc->s->readcb != NULL)
+	    sc->s->readcb(sc->s, sc->s->data);
+	if((sockgetdatalen(sc->s) == 0) && (sc->s->eos == 1)) {
+	    if(sc->s->errcb != NULL)
+		sc->s->errcb(sc->s, 0, sc->s->data);
+	    sc->s->eos = 2;
+	}
+	putsock(sc->s);
+	free(sc);
+    }
+    for(sc = wbatch, wbatch = NULL; sc; sc = nsc) {
+	nsc = sc->n;
+	if(sc->s->writecb != NULL)
+	    sc->s->writecb(sc->s, sc->s->data);
+	putsock(sc->s);
+	free(sc);
+    }
+}
+
+static void cleansocks(void)
+{
+    struct ufd *ufd, *next;
+    int dead;
+    
+    for(ufd = ufds; ufd != NULL; ufd = next) {
+	next = ufd->next;
+	if(ufd->sk) {
+	    dead = (ufd->fd < 0);
+	    if(ufd->sk->state == SOCK_STL)
+		dead = 1;
+	    if((ufd->sk->state == SOCK_EST) && (sockgetdatalen(ufd->sk) == 0))
+		dead = 1;
+	    if(!dead)
+		continue;
+	    if(ufd->sk->eos == 1) {
+		ufd->sk->eos = 2;
+		closeufd(ufd);
+		closesock(ufd->sk);
+	    }
+	    if((ufd->sk->refcount == 1) && (ufd->sk->back->refcount == 0)) {
+		freeufd(ufd);
+		continue;
+	    }
+	}
+    }
+}
+
 int pollsocks(int timeout)
 {
-    int i, num, ret;
+    int ret;
     socklen_t retlen;
-    int newfd;
-    struct pollfd *pfds;
-    struct socket *sk, *next, *newsk;
+    int newfd, maxfd;
+    fd_set rfds, wfds, efds;
+    struct ufd *ufd, *nufd;
+    struct socket *nsk;
     struct sockaddr_storage ss;
     socklen_t sslen;
+    struct timeval tv;
     
-    pfds = smalloc(sizeof(*pfds) * (num = numsocks));
-    for(i = 0, sk = sockets; i < num; sk = sk->next)
-    {
-	if(sk->state == SOCK_STL)
-	{
-	    num--;
+    cleansocks();
+    FD_ZERO(&rfds);
+    FD_ZERO(&wfds);
+    FD_ZERO(&efds);
+    for(maxfd = 0, ufd = ufds; ufd != NULL; ufd = ufd->next) {
+	if(ufd->fd < 0)
 	    continue;
+	if(!ufd->ignread && ((ufd->sk == NULL) || (sockqueueleft(ufd->sk) > 0)))
+	    FD_SET(ufd->fd, &rfds);
+	if(ufd->sk != NULL) {
+	    if(sockgetdatalen(ufd->sk) > 0)
+		FD_SET(ufd->fd, &wfds);
+	    else if(ufd->sk->state == SOCK_SYN)
+		FD_SET(ufd->fd, &wfds);
 	}
-	pfds[i].fd = sk->fd;
-	pfds[i].events = 0;
-	if(!sk->ignread)
-	    pfds[i].events |= POLLIN;
-	if((sk->state == SOCK_SYN) || (sockqueuesize(sk) > 0))
-	    pfds[i].events |= POLLOUT;
-	pfds[i].revents = 0;
-	i++;
+	FD_SET(ufd->fd, &efds);
+	if(ufd->fd > maxfd)
+	    maxfd = ufd->fd;
     }
-    ret = poll(pfds, num, timeout);
-    if(ret < 0)
-    {
-	if(errno != EINTR)
-	{
-	    flog(LOG_CRIT, "pollsocks: poll errored out: %s", strerror(errno));
+    if(rbatch || wbatch || cbatch)
+	timeout = 0;
+    tv.tv_sec = timeout / 1000;
+    tv.tv_usec = (timeout % 1000) * 1000;
+    ret = select(maxfd + 1, &rfds, &wfds, &efds, (timeout < 0)?NULL:&tv);
+    if(ret < 0) {
+	if(errno != EINTR) {
+	    flog(LOG_CRIT, "pollsocks: select errored out: %s", strerror(errno));
 	    /* To avoid CPU hogging in case it's bad, which it
 	     * probably is. */
 	    sleep(1);
 	}
-	free(pfds);
 	return(1);
     }
-    for(sk = sockets; sk != NULL; sk = next)
-    {
-	next = sk->next;
-	for(i = 0; i < num; i++)
-	{
-	    if(pfds[i].fd == sk->fd)
-		break;
-	}
-	if(i == num)
+    for(ufd = ufds; ufd != NULL; ufd = ufd->next) {
+	if(ufd->sk < 0)
 	    continue;
-	switch(sk->state)
-	{
-	case SOCK_LST:
-	    if(pfds[i].revents & POLLIN)
-	    {
+	if(ufd->type == UFD_LISTEN) {
+	    if(FD_ISSET(ufd->fd, &rfds)) {
 		sslen = sizeof(ss);
-		if((newfd = accept(sk->fd, (struct sockaddr *)&ss, &sslen)) < 0)
-		{
-		    if(sk->errcb != NULL)
-			sk->errcb(sk, errno, sk->data);
+		if((newfd = accept(ufd->fd, (struct sockaddr *)&ss, &sslen)) < 0) {
+		    if(ufd->d.l.lp->errcb != NULL)
+			ufd->d.l.lp->errcb(ufd->d.l.lp, errno, ufd->d.l.lp->data);
 		}
-		newsk = newsock(sk->type);
-		newsk->fd = newfd;
-		newsk->family = sk->family;
-		newsk->state = SOCK_EST;
-		memcpy(newsk->remote = smalloc(sslen), &ss, sslen);
-		newsk->remotelen = sslen;
+		nsk = sockpair(0);
+		nufd = mkufd(newfd, UFD_SOCK, nsk);
+		nufd->d.s.family = ufd->d.l.family;
+		sksetstate(nsk, SOCK_EST);
+		memcpy(nufd->d.s.remote = smalloc(sslen), &ss, sslen);
+		nufd->d.s.remotelen = sslen;
 		if(ss.ss_family == PF_UNIX)
-		    acceptunix(newsk);
-		if(sk->acceptcb != NULL)
-		    sk->acceptcb(sk, newsk, sk->data);
-		putsock(newsk);
+		    acceptunix(nufd);
+		if(ufd->d.l.lp->acceptcb != NULL)
+		    ufd->d.l.lp->acceptcb(ufd->d.l.lp, nsk->back, ufd->d.l.lp->data);
+		putsock(nsk);
 	    }
-	    if(pfds[i].revents & POLLERR)
-	    {
+	    if(FD_ISSET(ufd->fd, &efds)) {
 		retlen = sizeof(ret);
-		getsockopt(sk->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
-		if(sk->errcb != NULL)
-		    sk->errcb(sk, ret, sk->data);
+		getsockopt(ufd->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
+		if(ufd->d.l.lp->errcb != NULL)
+		    ufd->d.l.lp->errcb(ufd->d.l.lp, ret, ufd->d.l.lp->data);
 		continue;
 	    }
-	    break;
-	case SOCK_SYN:
-	    if(pfds[i].revents & POLLERR)
-	    {
-		retlen = sizeof(ret);
-		getsockopt(sk->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
-		if(sk->conncb != NULL)
-		    sk->conncb(sk, ret, sk->data);
-		closesock(sk);
-		continue;
+	} else {
+	    if(ufd->sk->state == SOCK_SYN) {
+		if(FD_ISSET(ufd->fd, &efds)) {
+		    retlen = sizeof(ret);
+		    getsockopt(ufd->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
+		    if(ufd->sk->back->conncb != NULL)
+			ufd->sk->back->conncb(ufd->sk->back, ret, ufd->sk->back->data);
+		    closeufd(ufd);
+		    continue;
+		}
+		if(FD_ISSET(ufd->fd, &rfds) || FD_ISSET(ufd->fd, &wfds)) {
+		    sksetstate(ufd->sk, SOCK_EST);
+		    linksock(&cbatch, ufd->sk->back);
+		}
+	    } else if(ufd->sk->state == SOCK_EST) {
+		if(FD_ISSET(ufd->fd, &efds)) {
+		    retlen = sizeof(ret);
+		    getsockopt(ufd->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
+		    sockerror(ufd->sk, ret);
+		    closeufd(ufd);
+		    continue;
+		}
+		if(FD_ISSET(ufd->fd, &rfds))
+		    sockrecv(ufd);
+		if(ufd->fd == -1)
+		    continue;
+		if(FD_ISSET(ufd->fd, &wfds)) {
+		    if(sockflush(ufd)) {
+			sockerror(ufd->sk, errno);
+			closeufd(ufd);
+			continue;
+		    }
+		}
 	    }
-	    if(pfds[i].revents & (POLLIN | POLLOUT))
-	    {
-		sk->state = SOCK_EST;
-		if(sk->conncb != NULL)
-		    sk->conncb(sk, 0, sk->data);
-	    }
-	    break;
-	case SOCK_EST:
-	    if(pfds[i].revents & POLLERR)
-	    {
-		retlen = sizeof(ret);
-		getsockopt(sk->fd, SOL_SOCKET, SO_ERROR, &ret, &retlen);
-		if(sk->errcb != NULL)
-		    sk->errcb(sk, ret, sk->data);
-		closesock(sk);
-		continue;
-	    }
-	    if(pfds[i].revents & POLLIN)
-		sockrecv(sk);
-	    if(pfds[i].revents & POLLOUT)
-	    {
-		if(sockqueuesize(sk) > 0)
-		    sockflush(sk);
-	    }
-	    break;
-	}
-	if(pfds[i].revents & POLLNVAL)
-	{
-	    flog(LOG_CRIT, "BUG: stale socket struct on fd %i", sk->fd);
-	    sk->state = SOCK_STL;
-	    unlinksock(sk);
-	    continue;
-	}
-	if(pfds[i].revents & POLLHUP)
-	{
-	    if(sk->errcb != NULL)
-		sk->errcb(sk, 0, sk->data);
-	    closesock(sk);
-	    unlinksock(sk);
-	    continue;
 	}
     }
-    free(pfds);
-    for(sk = sockets; sk != NULL; sk = next)
-    {
-	next = sk->next;
-	if(sk->refcount == 1 && (sockqueuesize(sk) == 0))
-	{
-	    unlinksock(sk);
-	    continue;
-	}
-	if(sk->close && (sockqueuesize(sk) == 0))
-	    closesock(sk);
-	if(sk->state == SOCK_STL)
-	{
-	    unlinksock(sk);
-	    continue;
-	}
-    }
+    runbatches();
+    cleansocks();
     return(1);
+}
+
+static struct ufd *getskufd(struct socket *sk)
+{
+    while(1) {
+	if(sk->back->ufd != NULL)
+	    return(sk->back->ufd);
+	if((sk = sk->back->pnext) == NULL)
+	    break;
+    }
+    return(NULL);
 }
 
 int socksettos(struct socket *sk, int tos)
 {
     int buf;
+    struct ufd *ufd;
+    int dscp2tos;
     
-    if(sk->family == AF_UNIX)
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    if(ufd->d.s.family == AF_UNIX)
 	return(0); /* Unix sockets are always perfect. :) */
-    if(sk->family == AF_INET)
+    if(ufd->d.s.family == AF_INET)
     {
+	dscp2tos = confgetint("net", "dscp-tos");
 	switch(tos)
 	{
 	case 0:
 	    buf = 0;
 	    break;
 	case SOCK_TOS_MINCOST:
-	    buf = 0x02;
+	    if(dscp2tos)
+		buf = confgetint("net", "diffserv-mincost") << 2;
+	    else
+		buf = 0x02;
 	    break;
 	case SOCK_TOS_MAXREL:
-	    buf = 0x04;
+	    if(dscp2tos)
+		buf = confgetint("net", "diffserv-maxrel") << 2;
+	    else
+		buf = 0x04;
 	    break;
 	case SOCK_TOS_MAXTP:
-	    buf = 0x08;
+	    if(dscp2tos)
+		buf = confgetint("net", "diffserv-maxtp") << 2;
+	    else
+		buf = 0x08;
 	    break;
 	case SOCK_TOS_MINDELAY:
-	    buf = 0x10;
+	    if(dscp2tos)
+		buf = confgetint("net", "diffserv-mindelay") << 2;
+	    else
+		buf = 0x10;
 	    break;
 	default:
 	    flog(LOG_WARNING, "attempted to set unknown TOS value %i to IPv4 sock", tos);
 	    return(-1);
 	}
-	if(setsockopt(sk->fd, IPPROTO_IP, IP_TOS, &buf, sizeof(buf)) < 0)
+	if(setsockopt(ufd->fd, IPPROTO_IP, IP_TOS, &buf, sizeof(buf)) < 0)
 	{
 	    flog(LOG_WARNING, "could not set sock TOS to %i: %s", tos, strerror(errno));
 	    return(-1);
 	}
 	return(0);
     }
-    if(sk->family == AF_INET6)
+    if(ufd->d.s.family == AF_INET6)
     {
 	switch(tos)
 	{
@@ -1060,7 +1321,7 @@ int socksettos(struct socket *sk, int tos)
 	*/
 	return(0);
     }
-    flog(LOG_WARNING, "could not set TOS on sock of family %i", sk->family);
+    flog(LOG_WARNING, "could not set TOS on sock of family %i", ufd->d.s.family);
     return(1);
 }
 
@@ -1161,16 +1422,16 @@ int netresolve(char *addr, void (*callback)(struct sockaddr *addr, int addrlen, 
     return(0);
 }
 
-int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+static int getlocalname(int fd, struct sockaddr **namebuf, socklen_t *lenbuf)
 {
     socklen_t len;
     struct sockaddr_storage name;
     
     *namebuf = NULL;
-    if((sk->state == SOCK_STL) || (sk->fd < 0))
+    if(fd < 0)
 	return(-1);
     len = sizeof(name);
-    if(getsockname(sk->fd, (struct sockaddr *)&name, &len) < 0)
+    if(getsockname(fd, (struct sockaddr *)&name, &len) < 0)
     {
 	flog(LOG_ERR, "BUG: alive socket with dead fd in sockgetlocalname (%s)", strerror(errno));
 	return(-1);
@@ -1179,6 +1440,26 @@ int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *le
     if(lenbuf != NULL)
 	*lenbuf = len;
     return(0);
+}
+
+int lstgetlocalname(struct lport *lp, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct ufd *ufd;
+
+    ufd = lp->ufd;
+    return(getlocalname(ufd->fd, namebuf, lenbuf));
+}
+
+int sockgetlocalname(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct ufd *ufd;
+
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    return(getlocalname(ufd->fd, namebuf, lenbuf));
 }
 
 static void sethostaddr(struct sockaddr *dst, struct sockaddr *src)
@@ -1220,22 +1501,15 @@ static int makepublic(struct sockaddr *addr)
     return(0);
 }
 
-int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+static int getremotename(int fd, struct sockaddr **namebuf, socklen_t *lenbuf)
 {
     socklen_t len;
     struct sockaddr *name;
-    
-    switch(confgetint("net", "mode"))
-    {
+
+    switch(confgetint("net", "mode")) {
     case 0:
 	*namebuf = NULL;
-	if((sk->state == SOCK_STL) || (sk->fd < 0))
-	{
-	    errno = EBADF;
-	    return(-1);
-	}
-	if(!sockgetlocalname(sk, &name, &len))
-	{
+	if(!getlocalname(fd, &name, &len)) {
 	    *namebuf = name;
 	    *lenbuf = len;
 	    makepublic(name);
@@ -1253,19 +1527,50 @@ int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *l
     }
 }
 
+int sockgetremotename(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct ufd *ufd;
+    
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    if(ufd->fd < 0) {
+	errno = EBADF;
+	return(-1);
+    }
+    return(getremotename(ufd->fd, namebuf, lenbuf));
+}
+
+int lstgetremotename(struct lport *lp, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct ufd *ufd;
+    
+    ufd = lp->ufd;
+    return(getremotename(ufd->fd, namebuf, lenbuf));
+}
+
 int sockgetremotename2(struct socket *sk, struct socket *sk2, struct sockaddr **namebuf, socklen_t *lenbuf)
 {
     struct sockaddr *name1, *name2;
     socklen_t len1, len2;
+    struct ufd *ufd1, *ufd2;
     
-    if(sk->family != sk2->family)
-    {
-	flog(LOG_ERR, "using sockgetremotename2 with sockets of differing family: %i %i", sk->family, sk2->family);
+    ufd1 = getskufd(sk);
+    ufd2 = getskufd(sk2);
+    if((ufd1->type != UFD_SOCK) || (ufd2->type != UFD_SOCK)) {
+	errno = EOPNOTSUPP;
 	return(-1);
     }
-    if(sockgetremotename(sk, &name1, &len1))
+    if(ufd1->d.s.family != ufd2->d.s.family)
+    {
+	flog(LOG_ERR, "using sockgetremotename2 with sockets of differing family: %i %i", ufd1->d.s.family, ufd2->d.s.family);
 	return(-1);
-    if(sockgetremotename(sk2, &name2, &len2)) {
+    }
+    if(getremotename(ufd1->fd, &name1, &len1))
+	return(-1);
+    if(getremotename(ufd2->fd, &name2, &len2)) {
 	free(name1);
 	return(-1);
     }
@@ -1274,6 +1579,104 @@ int sockgetremotename2(struct socket *sk, struct socket *sk2, struct sockaddr **
     *namebuf = name1;
     *lenbuf = len1;
     return(0);
+}
+
+int lstgetremotename2(struct lport *lp, struct socket *sk2, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct sockaddr *name1, *name2;
+    socklen_t len1, len2;
+    struct ufd *ufd1, *ufd2;
+    
+    ufd1 = lp->ufd;
+    ufd2 = getskufd(sk2);
+    if(ufd2->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    if(ufd1->d.l.family != ufd2->d.s.family)
+    {
+	flog(LOG_ERR, "using lstgetremotename2 with sockets of differing family: %i %i", ufd1->d.l.family, ufd2->d.s.family);
+	return(-1);
+    }
+    if(getremotename(ufd1->fd, &name1, &len1))
+	return(-1);
+    if(getremotename(ufd2->fd, &name2, &len2)) {
+	free(name1);
+	return(-1);
+    }
+    sethostaddr(name1, name2);
+    free(name2);
+    *namebuf = name1;
+    *lenbuf = len1;
+    return(0);
+}
+
+int getucred(struct socket *sk, uid_t *uid, gid_t *gid)
+{
+    struct ufd *ufd;
+    
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    if(ufd->d.s.family != AF_UNIX) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    *uid = ufd->d.s.ucred.uid;
+    *gid = ufd->d.s.ucred.gid;
+    return(0);
+}
+
+/* void sockblock(struct socket *sk, int block) */
+/* { */
+/*     struct ufd *ufd; */
+    
+/*     ufd = getskufd(sk); */
+/*     ufd->ignread = block; */
+/* } */
+
+int sockfamily(struct socket *sk)
+{
+    struct ufd *ufd;
+    
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    return(ufd->d.s.family);
+}
+
+int sockpeeraddr(struct socket *sk, struct sockaddr **namebuf, socklen_t *lenbuf)
+{
+    struct ufd *ufd;
+    
+    ufd = getskufd(sk);
+    if(ufd->type != UFD_SOCK) {
+	errno = EOPNOTSUPP;
+	return(-1);
+    }
+    if(ufd->d.s.remote == NULL)
+	return(-1);
+    *namebuf = memcpy(smalloc(ufd->d.s.remotelen), ufd->d.s.remote, ufd->d.s.remotelen);
+    if(lenbuf != NULL)
+	*lenbuf = ufd->d.s.remotelen;
+    return(0);
+}
+
+char *formatsockpeer(struct socket *sk)
+{
+    struct sockaddr *name;
+    socklen_t nlen;
+    char *ret;
+    
+    if(sockpeeraddr(sk, &name, &nlen))
+	return(NULL);
+    ret = formataddress(name, nlen);
+    free(name);
+    return(ret);
 }
 
 int addreq(struct sockaddr *x, struct sockaddr *y)
@@ -1416,8 +1819,10 @@ static int init(int hup)
 
 static void terminate(void)
 {
-    while(sockets != NULL)
-	unlinksock(sockets);
+    /*
+    while(ufds != NULL)
+	freeufd(ufds);
+    */
 }
 
 static struct module me =

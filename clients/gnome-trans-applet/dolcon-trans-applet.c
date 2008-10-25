@@ -80,7 +80,7 @@ static gboolean updatetip(struct appletdata *data)
 	return(TRUE);
     }
     now = time(NULL);
-    if(data->curdisplay->cmptime == 0)
+    if((data->curdisplay->cmptime == 0) || (now == data->curdisplay->cmptime))
     {
 	strcpy(buf, _("Calculating remaining time..."));
     } else {
@@ -91,7 +91,12 @@ static gboolean updatetip(struct appletdata *data)
 	    strcpy(buf, _("Time left: Infinite (Transfer is standing still)"));
 	} else {
 	    left = (data->curdisplay->size - data->curdisplay->pos) / speed;
-	    sprintf(buf, _("Time left: %i:%02i"), left / 3600, (left / 60) % 60);
+	    if(left >= 86400)
+		sprintf(buf, _("Time left: %id%02ih%02im"), left / 86400, (left / 3600) % 24, (left / 60) % 60);
+	    else if(left >= 3600)
+		sprintf(buf, _("Time left: %ih%02im"), left / 3600, (left / 60) % 60);
+	    else
+		sprintf(buf, _("Time left: %im"), left / 60);
 	}
     }
     gtk_tooltips_set_tip(data->tips, GTK_WIDGET(data->applet), buf, NULL);
@@ -126,7 +131,7 @@ static void update(struct appletdata *data)
 	} else {
 	    if((data->curdisplay->pos > 0) && (data->curdisplay->size > 0))
 	    {
-		sprintf(buf, "%'i/%'i", data->curdisplay->pos, data->curdisplay->size);
+		sprintf(buf, "%'ji/%'ji", (intmax_t)data->curdisplay->pos, (intmax_t)data->curdisplay->size);
 		gtk_progress_bar_set_fraction(data->pbar, (double)data->curdisplay->pos / (double)data->curdisplay->size);
 		gtk_progress_bar_set_text(data->pbar, buf);
 	    } else {

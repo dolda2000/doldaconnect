@@ -26,6 +26,7 @@
 #include <grp.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -125,22 +126,94 @@ struct transfer *newtransfer(void)
     return(new);
 }
 
-void transferattach(struct transfer *transfer, struct transferiface *iface, void *data)
+static void localread(struct socket *sk, struct transfer *transfer)
 {
-    if(transfer->iface != NULL)
-	transferdetach(transfer);
-    transfer->iface = iface;
-    transfer->ifacedata = data;
+    void *buf;
+    size_t blen;
+    
+    if((transfer->datapipe != NULL) && (sockqueueleft(transfer->datapipe) > 0)) {
+	buf = sockgetinbuf(sk, &blen);
+	if((transfer->endpos >= 0) && (transfer->curpos + blen > transfer->endpos))
+	    blen = transfer->endpos - transfer->curpos;
+	sockqueue(transfer->datapipe, buf, blen);
+	free(buf);
+	time(&transfer->activity);
+	transfer->curpos += blen;
+	bytesupload += blen;
+	CBCHAINDOCB(transfer, trans_p, transfer);
+    }
+}
+
+static void dataread(struct socket *sk, struct transfer *transfer)
+{
+    void *buf;
+    size_t blen;
+    
+    if((transfer->localend != NULL) && (sockqueueleft(transfer->localend) > 0)) {
+	buf = sockgetinbuf(sk, &blen);
+	if((transfer->endpos >= 0) && (transfer->curpos + blen > transfer->endpos))
+	    blen = transfer->endpos - transfer->curpos;
+	sockqueue(transfer->localend, buf, blen);
+	free(buf);
+	transfer->curpos += blen;
+	bytesdownload += blen;
+	CBCHAINDOCB(transfer, trans_p, transfer);
+    }
+}
+
+static void localwrite(struct socket *sk, struct transfer *transfer)
+{
+    if(transfer->datapipe != NULL)
+	dataread(transfer->datapipe, transfer);
+}
+
+static void datawrite(struct socket *sk, struct transfer *transfer)
+{
+    if(transfer->localend != NULL)
+	localread(transfer->localend, transfer);
+}
+
+static void localerr(struct socket *sk, int errno, struct transfer *transfer)
+{
+    if(transfer->datapipe != NULL)
+	closesock(transfer->datapipe);
+}
+
+static void dataerr(struct socket *sk, int errno, struct transfer *transfer)
+{
+    if(transfer->dir == TRNSD_DOWN) {
+	if(transfer->curpos >= transfer->size) {
+	    transfersetstate(transfer, TRNS_DONE);
+	    if(transfer->localend != NULL) {
+		closesock(transfer->localend);
+		quitsock(transfer->localend);
+		transfer->localend = NULL;
+	    }
+	} else {
+	    resettransfer(transfer);
+	}
+    } else if(transfer->dir == TRNSD_UP) {
+	transfer->close = 1;
+    }
+}
+
+void transferattach(struct transfer *transfer, struct socket *dpipe)
+{
+    transferdetach(transfer);
+    getsock(transfer->datapipe = dpipe);
+    dpipe->readcb = (void (*)(struct socket *, void *))dataread;
+    dpipe->writecb = (void (*)(struct socket *, void *))datawrite;
+    dpipe->errcb = (void (*)(struct socket *, int, void *))dataerr;
+    dpipe->data = transfer;
 }
 
 void transferdetach(struct transfer *transfer)
 {
-    if(transfer->iface != NULL)
-    {
-	transfer->iface->detach(transfer, transfer->ifacedata);
-	transfer->iface = NULL;
-	transfer->ifacedata = NULL;
+    if(transfer->datapipe != NULL) {
+	closesock(transfer->datapipe);
+	quitsock(transfer->datapipe);
     }
+    transfer->datapipe = NULL;
 }
 
 struct transfer *finddownload(wchar_t *peerid)
@@ -149,7 +222,7 @@ struct transfer *finddownload(wchar_t *peerid)
 
     for(transfer = transfers; transfer != NULL; transfer = transfer->next)
     {
-	if((transfer->dir == TRNSD_DOWN) && (transfer->iface == NULL) && !wcscmp(peerid, transfer->peerid))
+	if((transfer->dir == TRNSD_DOWN) && (transfer->datapipe == NULL) && !wcscmp(peerid, transfer->peerid))
 	    break;
     }
     return(transfer);
@@ -167,7 +240,7 @@ struct transfer *hasupload(struct fnet *fnet, wchar_t *peerid)
     return(transfer);
 }
 
-struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nickid, struct transferiface *iface, void *data)
+struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nickid, struct socket *dpipe)
 {
     struct transfer *transfer;
     
@@ -181,7 +254,7 @@ struct transfer *newupload(struct fnetnode *fn, struct fnet *fnet, wchar_t *nick
     transfer->dir = TRNSD_UP;
     if(fn != NULL)
 	getfnetnode(transfer->fn = fn);
-    transferattach(transfer, iface, data);
+    transferattach(transfer, dpipe);
     linktransfer(transfer);
     bumptransfer(transfer);
     return(transfer);
@@ -201,8 +274,7 @@ void resettransfer(struct transfer *transfer)
 {
     if(transfer->dir == TRNSD_DOWN)
     {
-	if(transfer->iface != NULL)
-	    transferdetach(transfer);
+	transferdetach(transfer);
 	killfilter(transfer);
 	transfersetstate(transfer, TRNS_WAITING);
 	transfersetactivity(transfer, L"reset");
@@ -231,86 +303,11 @@ static void transexpire(int cancelled, struct transfer *transfer)
 	transfer->timeout = 0;
 }
 
-static void transferread(struct socket *sk, struct transfer *transfer)
-{
-    if(sockgetdatalen(sk) >= 65536)
-	sk->ignread = 1;
-    if((transfer->iface != NULL) && (transfer->iface->gotdata != NULL))
-	transfer->iface->gotdata(transfer, transfer->ifacedata);
-}
-
-static void transferwrite(struct socket *sk, struct transfer *transfer)
-{
-    if((transfer->iface != NULL) && (transfer->iface->wantdata != NULL))
-	transfer->iface->wantdata(transfer, transfer->ifacedata);
-}
-
-static void transfererr(struct socket *sk, int errno, struct transfer *transfer)
-{
-    if((transfer->iface != NULL) && (transfer->iface->endofdata != NULL))
-	transfer->iface->endofdata(transfer, transfer->ifacedata);
-}
-
-void transferputdata(struct transfer *transfer, void *buf, size_t size)
-{
-    time(&transfer->activity);
-    sockqueue(transfer->localend, buf, size);
-    transfer->curpos += size;
-    bytesdownload += size;
-    CBCHAINDOCB(transfer, trans_p, transfer);
-}
-
-void transferendofdata(struct transfer *transfer)
-{
-    if(transfer->curpos >= transfer->size)
-    {
-	transfersetstate(transfer, TRNS_DONE);
-	transfer->localend->readcb = NULL;
-	transfer->localend->writecb = NULL;
-	transfer->localend->errcb = NULL;
-	putsock(transfer->localend);
-	transfer->localend = NULL;
-    } else {
-	resettransfer(transfer);
-    }
-}
-
-size_t transferdatasize(struct transfer *transfer)
-{
-    return(sockqueuesize(transfer->localend));
-}
-
-void *transfergetdata(struct transfer *transfer, size_t *size)
-{
-    void *buf;
-    
-    if(transfer->localend == NULL)
-	return(NULL);
-    transfer->localend->ignread = 0;
-    time(&transfer->activity);
-    if((buf = sockgetinbuf(transfer->localend, size)) == NULL)
-	return(NULL);
-    if((transfer->endpos >= 0) && (transfer->curpos + *size >= transfer->endpos))
-    {
-	if((*size = transfer->endpos - transfer->curpos) == 0) {
-	    free(buf);
-	    buf = NULL;
-	} else {
-	    buf = srealloc(buf, *size);
-	}
-    }
-    transfer->curpos += *size;
-    bytesupload += *size;
-    CBCHAINDOCB(transfer, trans_p, transfer);
-    return(buf);
-}
-
-void transferprepul(struct transfer *transfer, size_t size, size_t start, size_t end, struct socket *lesk)
+void transferprepul(struct transfer *transfer, off_t size, off_t start, off_t end, struct socket *lesk)
 {
     transfersetsize(transfer, size);
     transfer->curpos = start;
     transfer->endpos = end;
-    lesk->ignread = 1;
     transfersetlocalend(transfer, lesk);
 }
 
@@ -325,7 +322,7 @@ void transferstartul(struct transfer *transfer, struct socket *sk)
     transfersetstate(transfer, TRNS_MAIN);
     socksettos(sk, confgetint("transfer", "ultos"));
     if(transfer->localend != NULL)
-	transfer->localend->ignread = 0;
+	localread(transfer->localend, transfer);
 }
 
 void transfersetlocalend(struct transfer *transfer, struct socket *sk)
@@ -334,9 +331,9 @@ void transfersetlocalend(struct transfer *transfer, struct socket *sk)
 	putsock(transfer->localend);
     getsock(transfer->localend = sk);
     sk->data = transfer;
-    sk->readcb = (void (*)(struct socket *, void *))transferread;
-    sk->writecb = (void (*)(struct socket *, void *))transferwrite;
-    sk->errcb = (void (*)(struct socket *, int, void *))transfererr;
+    sk->readcb = (void (*)(struct socket *, void *))localread;
+    sk->writecb = (void (*)(struct socket *, void *))localwrite;
+    sk->errcb = (void (*)(struct socket *, int, void *))localerr;
 }
 
 static int tryreq(struct transfer *transfer)
@@ -461,7 +458,7 @@ void transfersetnick(struct transfer *transfer, wchar_t *newnick)
     CBCHAINDOCB(transfer, trans_ac, transfer, L"nick");
 }
 
-void transfersetsize(struct transfer *transfer, int newsize)
+void transfersetsize(struct transfer *transfer, off_t newsize)
 {
     transfer->size = newsize;
     CBCHAINDOCB(transfer, trans_ac, transfer, L"size");
@@ -605,7 +602,7 @@ static void filterexit(pid_t pid, int status, void *data)
 
 int forkfilter(struct transfer *transfer)
 {
-    char *filtername, *filename, *peerid, *buf;
+    char *filtername, *filename, *peerid, *buf, *p;
     wchar_t *wfilename;
     struct passwd *pwent;
     pid_t pid;
@@ -616,9 +613,7 @@ int forkfilter(struct transfer *transfer)
     struct wcspair *ta;
     char *rec, *val;
 
-    wfilename = transfer->path;
-    if(transfer->fnet->filebasename != NULL)
-	wfilename = transfer->fnet->filebasename(wfilename);
+    wfilename = fnfilebasename(transfer->path);
     if(transfer->auth == NULL)
     {
 	flog(LOG_WARNING, "tried to fork filter for transfer with NULL authhandle (tranfer %i)", transfer->id);
@@ -661,6 +656,12 @@ int forkfilter(struct transfer *transfer)
 	peerid = sprintf2("utf8-%s", buf);
 	free(buf);
     }
+    for(p = filename; *p; p++) {
+	if(*p == '/')
+	    *p = '_';
+	else if((p == filename) && (*p == '.'))
+	    *p = '_';
+    }
     if((pid = forksess(transfer->owner, transfer->auth, filterexit, NULL, FD_PIPE, 0, O_WRONLY, &inpipe, FD_PIPE, 1, O_RDONLY, &outpipe, FD_FILE, 2, O_RDWR, "/dev/null", FD_END)) < 0)
     {
 	flog(LOG_WARNING, "could not fork session for filter for transfer %i: %s", transfer->id, strerror(errno));
@@ -670,7 +671,7 @@ int forkfilter(struct transfer *transfer)
     {
 	argv = NULL;
 	argvsize = argvdata = 0;
-	buf = sprintf2("%zi", transfer->size);
+	buf = sprintf2("%ji", (intmax_t)transfer->size);
 	addtobuf(argv, filtername);
 	addtobuf(argv, filename);
 	addtobuf(argv, buf);
@@ -711,7 +712,7 @@ int forkfilter(struct transfer *transfer)
      * the fd, and thus it closes it. Until I can find out whyever the
      * kernel gives a POLLIN on the fd (if I can at all...), I'll just
      * set ignread on insock for now. */
-    insock->ignread = 1;
+/*     sockblock(insock, 1); */
     transfer->filter = pid;
     transfersetlocalend(transfer, insock);
     getsock(transfer->filterout = outsock);
@@ -729,6 +730,7 @@ static int run(void)
 {
     struct transfer *transfer, *next;
     
+    /*
     for(transfer = transfers; transfer != NULL; transfer = transfer->next)
     {
 	if((transfer->endpos >= 0) && (transfer->state == TRNS_MAIN) && (transfer->localend != NULL) && (transfer->localend->state == SOCK_EST) && (transfer->curpos >= transfer->endpos))
@@ -738,6 +740,7 @@ static int run(void)
 	    closesock(transfer->localend);
 	}
     }
+    */
     for(transfer = transfers; transfer != NULL; transfer = next)
     {
 	next = transfer->next;

@@ -28,13 +28,13 @@ struct transfer *findtransferbytag(struct conduit *conduit, char *tag)
     return(transfer);
 }
 
-void transfersetsize(struct transfer *transfer, int size)
+void transfersetsize(struct transfer *transfer, intmax_t size)
 {
     transfer->size = size;
     cb_trsize(transfer, transfer->conduit->udata);
 }
 
-void transfersetpos(struct transfer *transfer, int pos)
+void transfersetpos(struct transfer *transfer, intmax_t pos)
 {
     transfer->pos = pos;
     cb_trpos(transfer, transfer->conduit->udata);
@@ -61,7 +61,7 @@ static gboolean trupdatetime(struct transfer *transfer)
     return(TRUE);
 }
 
-struct transfer *newtransfer(struct conduit *conduit, char *tag, int size, int pos)
+struct transfer *newtransfer(struct conduit *conduit, char *tag, intmax_t size, intmax_t pos)
 {
     struct transfer *transfer;
     

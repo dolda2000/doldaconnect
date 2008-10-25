@@ -2,6 +2,7 @@
 #define _CONDUIT_H
 
 #include <sys/types.h>
+#include <stdint.h>
 
 #define CNDS_IDLE 0
 #define CNDS_SYN 1
@@ -12,9 +13,9 @@ struct transfer
     struct transfer *next, *prev;
     struct conduit *conduit;
     char *tag; /* UTF8 */
-    int pos, size;
+    intmax_t pos, size;
     time_t cmptime, ckptime;
-    size_t cmpsize, ckpsize;
+    intmax_t cmpsize, ckpsize;
     int timeout;
 };
 
@@ -35,9 +36,9 @@ struct conduitiface
 };
 
 struct transfer *findtransferbytag(struct conduit *conduit, char *tag);
-void transfersetsize(struct transfer *transfer, int size);
-void transfersetpos(struct transfer *transfer, int pos);
-struct transfer *newtransfer(struct conduit *conduit, char *tag, int size, int pos);
+void transfersetsize(struct transfer *transfer, intmax_t size);
+void transfersetpos(struct transfer *transfer, intmax_t pos);
+struct transfer *newtransfer(struct conduit *conduit, char *tag, intmax_t size, intmax_t pos);
 void freetransfer(struct transfer *transfer);
 struct conduit *newconduit(struct conduitiface *iface, void *udata);
 void freeconduit(struct conduit *conduit);

@@ -80,10 +80,10 @@ void authputhandle(struct authhandle *auth)
 {
     if(--auth->refcount)
 	return;
-    if(auth->text != NULL)
-	free(auth->text);
     if(auth->mechdata != NULL)
 	auth->mech->release(auth);
+    if(auth->text != NULL)
+	free(auth->text);
     free(auth);
 }
 

@@ -19,7 +19,7 @@ localedir=$(datadir)/locale
 dolcon_LDFLAGS=	@GTK2_LIBS@ @LIBXML_LIBS@ -lbz2
 dolcon_LDADD=$(top_srcdir)/lib/libdcui.la $(top_srcdir)/common/libhttp.a
 dolcon_CPPFLAGS=@GTK2_CFLAGS@ @LIBXML_CFLAGS@ \
-		-DLOCALEDIR=\"$(localedir)\"
+		-DLOCALEDIR=\"$(localedir)\" -D_GNU_SOURCE
 
 .desc.gtk: $(top_srcdir)/common/makegdesc
 	target="$@"; \

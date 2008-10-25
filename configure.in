@@ -1,5 +1,5 @@
 AC_INIT(daemon/main.c)
-AM_INIT_AUTOMAKE([doldaconnect], [1.1])
+AM_INIT_AUTOMAKE([doldaconnect], [1.4])
 AM_CONFIG_HEADER(config.h)
 
 DOLDA_AC_GROUP([Checking build chain])
@@ -83,6 +83,21 @@ if test "$HAS_LIBNOTIFY" = yes; then
    	AC_DEFINE(HAVE_NOTIFY)
 fi
 
+# libattr check
+AH_TEMPLATE(HAVE_XATTR, [define to compile support for extended attributes])
+AC_ARG_WITH(xattr, [  --with-xattr            Enable XATTR support])
+DOLDA_PKG([HAS_XATTR], [test "$with_xattr" = no && HAS_XATTR=no],
+		       [AC_CHECK_LIB(attr, getxattr, [:], [HAS_XATTR=no])],
+		       [DOLDA_CHECK_HEADER(attr/xattr.h, [], [HAS_XATTR=no])],
+		       [XATTR_LIBS=-lattr])
+if test "$with_xattr" = yes -a "$HAS_XATTR" = no; then
+   	AC_MSG_ERROR([*** cannot find xattr support on this system])
+fi
+if test "$HAS_XATTR" = yes; then
+   	AC_DEFINE(HAVE_XATTR)
+fi
+AC_SUBST(XATTR_LIBS)
+
 # libpanelapplet check
 DOLDA_PKG([HAS_LIBPANELAPPLET], [PKG_CHECK_MODULES(PANELAPPLET, libpanelapplet-2.0, [], [HAS_LIBPANELAPPLET=no])])
 
@@ -96,6 +111,14 @@ DOLDA_PKG([HAS_LIBPURPLE], [PKG_CHECK_MODULES(PURPLE, purple, [], [HAS_LIBPURPLE
 DOLDA_ENABLE(daemon, [  --enable-daemon         Enable the daemon], yes,
 		     [HAS_LIBZ HAS_LIBBZ2 HAS_GDBM])
 AM_CONDITIONAL(DAEMON, test "$enable_daemon" = yes)
+
+# ADC check
+DOLDA_ENABLE(fnetadc, [  --enable-fnetadc        Enable ADC code (experimental)], no,
+		  [enable_daemon])
+if test "$enable_fnetadc" = yes; then
+   	experimental=yes
+fi
+AM_CONDITIONAL(ADC, test "$enable_fnetadc" = yes)
 
 # Gtk GUI check
 DOLDA_ENABLE(gtk2ui, [  --enable-gtk2ui         Enable the GTK2 user interface], yes,
@@ -113,26 +136,21 @@ DOLDA_ENABLE(guishell, [  --enable-guishell       Build the GUI shell programs],
 AM_CONDITIONAL(GUISHELL, test "$enable_guishell" = yes)
 
 # Gnome applet check
-DOLDA_ENABLE(gnomeapplet, [  --enable-gnomeapplet    Enable GNOME transfer applet (experimental)], no,
+DOLDA_ENABLE(gnomeapplet, [  --enable-gnomeapplet    Enable GNOME transfer applet], no,
 			  [HAS_LIBPANELAPPLET])
-if test "$enable_gnomeapplet" = yes; then
-	experimental=yes
-fi
 AM_CONDITIONAL(CLI_GNOMEAPPLET, test "$enable_gnomeapplet" = yes)
 
 # Gaim plugin check
 gaimplugin_msg=
-DOLDA_ENABLE(gaimplugin, [  --enable-gaimplugin     Enable Gaim chat plugin (experimental)], no,
+DOLDA_ENABLE(gaimplugin, [  --enable-gaimplugin     Enable Gaim chat plugin], no,
 			 [HAS_LIBGAIM])
 if test "$enable_gaimplugin" = yes; then
-	experimental=yes
 	gaimplugin_msg="Gaim $gaimplugin_msg"
 fi
 AM_CONDITIONAL(CLI_GAIM, test "$enable_gaimplugin" = yes)
-DOLDA_ENABLE(pidginplugin, [  --enable-pidginplugin   Enable Pidgin chat plugin (experimental)], no,
+DOLDA_ENABLE(pidginplugin, [  --enable-pidginplugin   Enable Pidgin chat plugin], no,
 			   [HAS_LIBPURPLE])
 if test "$enable_pidginplugin" = yes; then
-	experimental=yes
 	gaimplugin_msg="Pidgin $gaimplugin_msg"
 fi
 AM_CONDITIONAL(CLI_PIDGIN, test "$enable_pidginplugin" = yes)
@@ -286,15 +304,16 @@ autopackage/guishell.apspec
 echo
 echo "Dolda Connect has been configured with the following settings:"
 echo
-echo "    Daemon:                  $enable_daemon"
-echo "    PAM support:             $pam_msg"
-echo "    Kerberos 5 support:      $krb_msg"
-echo "    GTK2 user interface:     $enable_gtk2ui"
-echo "    Dolconf configurator:    $enable_dolconf"
-echo "    GUI shell:               $enable_guishell"
-echo "    Guile extension library: $enable_guile"
-echo "    GNOME transfer applet:   $enable_gnomeapplet"
-echo "    Gaim chat plugin:        $gaimplugin_msg"
+echo "    Daemon:                     $enable_daemon"
+echo "    PAM support:                $pam_msg"
+echo "    Kerberos 5 support:         $krb_msg"
+echo "    ADC support (unfinished):   $enable_fnetadc"
+echo "    GTK2 user interface:        $enable_gtk2ui"
+echo "    Dolconf configurator:       $enable_dolconf"
+echo "    GUI shell:                  $enable_guishell"
+echo "    Guile extension library:    $enable_guile"
+echo "    GNOME transfer applet:      $enable_gnomeapplet"
+echo "    Gaim chat plugin:           $gaimplugin_msg"
 echo
 
 if tput bold >/dev/null 2>&1 && tty <&2 >/dev/null 2>&1; then

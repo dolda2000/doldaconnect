@@ -1,5 +1,21 @@
+Version 1.3:
+
+	* Massive internal code rewrites and cleanups
+	
+Version 1.2:
+
+	* Reliability and performance optimizations in the daemon
+	* More improvements to hubmgr
+	
+Version 1.1.1:
+
+	* Fixed a Makefile bug
+	* Fixed a resume bug concerning files larger than 2 GiB
+	
 Version 1.1:
 
+	* Much better and documented hubmgr
+	* Handles file sizes larger than 2 GiB
 	* Ported the Guile plugin to Guile 1.8
 	
 Version 1.0:

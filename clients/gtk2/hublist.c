@@ -200,6 +200,7 @@ void fetchhublist(char *url, regex_t *flt)
 	msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not read hublist from server: %s"), strerror(errno));
 	return;
     }
+    hc->autoredir = 1;
     state = 0;
     settags();
     gtk_widget_show(main_pubhubbarbox);

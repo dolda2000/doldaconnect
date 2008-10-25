@@ -51,7 +51,6 @@ struct fnet
     int (*reqconn)(struct fnetpeer *peer);
     int (*sendchat)(struct fnetnode *fn, int public, wchar_t *to, wchar_t *string);
     int (*search)(struct fnetnode *fn, struct search *srch, struct srchfnnlist *ln);
-    wchar_t *(*filebasename)(wchar_t *filename);
 };
 
 struct fnetpeerdatum
@@ -75,7 +74,6 @@ struct fnetpeerdi
 
 struct fnetpeer
 {
-    struct fnetpeer *next, *prev;
     struct fnetnode *fn;
     wchar_t *id;
     wchar_t *nick;
@@ -107,7 +105,7 @@ struct fnetnode
     wchar_t *owner;
     struct fnet *fnet;
     struct fnetpeerdatum *peerdata;
-    struct fnetpeer *peers;
+    struct btree *peers;
     struct wcspair *args;
     int numpeers;
     void *data;
@@ -133,6 +131,7 @@ void putfnetnode(struct fnetnode *fn);
 void killfnetnode(struct fnetnode *fn);
 struct fnetpeer *fnetaddpeer(struct fnetnode *fn, wchar_t *id, wchar_t *nick);
 void fnetdelpeer(struct fnetpeer *peer);
+void fnetpeerdm(struct fnetnode *fn);
 struct fnetpeer *fnetfindpeer(struct fnetnode *fn, wchar_t *id);
 void fnetpeersetstr(struct fnetpeer *peer, wchar_t *id, wchar_t *value);
 void fnetpeersetnum(struct fnetpeer *peer, wchar_t *id, int value);
@@ -142,6 +141,7 @@ struct fnetnode *findfnetnode(int id);
 void fnethandlechat(struct fnetnode *fn, int public, wchar_t *name, wchar_t *peer, wchar_t *chat);
 int fnetsendchat(struct fnetnode *fn, int public, wchar_t *to, wchar_t *string);
 int fnetsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlist *ln);
+wchar_t *fnfilebasename(wchar_t *path);
 
 extern struct fnetnode *fnetnodes;
 EGCBCHAIN(newfncb, struct fnetnode *);

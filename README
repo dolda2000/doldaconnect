@@ -61,9 +61,9 @@ See the doc/INSTALL file.
 			    Documentation
 
 Documentation is still rather weak,  but it is getting better. Besides
-the README and  INSTALL* files, there are now  manpages for the daemon
-and its  config file. For any  information still not  found, please do
-not hesitate  to contact the  author. Any further  documentation aside
+the README and INSTALL* files, there  are now manpages for a number of
+the constituent programs. For  any information still not found, please
+do not hesitate to contact the author. Any further documentation aside
 from this README file is located in the `doc' directory.
 
 			       Credits
@@ -74,5 +74,5 @@ through  the e-mail address  <fredrik@dolda2000.com>. His  homepage is
 
 
 
-This document  was last updated 2007-10-15, reflecting  release 1.0 of
+This document  was last updated 2008-02-14, reflecting  release 1.1 of
 Dolda Connect.

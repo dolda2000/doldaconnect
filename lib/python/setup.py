@@ -6,7 +6,7 @@ dolmod = Extension("dolmod", ["dolmod.c"],
                    libraries = ["dcui"])
 
 setup(name = "dolcon-py",
-      version = "1.0r1",
+      version = "1.1r1",
       description = "Python glue module for libdcui",
       author = "Fredrik Tolf",
       author_email = "fredrik@dolda2000.com",

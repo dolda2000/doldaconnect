@@ -1,5 +1,5 @@
 :lssr
-200 s s s i i i f s
+200 s s s I i i f s
 201
 514
 :lssrch
@@ -66,7 +66,7 @@
 510
 511
 :lstrans
-200 i i i s s s i i s
+200 i i i s s s I I s
 201
 502
 :cancel
@@ -111,6 +111,10 @@
 501
 502
 512
+:uptime
+200 i
+:hashstatus
+200 i		; Followed by (hash-type number) pairs
 :transstatus
 200 d s d s
 502
@@ -139,15 +143,15 @@
 610 i i s s	; Transfer create
 611 i i		; Transfer state change
 612 i s		; Transfer nick change
-613 i i		; Transfer size change
+613 i I		; Transfer size change
 614 i i		; Transfer error update
-615 i i		; Transfer progress
+615 i I		; Transfer progress
 616 i s		; Transfer path change
 617 i s		; Transfer destroy
 618 i s		; Transfer hash update
 620 i i
 621 i
-622 i s s s i i i f s
+622 i s s s I i i f s
 630 i s s
 631 i s
 632 i s s       ; More data follows, but cannot be handled by dc_interpret

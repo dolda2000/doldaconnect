@@ -41,7 +41,7 @@ echo bin/dolcon share | import
 
 [Prepare]
 require @gtk.org/gtk 2.6
-require @dolda2000.com/fredrik/doldaconnect/dcuilib 1.1
+require @dolda2000.com/fredrik/doldaconnect/dcuilib 3.0
 
 [Install]
 installExe dolcon

@@ -3,7 +3,9 @@
 
 #include <wchar.h>
 
-#define DC_LATEST 2
+#define DC_LATEST 3
+
+typedef long long dc_lnum_t;
 
 struct dc_response
 {
@@ -32,6 +34,7 @@ struct dc_intresp
 	union
 	{
 	    int num;
+	    dc_lnum_t lnum;
 	    wchar_t *str;
 	    double flnum;
 	} val;

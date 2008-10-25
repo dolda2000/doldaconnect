@@ -12,7 +12,7 @@ License: GNU General Public License, Version 2 or later
 SoftwareVersion: @VERSION@
 Repository: http://www.dolda2000.com/~fredrik/doldaconnect/ap/doldaconnect-uilib.xml
 AutopackageTarget: 1.2
-InterfaceVersion: 1.1
+InterfaceVersion: 3.0
 PackageFileName: doldaconnect-uilib-@VERSION@.package
 
 [Description]
@@ -32,7 +32,7 @@ echo lib | import
 [Prepare]
 
 [Install]
-installLib lib/libdcui.so.1.1.0
+installLib lib/libdcui.so.3.0.0
 
 [Uninstall]
 uninstallFromLog

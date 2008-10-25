@@ -136,8 +136,8 @@ rm -rf "$RPM_BUILD_ROOT"
 
 %files libs
 %defattr(-,root,root)
-%{_libdir}/libdcui.so.1
-%{_libdir}/libdcui.so.1.1.0
+%{_libdir}/libdcui.so.3
+%{_libdir}/libdcui.so.3.0.0
 
 %files devel
 %defattr(-,root,root)

@@ -30,6 +30,7 @@
 #include <bzlib.h>
 #include <zlib.h>
 #include <sys/stat.h>
+#include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -59,24 +60,6 @@
  * considering it was developed without i18n support under Windows */
 #define DCCHARSET "windows-1252"
 
-#ifdef DCPP_MASQUERADE
-/*
- * I honestly don't want to pretend being a client that I'm not, but
- * there are so many hubs that simply do not accept any clients
- * outside their whitelists, for no obvious reasons, so I feel that I
- * am left with little choice. Anyhow, as long as I actually support
- * all the features that my faked DC++ version does, there should be
- * very little harm done.
- */
-#define DCIDTAG "++"
-#define DCIDTAGV "0.674"
-#define DCIDFULL "DC++ 0.674"
-#else
-#define DCIDTAG "Dolda"
-#define DCIDTAGV VERSION
-#define DCIDFULL "DoldaConnect " VERSION
-#endif
-
 #define PEER_CMD 0
 #define PEER_STOP 1
 #define PEER_TRNS 2
@@ -91,6 +74,7 @@ struct command
     char *name;
     void (*handler)(struct socket *sk, void *data, char *cmd, char *args);
     int stop;
+    int limit;
 };
 
 struct qcommand
@@ -99,12 +83,18 @@ struct qcommand
     char *string;
 };
 
+struct qcmdqueue
+{
+    struct qcommand *f, *l;
+    int size;
+};
+
 struct dchub
 {
     struct socket *sk;
     char *inbuf;
     size_t inbufdata, inbufsize;
-    struct qcommand *queue;
+    struct qcmdqueue queue;
     int extended, dcppemu;
     char *charset;
     char *nativename;
@@ -127,11 +117,12 @@ struct dcpeer
     struct fnetnode *fn;
     char *inbuf;
     size_t inbufdata, inbufsize;
-    size_t curread, totalsize;
-    int freeing;
+    off_t curread, totalsize;
+    int close;
     struct timer *timeout;
-    struct qcommand *queue;
+    struct qcmdqueue queue;
     struct transfer *transfer;
+    struct socket *trpipe;
     int state;
     int ptclose;      /* Close after transfer is complete */
     int accepted;     /* If false, we connected, otherwise, we accepted */
@@ -149,9 +140,8 @@ struct dcpeer
 };
 
 static struct fnet dcnet;
-static struct transferiface dctransfer;
 static struct socket *udpsock = NULL;
-static struct socket *tcpsock = NULL;
+static struct lport *tcpsock = NULL;
 static struct dcpeer *peers = NULL;
 int numdcpeers = 0;
 static struct dcexppeer *expected = NULL;
@@ -160,6 +150,7 @@ static char *xmllistname = NULL;
 static char *xmlbz2listname = NULL;
 static struct timer *listwritetimer = NULL;
 
+static struct socket *mktrpipe(struct dcpeer *peer);
 static void peerconnect(struct socket *sk, int err, struct fnetnode *fn);
 static void freedcpeer(struct dcpeer *peer);
 static void transread(struct socket *sk, struct dcpeer *peer);
@@ -170,6 +161,7 @@ static void updatexmllist(void);
 static void updatexmlbz2list(void);
 static void requestfile(struct dcpeer *peer);
 static void updatelists(int now);
+static int trdestroycb(struct transfer *transfer, struct dcpeer *peer);
 
 static int reservedchar(unsigned char c)
 {
@@ -215,25 +207,40 @@ static char *dcmakekey(char *lock)
     return(key);
 }
 
-static char *pathnmdc2adc(char *path)
+static wchar_t *nmdc2path(char *nmdc, char *charset)
 {
-    char *ret;
-    size_t retsize, retdata;
+    wchar_t *ret, *p;
     
-    if(!strcmp(path, "files.xml") || !strcmp(path, "files.xml.bz2") || !strcmp(path, "MyList.DcLst"))
-	return(sstrdup(path));
-    ret = NULL;
-    retsize = retdata = 0;
-    addtobuf(ret, '/');
-    for(; *path; path++)
-    {
-	if(*path == '\\')
-	    addtobuf(ret, '/');
-	else
-	    addtobuf(ret, *path);
+    if((ret = icmbstowcs(nmdc, charset)) == NULL)
+	return(NULL);
+    for(p = ret; *p != L'\0'; p++) {
+	if(*p == L'\\')
+	    *p = L'/';
     }
-    addtobuf(ret, 0);
     return(ret);
+}
+
+static char *path2nmdc(wchar_t *path, char *charset)
+{
+    char *ret, *p;
+    
+    if((ret = icwcstombs(path, charset)) == NULL)
+	return(NULL);
+    for(p = ret; *p; p++) {
+	if(*p == '/')
+	    *p = '\\';
+    }
+    return(ret);
+}
+
+static wchar_t *adc2path(char *adc)
+{
+    return(icmbstowcs(adc, "UTF-8"));
+}
+
+static char *path2adc(wchar_t *path)
+{
+    return(icwcstombs(path, "UTF-8"));
 }
 
 static int isdchash(struct hash *hash)
@@ -376,26 +383,31 @@ static struct dcexppeer *expectpeer(char *nick, struct fnetnode *fn)
     return(ep);
 }
 
-static struct qcommand *newqcmd(struct qcommand **queue, char *string)
+static struct qcommand *newqcmd(struct qcmdqueue *queue, char *string)
 {
     struct qcommand *new;
     
-    while(*queue != NULL)
-	queue = &(*queue)->next;
     new = smalloc(sizeof(*new));
     new->string = sstrdup(string);
-    new->next = *queue;
-    *queue = new;
+    new->next = NULL;
+    if(queue->l == NULL)
+	queue->f = new;
+    else
+	queue->l->next = new;
+    queue->l = new;
+    queue->size++;
     return(new);
 }
 
-static struct qcommand *ulqcmd(struct qcommand **queue)
+static struct qcommand *ulqcmd(struct qcmdqueue *queue)
 {
     struct qcommand *qcmd;
     
-    if((qcmd = *queue) == NULL)
+    if((qcmd = queue->f) == NULL)
 	return(NULL);
-    *queue = qcmd->next;
+    if((queue->f = qcmd->next) == NULL)
+	queue->l = NULL;
+    queue->size--;
     return(qcmd);
 }
 
@@ -502,7 +514,11 @@ static void sendadc(struct socket *sk, char *arg)
     free(buf);
 }
 
-static void sendadcf(struct socket *sk, char *arg, ...)
+#if defined(__GNUC__)
+static void __attribute__ ((format (printf, 2, 3))) sendadcf(struct socket *sk, char *arg, ...) 
+#else
+static void sendadcf(struct socket *sk, char *arg, ...) 
+#endif
 {
     char *buf;
     va_list args;
@@ -619,10 +635,7 @@ static char *getadcid(struct dcpeer *peer)
 	ret = sprintf2("TTH/%.39s", buf);
 	free(buf);
     } else {
-	if((buf = icwcstombs(peer->transfer->path, "UTF-8")) == NULL)
-	    return(NULL);
-	ret = pathnmdc2adc(buf);
-	free(buf);
+	ret = path2adc(peer->transfer->path);
     }
     return(ret);
 }
@@ -637,7 +650,7 @@ static int trresumecb(struct transfer *transfer, wchar_t *cmd, wchar_t *arg, str
 	    flog(LOG_WARNING, "filter returned no position for \"resume\" on transfer %i", transfer->id);
 	    freedcpeer(peer);
 	} else {
-	    transfer->curpos = wcstol(arg, NULL, 10);
+	    transfer->curpos = wcstoll(arg, NULL, 10);
 	    peer->hascurpos = 1;
 	    requestfile(peer);
 	}
@@ -667,10 +680,14 @@ static void sendpeerlock(struct dcpeer *peer)
 
 static void sendsupports(struct dcpeer *peer)
 {
-    if(peer->dcppemu)
+    if(peer->dcppemu) {
 	qstr(peer->sk, "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG |");
-    else
-	qstr(peer->sk, "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF GetZBlock ZLIG|");
+    } else {
+	qstr(peer->sk, "$Supports MiniSlots XmlBZList ADCGet TTHL TTHF");
+	if(!confgetint("dc", "hidedeflate"))
+	    qstr(peer->sk, " GetZBlock ZLIG");
+	qstr(peer->sk, "|");
+    }
 }
 
 static void requestfile(struct dcpeer *peer)
@@ -680,16 +697,17 @@ static void requestfile(struct dcpeer *peer)
     if(peer->transfer->size == -1)
     {
 	/* Use DCCHARSET for $Get paths until further researched... */
-	if((buf = icswcstombs(peer->transfer->path, DCCHARSET, NULL)) == NULL)
+	if((buf = path2nmdc(peer->transfer->path, DCCHARSET)) == NULL)
 	{
 	    transferseterror(peer->transfer, TRNSE_NOTFOUND);
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    return;
 	}
 	/* The transfer will be restarted later from
 	 * cmd_filelength when it detects that the sizes
 	 * don't match. */
 	qstrf(peer->sk, "$Get %s$1|", buf);
+	free(buf);
 	return;
     }
     if((peer->transfer->hash == NULL) && !peer->notthl)
@@ -701,7 +719,7 @@ static void requestfile(struct dcpeer *peer)
 	    if((buf = getadcid(peer)) == NULL)
 	    {
 		transferseterror(peer->transfer, TRNSE_NOTFOUND);
-		freedcpeer(peer);
+		peer->close = 1;
 		return;
 	    }
 	    sendadc(peer->sk, buf);
@@ -718,10 +736,9 @@ static void requestfile(struct dcpeer *peer)
 	if(forkfilter(peer->transfer))
 	{
 	    flog(LOG_WARNING, "could not fork filter for transfer %i: %s", peer->transfer->id, strerror(errno));
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    return;
 	}
-	CBREG(peer->transfer, trans_filterout, (int (*)(struct transfer *, wchar_t *, wchar_t *, void *))trresumecb, NULL, peer);
 	return;
     }
     if(supports(peer, "adcget"))
@@ -731,31 +748,33 @@ static void requestfile(struct dcpeer *peer)
 	if((buf = getadcid(peer)) == NULL)
 	{
 	    transferseterror(peer->transfer, TRNSE_NOTFOUND);
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    return;
 	}
 	sendadc(peer->sk, buf);
 	free(buf);
-	sendadcf(peer->sk, "%i", peer->transfer->curpos);
-	sendadcf(peer->sk, "%i", peer->transfer->size - peer->transfer->curpos);
+	sendadcf(peer->sk, "%ji", (intmax_t)peer->transfer->curpos);
+	sendadcf(peer->sk, "%ji", (intmax_t)(peer->transfer->size - peer->transfer->curpos));
 	qstr(peer->sk, "|");
     } else if(supports(peer, "xmlbzlist")) {
-	if((buf = icswcstombs(peer->transfer->path, "UTF-8", NULL)) == NULL)
+	if((buf = path2nmdc(peer->transfer->path, "UTF-8")) == NULL)
 	{
 	    transferseterror(peer->transfer, TRNSE_NOTFOUND);
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    return;
 	}
-	qstrf(peer->sk, "$UGetBlock %zi %zi %s|", peer->transfer->curpos, peer->transfer->size - peer->transfer->curpos, buf);
+	qstrf(peer->sk, "$UGetBlock %ji %ji %s|", (intmax_t)peer->transfer->curpos, (intmax_t)(peer->transfer->size - peer->transfer->curpos), buf);
+	free(buf);
     } else {
 	/* Use DCCHARSET for $Get paths until further researched... */
-	if((buf = icswcstombs(peer->transfer->path, DCCHARSET, NULL)) == NULL)
+	if((buf = path2nmdc(peer->transfer->path, DCCHARSET)) == NULL)
 	{
 	    transferseterror(peer->transfer, TRNSE_NOTFOUND);
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    return;
 	}
-	qstrf(peer->sk, "$Get %s$%zi|", buf, peer->transfer->curpos + 1);
+	qstrf(peer->sk, "$Get %s$%ji|", buf, (intmax_t)peer->transfer->curpos + 1);
+	free(buf);
     }
 }
 
@@ -832,10 +851,14 @@ static void cmd_lock(struct socket *sk, struct fnetnode *fn, char *cmd, char *ar
 	*(p++) = 0;
     if(hub->extended)
     {
-	if(hub->dcppemu)
+	if(hub->dcppemu) {
 	    qstrf(sk, "$Supports UserCommand NoGetINFO NoHello UserIP2 TTHSearch GetZBlock |");
-	else
-	    qstrf(sk, "$Supports UserCommand NoGetINFO NoHello UserIP2 TTHSearch GetZBlock|");
+	} else {
+	    qstrf(sk, "$Supports UserCommand NoGetINFO NoHello UserIP2 TTHSearch");
+	    if(!confgetint("dc", "hidedeflate"))
+		qstr(sk, " GetZBlock");
+	    qstr(sk, "|");
+	}
     }
     key = dcmakekey(args);
     qstrf(sk, "$Key %s|", key);
@@ -849,7 +872,7 @@ static void cmd_hubname(struct socket *sk, struct fnetnode *fn, char *cmd, char 
     struct dchub *hub;
     
     hub = fn->data;
-    if(hub->nativename == NULL)
+    if(hub->nativename != NULL)
 	free(hub->nativename);
     hub->nativename = sstrdup(args);
     buf = icmbstowcs(args, hub->charset);
@@ -893,10 +916,10 @@ static void cmd_nicklist(struct socket *sk, struct fnetnode *fn, char *cmd, char
     struct dchub *hub;
     char *p;
     wchar_t *buf;
-    struct fnetpeer *peer, *npeer;
+    struct fnetpeer *peer;
     
     hub = fn->data;
-    for(peer = fn->peers; peer != NULL; peer = peer->next)
+    for(peer = btreeiter(fn->peers); peer != NULL; peer = btreeiter(NULL))
 	peer->flags.b.delete = 1;
     while((p = strstr(args, "$$")) != NULL)
     {
@@ -912,12 +935,7 @@ static void cmd_nicklist(struct socket *sk, struct fnetnode *fn, char *cmd, char
 	}
 	args = p + 2;
     }
-    for(peer = fn->peers; peer != NULL; peer = npeer)
-    {
-	npeer = peer->next;
-	if(peer->flags.b.delete)
-	    fnetdelpeer(peer);
-    }
+    fnetpeerdm(fn);
     hubhandleaction(sk, fn, cmd, args);
 }
 
@@ -929,7 +947,7 @@ static void cmd_oplist(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     struct fnetpeer *peer;
     
     hub = fn->data;
-    for(peer = fn->peers; peer != NULL; peer = peer->next)
+    for(peer = btreeiter(fn->peers); peer != NULL; peer = btreeiter(NULL))
 	peer->flags.b.op = 0;
     while((p = strstr(args, "$$")) != NULL)
     {
@@ -1107,7 +1125,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     size_t buflen;
     int termnum, satisfied, skipcheck;
     int level, tersat[32];
-    wchar_t *terms[32];
+    wchar_t *terms[32], *lname;
     char hashtth[24];
     
     hub = fn->data;
@@ -1128,7 +1146,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	    goto out;
 	prefix = sprintf2("$SR %s ", hub->nativenick);
 	infix = sprintf2(" %i/%i\005", slotsleft(), confgetint("transfer", "slots"));
-	postfix = sprintf2(" (%s)\005%s|", formataddress(hub->sk->remote, hub->sk->remotelen), args + 4);
+	postfix = sprintf2(" (%s)\005%s|", formatsockpeer(hub->sk), args + 4);
 	dsk = sk;
 	getsock(dsk);
     } else {
@@ -1141,8 +1159,8 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	addr.sin_port = htons(atoi(p2));
 	prefix = sprintf2("$SR %s ", hub->nativenick);
 	infix = sprintf2(" %i/%i\005", slotsleft(), confgetint("transfer", "slots"));
-	postfix = sprintf2(" (%s)|", formataddress(hub->sk->remote, hub->sk->remotelen));
-	netdgramconn(dsk = netdupsock(udpsock), (struct sockaddr *)&addr, sizeof(addr));
+	postfix = sprintf2(" (%s)|", formatsockpeer(hub->sk));
+	dsk = netdgramconn(udpsock, (struct sockaddr *)&addr, sizeof(addr));
     }
     
     minsize = maxsize = -1;
@@ -1195,8 +1213,10 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		    memcpy(hashtth, buf, 24);
 		    free(buf);
 		} else {
-		    if((terms[termnum] = icmbstowcs(p, hub->charset)) != NULL)
+		    if((terms[termnum] = icmbstowcs(p, hub->charset)) != NULL) {
+			wcslower(terms[termnum]);
 			termnum++;
+		    }
 		}
 	    }
 	    p = p2 + 1;
@@ -1228,11 +1248,12 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	}
 	if(!skipcheck)
 	{
+	    lname = wcslower(swcsdup(node->name));
 	    for(i = 0; i < termnum; i++)
 	    {
 		if(tersat[i] >= 0)
 		    continue;
-		if(wcsexists(node->name, terms[i]))
+		if(wcsstr(lname, terms[i]))
 		{
 		    tersat[i] = level;
 		    satisfied++;
@@ -1240,6 +1261,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		    break;
 		}
 	    }
+	    free(lname);
 	}
 	if(!skipcheck && (satisfied == termnum))
 	{
@@ -1249,10 +1271,10 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		if(node->f.b.hastth)
 		{
 		    buf2 = base32encode(node->hashtth, 24);
-		    qstrf(dsk, "%s%s\005%zi%sTTH:%.39s%s", prefix, buf, node->size, infix, buf2, postfix);
+		    qstrf(dsk, "%s%s\005%ji%sTTH:%.39s%s", prefix, buf, (intmax_t)node->size, infix, buf2, postfix);
 		    free(buf2);
 		} else {
-		    qstrf(dsk, "%s%s\005%zi%s%s%s", prefix, buf, node->size, infix, hub->nativename, postfix);
+		    qstrf(dsk, "%s%s\005%ji%s%s%s", prefix, buf, (intmax_t)node->size, infix, hub->nativename, postfix);
 		}
 		free(buf);
 	    }
@@ -1301,7 +1323,6 @@ static void cmd_connecttome(struct socket *sk, struct fnetnode *fn, char *cmd, c
 {
     char *p;
     struct dchub *hub;
-    struct socket *newsk;
     struct sockaddr_in addr;
     
     hub = fn->data;
@@ -1318,7 +1339,7 @@ static void cmd_connecttome(struct socket *sk, struct fnetnode *fn, char *cmd, c
     addr.sin_port = htons(atoi(p));
     if(!inet_aton(args, &addr.sin_addr))
 	return;
-    newsk = netcsconn((struct sockaddr *)&addr, sizeof(addr), (void (*)(struct socket *, int, void *))peerconnect, fn);
+    putsock(netcsconn((struct sockaddr *)&addr, sizeof(addr), (void (*)(struct socket *, int, void *))peerconnect, fn));
     getfnetnode(fn);
     hubhandleaction(sk, fn, cmd, args);
 }
@@ -1330,7 +1351,7 @@ static void sendctm(struct socket *sk, char *nick)
     
     if(tcpsock == NULL)
 	return;
-    if(sockgetremotename2(tcpsock, sk, &addr, &addrlen) < 0)
+    if(lstgetremotename2(tcpsock, sk, &addr, &addrlen) < 0)
 	return;
     if(addr->sa_family == AF_INET)
 	qstrf(sk, "$ConnectToMe %s %s|", nick, formataddress(addr, addrlen));
@@ -1402,7 +1423,8 @@ static void cmd_sr(struct socket *sk, struct fnetnode *fn, char *cmd, char *args
     struct dchub *hub;
     char *p, *p2, *buf;
     char *nick, *filename, *hubname;
-    int size, slots;
+    off_t size;
+    int slots;
     size_t buflen;
     struct srchres *sr;
     wchar_t *wnick, *wfile;
@@ -1421,7 +1443,7 @@ static void cmd_sr(struct socket *sk, struct fnetnode *fn, char *cmd, char *args
     if((p2 = strchr(p, ' ')) == NULL)
 	return;
     *p2 = 0;
-    size = atoi(p);
+    size = strtoll(p, NULL, 10);
     p = p2 + 1;
     if((p2 = strchr(p, '/')) == NULL)
 	return;
@@ -1438,7 +1460,7 @@ static void cmd_sr(struct socket *sk, struct fnetnode *fn, char *cmd, char *args
     if((wnick = icmbstowcs(nick, hub->charset)) == NULL)
 	return;
     /* Use DCCHARSET in $Get paths until further researched... */
-    if((wfile = icmbstowcs(filename, DCCHARSET)) == NULL)
+    if((wfile = nmdc2path(filename, DCCHARSET)) == NULL)
     {
 	free(wnick);
 	return;
@@ -1541,7 +1563,7 @@ static void cmd_mynick(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	free(peer->wcsname);
     if((peer->wcsname = icmbstowcs(peer->nativename, peer->charset)) == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     if(peer->accepted)
@@ -1564,6 +1586,13 @@ static void cmd_mynick(struct socket *sk, struct dcpeer *peer, char *cmd, char *
     }
 }
 
+static void peerattach(struct dcpeer *peer, struct transfer *transfer)
+{
+    peer->transfer = transfer;
+    CBREG(peer->transfer, trans_filterout, (int (*)(struct transfer *, wchar_t *, wchar_t *, void *))trresumecb, NULL, peer);
+    CBREG(peer->transfer, trans_destroy, (int (*)(struct transfer *, void *))trdestroycb, NULL, peer);
+}
+
 static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
     char *p;
@@ -1581,7 +1610,7 @@ static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, cha
     {
 	if((peer->transfer == NULL) || (mydir != peer->direction))
 	{
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    return;
 	}
 	if(peer->direction == TRNSD_DOWN)
@@ -1589,7 +1618,7 @@ static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, cha
     } else {
 	if(peer->wcsname == NULL)
 	{
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    return;
 	}
 	peer->direction = mydir;
@@ -1597,21 +1626,21 @@ static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, cha
 	{
 	    if(confgetint("transfer", "ulquota") && hasupload(&dcnet, peer->wcsname))
 	    {
-		freedcpeer(peer);
+		peer->close = 1;
 		return;
 	    }
-	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, &dctransfer, peer);
+	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, (peer->trpipe = mktrpipe(peer))->back);
 	} else {
 	    if((transfer = finddownload(peer->wcsname)) == NULL)
 	    {
-		freedcpeer(peer);
+		peer->close = 1;
 		return;
 	    }
-	    transferattach(transfer, &dctransfer, peer);
+	    transferattach(transfer, (peer->trpipe = mktrpipe(peer))->back);
 	    transfersetstate(transfer, TRNS_HS);
 	}
 	transfersetnick(transfer, peer->wcsname);
-	peer->transfer = transfer;
+	peerattach(peer, transfer);
 	if(peer->extended)
 	    sendsupports(peer);
 	qstrf(sk, "$Direction %s %i|", (peer->direction == TRNSD_UP)?"Upload":"Download", rand() % 10000);
@@ -1637,7 +1666,7 @@ static void cmd_peerlock(struct socket *sk, struct dcpeer *peer, char *cmd, char
     {
 	if(peer->wcsname == NULL)
 	{
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    return;
 	}
 	sendmynick(peer);
@@ -1648,18 +1677,18 @@ static void cmd_peerlock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	{
 	    if(confgetint("transfer", "ulquota") && hasupload(&dcnet, peer->wcsname))
 	    {
-		freedcpeer(peer);
+		peer->close = 1;
 		return;
 	    }
 	    peer->direction = TRNSD_UP;
-	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, &dctransfer, peer);
+	    transfer = newupload(peer->fn, &dcnet, peer->wcsname, (peer->trpipe = mktrpipe(peer))->back);
 	} else {
 	    peer->direction = TRNSD_DOWN;
-	    transferattach(transfer, &dctransfer, peer);
+	    transferattach(transfer, (peer->trpipe = mktrpipe(peer))->back);
 	    transfersetstate(transfer, TRNS_HS);
 	}
 	transfersetnick(transfer, peer->wcsname);
-	peer->transfer = transfer;
+	peerattach(peer, transfer);
 	qstrf(sk, "$Direction %s %i|", (peer->direction == TRNSD_UP)?"Upload":"Download", rand() % 10000);
 	qstrf(sk, "$Key %s|", key);
 	free(key);
@@ -1692,24 +1721,26 @@ static void startul(struct dcpeer *peer)
     peer->state = PEER_TRNS;
     transferstartul(peer->transfer, peer->sk);
     peer->sk->writecb = (void (*)(struct socket *, void *))transwrite;
+    transwrite(peer->sk, peer);
 }
 
 static void cmd_filelength(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
-    int size;
+    off_t size;
     struct transfer *transfer;
     
     if(peer->transfer == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
-    size = atoi(args);
+    size = strtoll(args, NULL, 10);
     if(peer->transfer->size != size)
     {
 	transfersetsize(peer->transfer, size);
 	transfer = peer->transfer;
-	freedcpeer(peer);
+	peer->close = 1;
+	resettransfer(transfer);
 	trytransferbypeer(transfer->fnet, transfer->peerid);
 	return;
     }
@@ -1732,7 +1763,7 @@ static void cmd_error(struct socket *sk, struct dcpeer *peer, char *cmd, char *a
 	resettransfer(peer->transfer);
 	return;
     }
-    freedcpeer(peer);
+    peer->close = 1;
 }
 
 static void cmd_maxedout(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
@@ -1743,7 +1774,7 @@ static void cmd_maxedout(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	resettransfer(peer->transfer);
 	return;
     }
-    freedcpeer(peer);
+    peer->close = 1;
 }
 
 static struct
@@ -1827,7 +1858,7 @@ static struct sharecache *resdcpath(char *path, char *charset, char sep)
 
 static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
-    int offset;
+    off_t offset;
     char *p, *buf;
     wchar_t *buf2;
     struct sharecache *node;
@@ -1837,28 +1868,30 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
     
     if(peer->transfer == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     if((p = strchr(args, '$')) == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     *(p++) = 0;
-    if((offset = (atoi(p) - 1)) < 0)
+    if((offset = (strtoll(p, NULL, 10) - 1)) < 0)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     if(((fd = openfilelist(args)) < 0) && (errno != 0))
     {
 	qstr(sk, "$Error Could not send file list|");
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     } else if(fd >= 0) {
-	if((buf2 = icsmbstowcs(args, DCCHARSET, NULL)) != NULL)
+	if((buf2 = nmdc2path(args, DCCHARSET)) != NULL) {
 	    transfersetpath(peer->transfer, buf2);
+	    free(buf2);
+	}
 	peer->transfer->flags.b.minislot = 1;
     }
     if(fd < 0)
@@ -1867,13 +1900,13 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
 	if((node = resdcpath(args, DCCHARSET, '\\')) == NULL)
 	{
 	    qstrf(sk, "$Error File not in share|");
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    return;
 	}
 	if((fd = opensharecache(node)) < 0)
 	{
 	    qstrf(sk, "$Error %s|", strerror(errno));
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    return;
 	}
 	buf = getfspath(node);
@@ -1888,7 +1921,7 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
 	close(fd);
 	flog(LOG_WARNING, "could not stat file %ls: %s", node->name, strerror(errno));
 	qstrf(sk, "$Error|");
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     if(sb.st_size < 65536)
@@ -1896,32 +1929,32 @@ static void cmd_get(struct socket *sk, struct dcpeer *peer, char *cmd, char *arg
     if(!peer->transfer->flags.b.minislot && (slotsleft() < 1)) {
 	close(fd);
 	qstr(sk, "$MaxedOut|");
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     if((offset != 0) && (lseek(fd, offset, SEEK_SET) < 0))
     {
 	close(fd);
 	qstrf(sk, "$Error Offset out of range|");
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     lesk = wrapsock(fd);
     transferprepul(peer->transfer, sb.st_size, offset, -1, lesk);
     putsock(lesk);
-    qstrf(sk, "$FileLength %zi|", peer->transfer->size);
+    qstrf(sk, "$FileLength %ji|", (intmax_t)peer->transfer->size);
 }
 
 static void cmd_send(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
     if(peer->transfer == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     if(peer->transfer->localend == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     peer->ptclose = 1;
@@ -1960,7 +1993,7 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 {
     int fd;
     char *p, *p2;
-    int start, numbytes;
+    off_t start, numbytes;
     char *charset, *buf;
     wchar_t *buf2;
     struct sharecache *node;
@@ -1969,25 +2002,25 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
     
     if(peer->transfer == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     p = args;
     if((p2 = strchr(p, ' ')) == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     *(p2++) = 0;
-    start = atoi(p);
+    start = strtoll(p, NULL, 10);
     p = p2;
     if((p2 = strchr(p, ' ')) == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     *(p2++) = 0;
-    numbytes = atoi(p);
+    numbytes = strtoll(p, NULL, 10);
     p = p2;
     if(!strcmp(cmd, "$UGetBlock") || !strcmp(cmd, "$UGetZBlock"))
 	charset = "UTF-8";
@@ -2001,8 +2034,10 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
 	qstr(sk, "$Error Could not send file list|");
 	return;
     } else if(fd >= 0) {
-	if((buf2 = icsmbstowcs(args, charset, NULL)) != NULL)
+	if((buf2 = nmdc2path(args, charset)) != NULL) {
 	    transfersetpath(peer->transfer, buf2);
+	    free(buf2);
+	}
 	peer->transfer->flags.b.minislot = 1;
     }
     if(fd < 0)
@@ -2049,7 +2084,7 @@ static void cmd_getblock(struct socket *sk, struct dcpeer *peer, char *cmd, char
     lesk = wrapsock(fd);
     transferprepul(peer->transfer, sb.st_size, start, start + numbytes, lesk);
     putsock(lesk);
-    qstrf(sk, "$Sending %i|", numbytes);
+    qstrf(sk, "$Sending %ji|", (intmax_t)numbytes);
     startul(peer);
 }
 
@@ -2057,7 +2092,7 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 {
     int i;
     char **argv, *buf;
-    int start, numbytes;
+    off_t start, numbytes;
     struct sharecache *node;
     struct stat sb;
     struct socket *lesk;
@@ -2066,21 +2101,21 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
     
     if(peer->transfer == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     if((argv = parseadc(args)) == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     if(parrlen(argv) < 4)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	goto out;
     }
-    start = atoi(argv[2]);
-    numbytes = atoi(argv[3]);
+    start = strtoll(argv[2], NULL, 10);
+    numbytes = strtoll(argv[3], NULL, 10);
     node = NULL;
     fd = -1;
     if(((fd = openfilelist(argv[1])) < 0) && (errno != 0))
@@ -2088,8 +2123,9 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	qstr(sk, "$Error Could not send file list|");
 	goto out;
     } else if(fd >= 0) {
-	if((wbuf = icsmbstowcs(argv[1], "UTF-8", NULL)) != NULL)
+	if((wbuf = adc2path(argv[1])) != NULL)
 	    transfersetpath(peer->transfer, wbuf);
+	free(wbuf);
 	peer->transfer->flags.b.minislot = 1;
     }
     if(fd < 0)
@@ -2153,8 +2189,8 @@ static void cmd_adcget(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	qstr(sk, "$ADCSND");
 	sendadc(sk, "file");
 	sendadc(sk, argv[1]);
-	sendadcf(sk, "%i", start);
-	sendadcf(sk, "%i", numbytes);
+	sendadcf(sk, "%ji", (intmax_t)start);
+	sendadcf(sk, "%ji", (intmax_t)numbytes);
 	if(peer->compress == CPRS_ZLIB)
 	    sendadc(sk, "ZL1");
 	qstr(sk, "|");
@@ -2215,31 +2251,31 @@ static void handletthl(struct dcpeer *peer)
 static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
     char **argv;
-    int start, numbytes;
+    off_t start, numbytes;
     
     if(peer->transfer == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     if((argv = parseadc(args)) == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     if(parrlen(argv) < 4)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	goto out;
     }
-    start = atoi(argv[2]);
-    numbytes = atoi(argv[3]);
+    start = strtoll(argv[2], NULL, 10);
+    numbytes = strtoll(argv[3], NULL, 10);
     if(!strcmp(argv[0], "tthl"))
     {
 	if((start != 0) || (numbytes % 24 != 0))
 	{
 	    /* Weird. Bail out. */
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    goto out;
 	}
 	if(peer->timeout != NULL)
@@ -2253,13 +2289,13 @@ static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *
     } else if(!strcmp(argv[0], "file")) {
 	if(start != peer->transfer->curpos)
 	{
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    goto out;
 	}
 	if(start + numbytes != peer->transfer->size)
 	{
 	    transfersetsize(peer->transfer, start + numbytes);
-	    freedcpeer(peer);
+	    peer->close = 1;
 	    goto out;
 	}
 	startdl(peer);
@@ -2267,11 +2303,10 @@ static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 	{
 	    sockpushdata(sk, peer->inbuf, peer->inbufdata);
 	    peer->inbufdata = 0;
-	    transread(sk, peer);
 	}
     } else {
 	/* We certainly didn't request this...*/
-	freedcpeer(peer);
+	peer->close = 1;
 	goto out;
     }
     
@@ -2281,18 +2316,18 @@ static void cmd_adcsnd(struct socket *sk, struct dcpeer *peer, char *cmd, char *
 
 static void cmd_sending(struct socket *sk, struct dcpeer *peer, char *cmd, char *args)
 {
-    int numbytes;
+    off_t numbytes;
     
     if(peer->transfer == NULL)
     {
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
-    numbytes = atoi(args);
+    numbytes = strtoll(args, NULL, 10);
     if(peer->transfer->size - peer->transfer->curpos != numbytes)
     {
 	transfersetsize(peer->transfer, peer->transfer->curpos + numbytes);
-	freedcpeer(peer);
+	peer->close = 1;
 	return;
     }
     startdl(peer);
@@ -2300,7 +2335,6 @@ static void cmd_sending(struct socket *sk, struct dcpeer *peer, char *cmd, char 
     {
 	sockpushdata(sk, peer->inbuf, peer->inbufdata);
 	peer->inbufdata = 0;
-	transread(sk, peer);
     }
 }
 
@@ -2612,10 +2646,10 @@ static struct command hubcmds[] =
     {"$OpList", cc(cmd_oplist)},
     {"$MyINFO", cc(cmd_myinfo)},
     {"$ForceMove", cc(cmd_forcemove)},
-    {"$Search", cc(cmd_search)},
-    {"$MultiSearch", cc(cmd_search)},
-    {"$ConnectToMe", cc(cmd_connecttome)},
-    {"$RevConnectToMe", cc(cmd_revconnecttome)},
+    {"$Search", cc(cmd_search), .limit = 100},
+    {"$MultiSearch", cc(cmd_search), .limit = 50},
+    {"$ConnectToMe", cc(cmd_connecttome), .limit = 200},
+    {"$RevConnectToMe", cc(cmd_revconnecttome), .limit = 500},
     {"$GetNetInfo", cc(cmd_getnetinfo)},
     {"$To:", cc(cmd_to)},
     {"$SR", cc(cmd_sr)},
@@ -2643,20 +2677,11 @@ static struct command peercmds[] =
     {"$GetZBlock", cc(cmd_getblock)},
     {"$UGetZBlock", cc(cmd_getblock)},
     {"$ADCGET", cc(cmd_adcget)},
-    {"$ADCSND", cc(cmd_adcsnd), 1},
-    {"$Sending", cc(cmd_sending), 1},
+    {"$ADCSND", cc(cmd_adcsnd), .stop = 1},
+    {"$Sending", cc(cmd_sending), .stop = 1},
     {NULL, NULL}
 };
 #undef cc
-
-static void dctransdetach(struct transfer *transfer, struct dcpeer *peer)
-{
-    CBUNREG(transfer, trans_filterout, peer);
-    if(peer->freeing)
-	return;
-    peer->transfer = NULL;
-    freedcpeer(peer);
-}
 
 static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
 {
@@ -2668,9 +2693,9 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
     
     if((peer->state == PEER_TRNS) || (peer->state == PEER_SYNC))
     {
-	if(sockqueuesize(peer->sk) < 65536)
+	if(sockqueueleft(peer->sk) > 0)
 	{
-	    if((buf = transfergetdata(transfer, &bufsize)) != NULL)
+	    if((buf = sockgetinbuf(peer->trpipe, &bufsize)) != NULL)
 	    {
 		if(peer->compress == CPRS_NONE)
 		{
@@ -2717,7 +2742,7 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
 		}
 		if(peer->ptclose)
 		{
-		    freedcpeer(peer);
+		    peer->close = 1;
 		} else {
 		    if(peer->timeout == NULL)
 			peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
@@ -2733,43 +2758,51 @@ static void dctransgotdata(struct transfer *transfer, struct dcpeer *peer)
     }
 }
 
-static void dctransendofdata(struct transfer *transfer, struct dcpeer *peer)
+static void peerdetach(struct dcpeer *peer)
 {
-    peer->state = PEER_SYNC;
-    dctransgotdata(transfer, peer);
+    CBUNREG(peer->transfer, trans_filterout, peer);
+    CBUNREG(peer->transfer, trans_destroy, peer);
+    closesock(peer->trpipe);
+    quitsock(peer->trpipe);
+    peer->trpipe = NULL;
+    peer->transfer = NULL;
 }
 
-static void dcwantdata(struct transfer *transfer, struct dcpeer *peer)
+static int trdestroycb(struct transfer *transfer, struct dcpeer *peer)
 {
-    if(transferdatasize(transfer) < 65536)
-	peer->sk->ignread = 0;
+    peerdetach(peer);
+    peer->close = 1;
+    return(0);
 }
 
 static void transread(struct socket *sk, struct dcpeer *peer)
 {
     void *buf;
     size_t bufsize;
-    struct transfer *transfer;
     
-    if((buf = sockgetinbuf(sk, &bufsize)) == NULL)
-	return;
-    if(peer->transfer == NULL)
-    {
-	free(buf);
+    if(peer->transfer == NULL) {
 	freedcpeer(peer);
 	return;
     }
-    transferputdata(peer->transfer, buf, bufsize);
-    free(buf);
+    if(sockqueueleft(peer->trpipe) < 0)
+	return;
+    if((buf = sockgetinbuf(sk, &bufsize)) != NULL)
+    {
+	if(peer->transfer == NULL)
+	{
+	    free(buf);
+	    freedcpeer(peer);
+	    return;
+	}
+	sockqueue(peer->trpipe, buf, bufsize);
+	free(buf);
+    }
     if(peer->transfer->curpos >= peer->transfer->size)
     {
-	transfer = peer->transfer;
-	transferdetach(transfer);
-	transferendofdata(transfer);
+	peerdetach(peer);
+	peer->close = 1;
 	return;
     }
-    if(transferdatasize(peer->transfer) > 65535)
-	sk->ignread = 1;
 }
 
 static void transerr(struct socket *sk, int err, struct dcpeer *peer)
@@ -2781,8 +2814,8 @@ static void transerr(struct socket *sk, int err, struct dcpeer *peer)
 	freedcpeer(peer);
 	return;
     }
-    transferdetach(transfer);
-    transferendofdata(transfer);
+    peerdetach(peer);
+    peer->close = 1;
 }
 
 static void transwrite(struct socket *sk, struct dcpeer *peer)
@@ -2797,13 +2830,46 @@ static void transwrite(struct socket *sk, struct dcpeer *peer)
     dctransgotdata(peer->transfer, peer);
 }
 
+static void trpiperead(struct socket *sk, struct dcpeer *peer)
+{
+    dctransgotdata(peer->transfer, peer);
+}
+
+static void trpipewrite(struct socket *sk, struct dcpeer *peer)
+{
+    transread(peer->sk, peer);
+}
+
+static void trpipeerr(struct socket *sk, int errno, struct dcpeer *peer)
+{
+    peer->state = PEER_SYNC;
+    dctransgotdata(peer->transfer, peer);
+    peerdetach(peer);
+    if(peer->state != PEER_CMD)
+	peer->close = 1;
+}
+
+static struct socket *mktrpipe(struct dcpeer *peer)
+{
+    struct socket *sk;
+    
+    sk = netsockpipe();
+    sk->data = peer;
+    sk->readcb = (void (*)(struct socket *, void *))trpiperead;
+    sk->writecb = (void (*)(struct socket *, void *))trpipewrite;
+    sk->errcb = (void (*)(struct socket *, int, void *))trpipeerr;
+    return(sk);
+}
+
 static void udpread(struct socket *sk, void *data)
 {
     char *buf, *p, *p2, *hashbuf;
     size_t buflen, hashlen;
     char *nick, *filename, *hubname;
     struct sockaddr_in hubaddr;
-    int size, slots;
+    struct sockaddr *addrbuf;
+    off_t size;
+    int slots;
     struct fnetnode *fn, *myfn;
     struct dchub *hub;
     struct srchres *sr;
@@ -2839,7 +2905,7 @@ static void udpread(struct socket *sk, void *data)
 	    return;
 	}
 	*p2 = 0;
-	size = atoi(p);
+	size = strtoll(p, NULL, 10);
 	p = p2 + 1;
 	if((p2 = strchr(p, '/')) == NULL)
 	{
@@ -2884,7 +2950,7 @@ static void udpread(struct socket *sk, void *data)
 	*p2 = 0;
 	hubaddr.sin_port = htons(atoi(p));
 	/* Use DCCHARSET in $Get paths until further researched... */
-	if((wfile = icmbstowcs(filename, DCCHARSET)) == NULL)
+	if((wfile = nmdc2path(filename, DCCHARSET)) == NULL)
 	{
 	    free(buf);
 	    return;
@@ -2921,13 +2987,15 @@ static void udpread(struct socket *sk, void *data)
 	{
 	    for(fn = fnetnodes; fn != NULL; fn = fn->next)
 	    {
-		if((fn->fnet == &dcnet) && ((hub = fn->data) != NULL))
+		if((fn->fnet == &dcnet) && ((hub = fn->data) != NULL) && !sockpeeraddr(hub->sk, &addrbuf, NULL))
 		{
-		    if((hub->sk != NULL) && addreq(hub->sk->remote, (struct sockaddr *)&hubaddr))
+		    if((hub->sk != NULL) && addreq(addrbuf, (struct sockaddr *)&hubaddr))
 		    {
 			myfn = fn;
+			free(addrbuf);
 			break;
 		    }
+		    free(addrbuf);
 		}
 	    }
 	}
@@ -2960,11 +3028,14 @@ static void udpread(struct socket *sk, void *data)
 static void hubread(struct socket *sk, struct fnetnode *fn)
 {
     struct dchub *hub;
+    struct command *cmd;
     char *newbuf;
-    size_t datalen;
-    char *p;
+    size_t datalen, cnlen;
+    char *p, *p2;
     
     hub = (struct dchub *)fn->data;
+    if(hub->queue.size > 1000)
+	return;
     if((newbuf = sockgetinbuf(sk, &datalen)) == NULL)
 	return;
     if(hub->inbufdata > 500000) /* Discard possible malicious data */
@@ -2972,16 +3043,22 @@ static void hubread(struct socket *sk, struct fnetnode *fn)
     sizebuf2(hub->inbuf, hub->inbufdata + datalen, 1);
     memcpy(hub->inbuf + hub->inbufdata, newbuf, datalen);
     free(newbuf);
-    p = hub->inbuf + hub->inbufdata;
+    p = hub->inbuf;
     hub->inbufdata += datalen;
-    while((datalen > 0) && ((p = memchr(p, '|', datalen)) != NULL))
+    while((p - hub->inbuf < hub->inbufdata) && ((p2 = memchr(p, '|', hub->inbufdata - (p - hub->inbuf))) != NULL))
     {
-	*(p++) = 0;
-	newqcmd(&hub->queue, hub->inbuf);
-	memmove(hub->inbuf, p, hub->inbufdata -= p - hub->inbuf);
-	datalen = hub->inbufdata;
-	p = hub->inbuf;
+	*(p2++) = 0;
+	for(cmd = hubcmds; cmd->handler != NULL; cmd++)
+	{
+	    cnlen = strlen(cmd->name);
+	    if(!strncmp(p, cmd->name, cnlen) && ((p[cnlen] == ' ') || (p[cnlen] == 0)))
+		break;
+	}
+	if((cmd->limit == 0) || (hub->queue.size < cmd->limit))
+	    newqcmd(&hub->queue, p);
+	p = p2;
     }
+    memmove(hub->inbuf, p, hub->inbufdata -= p - hub->inbuf);
 }
 
 static void huberr(struct socket *sk, int err, struct fnetnode *fn)
@@ -3060,7 +3137,6 @@ static struct dcpeer *newdcpeer(struct socket *sk)
     
     new = smalloc(sizeof(*new));
     memset(new, 0, sizeof(*new));
-    new->transfer = NULL;
     getsock(sk);
     new->sk = sk;
     if(confgetint("dc", "dcppemu"))
@@ -3079,7 +3155,6 @@ static void freedcpeer(struct dcpeer *peer)
     int i;
     struct qcommand *qcmd;
     
-    peer->freeing = 1;
     if(peers == peer)
 	peers = peer->next;
     if(peer->next != NULL)
@@ -3087,13 +3162,7 @@ static void freedcpeer(struct dcpeer *peer)
     if(peer->prev != NULL)
 	peer->prev->next = peer->next;
     if(peer->transfer != NULL)
-    {
-	if(peer->transfer->dir == TRNSD_UP)
-	    peer->transfer->close = 1;
-	if(peer->transfer->dir == TRNSD_DOWN)
-	    resettransfer(peer->transfer);
-	transferdetach(peer->transfer);
-    }
+	peerdetach(peer);
     if(peer->timeout != NULL)
 	canceltimer(peer->timeout);
     if(peer->sk->data == peer)
@@ -3171,25 +3240,8 @@ static void hubkill(struct fnetnode *fn)
     struct dchub *hub;
     
     hub = (struct dchub *)fn->data;
-    hub->sk->close = 1;
+    closesock(hub->sk);
 }
-
-static wchar_t *dcbasename(wchar_t *filename)
-{
-    wchar_t *ret;
-    
-    if((ret = wcsrchr(filename, L'\\')) != NULL)
-	return(ret + 1);
-    return(filename);
-}
-
-static struct transferiface dctransfer =
-{
-    .detach = (void (*)(struct transfer *, void *))dctransdetach,
-    .gotdata = (void (*)(struct transfer *, void *))dctransgotdata,
-    .endofdata = (void (*)(struct transfer *, void *))dctransendofdata,
-    .wantdata = (void (*)(struct transfer *, void *))dcwantdata
-};
 
 static struct fnet dcnet =
 {
@@ -3201,15 +3253,21 @@ static struct fnet dcnet =
     .reqconn = hubreqconn,
     .sendchat = hubsendchat,
     .search = hubsearch,
-    .filebasename = dcbasename
 };
 
 static void peerread(struct socket *sk, struct dcpeer *peer)
 {
     char *newbuf, *p;
-    size_t datalen;
+    size_t datalen, cnlen;
     struct command *cmd;
 
+    if(peer->state == PEER_CMD) {
+	if((peer->queue.size > 50) || (peer->inbufdata > 65536))
+	    return;
+    } else if(peer->state == PEER_TTHL) {
+    } else {
+	return;
+    }
     if((newbuf = sockgetinbuf(sk, &datalen)) == NULL)
 	return;
     sizebuf2(peer->inbuf, peer->inbufdata + datalen, 1);
@@ -3222,12 +3280,14 @@ static void peerread(struct socket *sk, struct dcpeer *peer)
 	while((peer->inbufdata > 0) && (p = memchr(peer->inbuf, '|', peer->inbufdata)) != NULL)
 	{
 	    *(p++) = 0;
-	    newqcmd(&peer->queue, peer->inbuf);
 	    for(cmd = peercmds; cmd->handler != NULL; cmd++)
 	    {
-		if(!memcmp(peer->inbuf, cmd->name, strlen(cmd->name)) && ((peer->inbuf[strlen(cmd->name)] == ' ') || (peer->inbuf[strlen(cmd->name)] == '|')))
+		cnlen = strlen(cmd->name);
+		if(!strncmp(peer->inbuf, cmd->name, cnlen) && ((peer->inbuf[cnlen] == ' ') || (peer->inbuf[cnlen] == 0)))
 		    break;
 	    }
+	    if((cmd->limit == 0) || (peer->queue.size < cmd->limit))
+		newqcmd(&peer->queue, peer->inbuf);
 	    memmove(peer->inbuf, p, peer->inbufdata -= p - peer->inbuf);
 	    if(cmd->stop)
 	    {
@@ -3253,7 +3313,6 @@ static void peerconnect(struct socket *sk, int err, struct fnetnode *fn)
     if(err != 0)
     {
 	putfnetnode(fn);
-	putsock(sk);
 	return;
     }
     hub = fn->data;
@@ -3265,13 +3324,12 @@ static void peerconnect(struct socket *sk, int err, struct fnetnode *fn)
     sk->errcb = (void (*)(struct socket *, int, void *))peererror;
     sk->data = peer;
     socksettos(sk, confgetint("fnet", "fnptos"));
-    putsock(sk);
     peer->timeout = timercallback(ntime() + 180, (void (*)(int, void *))peertimeout, peer);
     sendmynick(peer);
     sendpeerlock(peer);
 }
 
-static void peeraccept(struct socket *sk, struct socket *newsk, void *data)
+static void peeraccept(struct lport *lp, struct socket *newsk, void *data)
 {
     struct dcpeer *peer;
     
@@ -3291,6 +3349,7 @@ static void updatehmlist(void)
     char *buf, *buf2, numbuf[32];
     size_t bufsize, bufdata;
     int fd, ibuf;
+    FILE *out;
     
     bufdata = 0;
     buf = smalloc(bufsize = 65536);
@@ -3309,7 +3368,7 @@ static void updatehmlist(void)
 	    if(node->f.b.type == FILE_REG)
 	    {
 		addtobuf(buf, '|');
-		sprintf(numbuf, "%zi", node->size);
+		sprintf(numbuf, "%ji", (intmax_t)node->size);
 		bufcat(buf, numbuf, strlen(numbuf));
 	    }
 	    addtobuf(buf, 13);
@@ -3348,27 +3407,28 @@ static void updatehmlist(void)
 	free(hmlistname);
 	hmlistname = NULL;
     } else {
+	out = fdopen(fd, "w");
 	/*
 	 * I do not want to implement a good Huffman encoder, and it's not
 	 * like Huffman encoding actually yields any impressive results
 	 * for DC file lists anyway, so I'll just output a bogus
 	 * tree. Implement a good encoder if you want to.
 	 */
-	write(fd, "HE3\r\0", 5);
-	write(fd, &bufdata, 4);
+	fwrite("HE3\r\0", 1, 5, out);
+	fwrite(&bufdata, 4, 1, out); /* XXX: Endian unsafe */
 	ibuf = 256;
-	write(fd, &ibuf, 2);
+	fwrite(&ibuf, 2, 1, out);
 	ibuf = 8;
 	for(i = 0; i < 256; i++)
 	{
-	    write(fd, &i, 1);
-	    write(fd, &ibuf, 1);
+	    fwrite(&i, 1, 1, out);
+	    fwrite(&ibuf, 1, 1, out);
 	}
 	for(i = 0; i < 256; i++)
-	    write(fd, &i, 1);
+	    fwrite(&i, 1, 1, out);
 	for(buf2 = buf; bufdata > 0;)
 	{
-	    if((ret = write(fd, buf2, bufdata)) < 0)
+	    if((ret = fwrite(buf2, 1, bufdata, out)) < 0)
 	    {
 		flog(LOG_WARNING, "could not write file list: %s", strerror(errno));
 		break;
@@ -3376,7 +3436,7 @@ static void updatehmlist(void)
 	    bufdata -= ret;
 	    buf2 += ret;
 	}
-	close(fd);
+	fclose(out);
     }
     free(buf);
 }
@@ -3484,7 +3544,7 @@ static void updatexmllist(void)
 		lev++;
 		continue;
 	    } else {
-		fprintf(fs, "<File Name=\"%s\" Size=\"%zi\"", namebuf, node->size);
+		fprintf(fs, "<File Name=\"%s\" Size=\"%ji\"", namebuf, (intmax_t)node->size);
 		if(node->f.b.hastth)
 		{
 		    hashbuf = base32encode(node->hashtth, 24);
@@ -3713,9 +3773,10 @@ static int run(void)
     struct dchub *hub;
     struct dcpeer *peer, *nextpeer;
     struct qcommand *qcmd;
-    int ret;
+    int ret, quota;
     
     ret = 0;
+    quota = 20;
     for(fn = fnetnodes; fn != NULL; fn = nextfn)
     {
 	nextfn = fn->next;
@@ -3724,7 +3785,7 @@ static int run(void)
 	if(fn->data == NULL)
 	    continue;
 	hub = (struct dchub *)fn->data;
-	if((qcmd = ulqcmd(&hub->queue)) != NULL)
+	while((quota > 0) && ((qcmd = ulqcmd(&hub->queue)) != NULL))
 	{
 	    if(*qcmd->string == '$')
 	    {
@@ -3735,13 +3796,17 @@ static int run(void)
 	    }
 	    freeqcmd(qcmd);
 	    ret = 1;
-	    break;
+	    quota--;
 	}
+	if(hub->queue.size < 1000)
+	    hubread(hub->sk, fn);
+	if(quota < 1)
+	    break;
     }
-    for(peer = peers; peer != NULL; peer = nextpeer)
+    quota = 20;
+    for(peer = peers; peer != NULL; peer = peer->next)
     {
-	nextpeer = peer->next;
-	if((qcmd = ulqcmd(&peer->queue)) != NULL)
+	while(!peer->close && (quota > 0) && ((qcmd = ulqcmd(&peer->queue)) != NULL))
 	{
 	    if(peer->timeout != NULL)
 		canceltimer(peer->timeout);
@@ -3750,8 +3815,18 @@ static int run(void)
 		dispatchcommand(qcmd, peercmds, peer->sk, peer);
 	    freeqcmd(qcmd);
 	    ret = 1;
-	    break;
+	    quota--;
 	}
+	if((peer->queue.size < 50) && (peer->inbufdata < 500000))
+	    peerread(peer->sk, peer);
+	if(quota < 1)
+	    break;
+    }
+    for(peer = peers; peer != NULL; peer = nextpeer)
+    {
+	nextpeer = peer->next;
+	if(peer->close)
+	    freedcpeer(peer);
     }
     return(ret);
 }
@@ -3786,7 +3861,7 @@ static int updateudpport(struct configvar *var, void *uudata)
 static int updatetcpport(struct configvar *var, void *uudata)
 {
     struct sockaddr_in addr;
-    struct socket *newsock;
+    struct lport *newsock;
     
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -3794,7 +3869,7 @@ static int updatetcpport(struct configvar *var, void *uudata)
     if((newsock = netcslisten(SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), peeraccept, NULL)) == NULL)
 	flog(LOG_INFO, "could not listen to a remote address, going into passive mode");
     if(tcpsock != NULL)
-	putsock(tcpsock);
+	closelport(tcpsock);
     tcpsock = newsock;
     return(0);
 }
@@ -3809,7 +3884,7 @@ static int init(int hup)
 	if(udpsock != NULL)
 	    putsock(udpsock);
 	if(tcpsock != NULL)
-	    putsock(tcpsock);
+	    closelport(tcpsock);
 	addr.sin_family = AF_INET;
 	memset(&addr.sin_addr, 0, sizeof(addr.sin_addr));
 	addr.sin_port = htons(confgetint("dc", "udpport"));
@@ -3880,6 +3955,11 @@ static struct configvar myvars[] =
      * unknown commands it receives, and their arguments, to
      * /tmp/dc-unimpl. */
     {CONF_VAR_BOOL, "logunimpl", {.num = 0}},
+    /** If set to true, doldacond will hide its support for deflate
+     * compression of transfers from other clients, so that they will
+     * not request compressed uploads. Compressed transfers may
+     * consume a non-trivial amount of CPU time on slower machines. */
+    {CONF_VAR_BOOL, "hidedeflate", {.num = 0}},
     {CONF_VAR_END}
 };
 

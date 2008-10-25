@@ -26,7 +26,7 @@ echo bin share | import
 
 [Prepare]
 require @gtk.org/gtk 2.10
-require @dolda2000.com/fredrik/doldaconnect/dcuilib 1.1
+require @dolda2000.com/fredrik/doldaconnect/dcuilib 3.0
 requireAtLeast "@dolda2000.com/fredrik/doldaconnect/dolcon:@VERSION@"
 requireAtLeast "@dolda2000.com/fredrik/doldaconnect/doldacond:@VERSION@"
 

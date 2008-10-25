@@ -45,7 +45,8 @@ configure script.  Some optional features  can be enabled  through the
 use of command-line parameters:
 
  * --with-guile enables the Guile extension library, necessary for any
-   clients written in Scheme (such as the automatic downloader).
+   clients written in Scheme (such as the automatic downloader and the
+   hub manager).
  * --enable-gnomeapplet selects the GNOME panel applet for
    compilation.
  * --enable-gaimplugin selects the Gaim chat plugin for compilation.
@@ -143,7 +144,7 @@ normal users, there are two choices:
 PAM  authentication is  always enabled  as long  as Dolda  Connect was
 compiled  with PAM support.   To enable  password-less authentication,
 set the "auth.authless"  setting in the configuration file  to "1". If
-your network  is not completely  trusted (especially the  host running
+your network is not completely trusted (especially if the host running
 doldacond is globally accessible  via the Internet), you really should
 make sure to set up some firewalling rules.
 
@@ -178,5 +179,5 @@ allow you in if not all TTH hashes are calculated.
 
 
 
-This document  was last updated 2007-10-15, reflecting  release 1.0 of
+This document  was last updated 2008-02-14, reflecting  release 1.1 of
 Dolda Connect.

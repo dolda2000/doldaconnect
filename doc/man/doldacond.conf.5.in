@@ -151,7 +151,8 @@ those routers. For IPv6 connections, which use Diffserv instead of the
 older IPv4 TOS values, the Diffserv values to use are specified by the
 \fBnet.diffserv-mincost\fP, \fBnet.diffserv-maxrel\fP,
 \fBnet.diffserv-maxtp\fP and \fBnet.diffserv-mindelay\fP configuration
-variables, as described above.
+variables, as described above. For a way to use DSCP in IPv4 as well,
+see the \fBnet.dscp-tos\fP option above.
 .SH FILES
 All file names specified in the configuration file, and the
 configuration file itself, are looked up by the daemon in a rather
@@ -191,8 +192,27 @@ file will be overwritten in place if found. If not found, it will be
 created in the home directory of the user running the daemon. If the
 home directory cannot be determined, the file will be created in /etc.
 .SH BUGS
-IPv4 should also be able to use Diffserv instead of TOS. I have simply
-not been able to find the API to set IPv4 Diffserv values.
+The TOS-related options have a number of interesting quirks:
+.TP
+1
+It is currently unclear to me whether Linux has an API to set IPv6
+DSCP values, so it is left unimplemented for now.
+.TP
+2
+I am rather sure that Linux lacks an API to set IPv4 DSCP
+values. However, it seems that it is possible to use the TOS API to
+set DSCP values, so it has been implemented as an option (see the
+\fBnet.dscp-tos\fP options above).
+.TP
+3
+Even though Linux lacks an explicit API to set the DSCP field in IPv4,
+the TOS API is "DSCP compliant" in the interesting way that it masks
+away the two least significant bits. Therefore, the minimum cost TOS
+value cannot currently be set on Linux without patching the kernel.
+.TP
+4
+I have not examined how these issues compare to other operating
+systems, like FreeBSD.
 .SH AUTHOR
 Fredrik Tolf <fredrik@dolda2000.com>
 .SH SEE ALSO

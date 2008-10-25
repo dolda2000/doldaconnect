@@ -43,6 +43,7 @@
 #include <netdb.h>
 #include <sys/poll.h>
 #include <pwd.h>
+#include <stdint.h>
 #ifdef HAVE_RESOLVER
 #include <arpa/nameser.h>
 #include <resolv.h>
@@ -58,6 +59,7 @@
 #define RESP_STR 1
 #define RESP_INT 2
 #define RESP_FLOAT 3
+#define RESP_LNUM 4
 
 struct respclass
 {
@@ -102,7 +104,8 @@ struct {
     int family;
     int sentcreds;
 } servinfo;
-char *dc_srv_local;
+/* char dc_srv_local_addr; */
+char *dc_srv_local = (void *)&dc_srv_local;
 
 static void message(int bits, char *format, ...)
 {
@@ -318,7 +321,6 @@ int dc_init(void)
 {
     if((ichandle = iconv_open("wchar_t", "utf-8")) == (iconv_t)-1)
 	return(-1);
-    dc_srv_local = sstrdup("");
     initcmds();
     return(0);
 }
@@ -476,6 +478,9 @@ int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...)
 		{
 		    freepart = 1;
 		    part = swprintf2(L"%i", va_arg(al, int));
+		} else if(!wcscmp(tpart, L"li")) {
+		    freepart = 1;
+		    part = swprintf2(L"%ji", (intmax_t)va_arg(al, dc_lnum_t));
 		} else if(!wcscmp(tpart, L"s")) {
 		    freepart = 1;
 		    part = icmbstowcs(sarg = va_arg(al, char *), NULL);
@@ -486,6 +491,7 @@ int dc_queuecmd(int (*callback)(struct dc_response *), void *data, ...)
 			return(-1);
 		    }
 		} else if(!wcscmp(tpart, L"ls")) {
+		    freepart = 0;
 		    part = va_arg(al, wchar_t *);
 		} else if(!wcscmp(tpart, L"ll")) {
 		    freepart = 1;
@@ -1369,6 +1375,12 @@ struct dc_intresp *dc_interpret(struct dc_response *resp)
 	case RESP_FLOAT:
 	    sizebuf(&(iresp->argv), &args, iresp->argc + 1, sizeof(*(iresp->argv)), 1);
 	    iresp->argv[iresp->argc].val.flnum = wcstod(resp->rlines[resp->curline].argv[i + 1], NULL);
+	    iresp->argv[iresp->argc].type = cls->wordt[i];
+	    iresp->argc++;
+	    break;
+	case RESP_LNUM:
+	    sizebuf(&(iresp->argv), &args, iresp->argc + 1, sizeof(*(iresp->argv)), 1);
+	    iresp->argv[iresp->argc].val.lnum = wcstoll(resp->rlines[resp->curline].argv[i + 1], NULL, 0);
 	    iresp->argv[iresp->argc].type = cls->wordt[i];
 	    iresp->argc++;
 	    break;

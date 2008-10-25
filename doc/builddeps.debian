@@ -1,0 +1,41 @@
+		     Build dependencies on Debian
+
+Note: The following lists probably apply to Ubuntu as well.
+
+For (re-)building the configure scripts and related items (not
+necessary if you build from a tarball):
+ * gettext
+ * cvs
+ * build-essential
+ * autoconf
+ * automake
+ * libtool
+ * pkg-config
+ * guile-1.8-dev (Yes, this really is necessary, in order to get the
+   		  GUILE_FLAGS autoconf macro into aclocal.m4)
+
+Basic dependencies for most components:
+ * zlib1g-dev
+ * libbz2-dev
+
+For building the daemon:
+ * libgdbm-dev
+ * libpam0g-dev (Only if PAM authentication is used)
+
+For building dolcon:
+ * libgtk2.0-dev
+ * libxml2-dev
+
+For all Scheme programs:
+ * guile-1.8-dev
+
+For the GNOME panel applet:
+ * libpanel-applet2-dev
+
+For the Pidgin plugin:
+ * libpurple-dev
+
+
+
+This document  was last updated 2008-02-14, reflecting  release 1.1 of
+Dolda Connect.
