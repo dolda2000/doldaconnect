@@ -180,12 +180,17 @@ static void conncb(struct socket *sk, int err, struct fnetnode *data)
 
 static void resolvecb(struct sockaddr *addr, int addrlen, struct fnetnode *data)
 {
-    if(addr == NULL)
+    struct socket *sk;
+    
+    sk = NULL;
+    if(addr != NULL)
+	sk = netcsconn(addr, addrlen, (void (*)(struct socket *, int, void *))conncb, data);
+    if(sk == NULL)
     {
 	killfnetnode(data);
 	putfnetnode(data);
     } else {
-	putsock(netcsconn(addr, addrlen, (void (*)(struct socket *, int, void *))conncb, data));
+	putsock(sk);
     }
 }
 
