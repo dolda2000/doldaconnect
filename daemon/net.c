@@ -1020,7 +1020,7 @@ struct socket *netcsconn(struct sockaddr *addr, socklen_t addrlen, void (*func)(
 	    sksetstate(sk, SOCK_SYN);
 	    return(sk->back);
 	}
-	putsock(sk);
+	putsock(sk->back);
 	return(NULL);
     }
     errno = EOPNOTSUPP;
