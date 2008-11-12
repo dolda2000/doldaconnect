@@ -57,7 +57,8 @@
 			       (begin (close-port p)
 				      lines)
 			       (read-lines (let ((lexed (dc-lexsexpr line)))
-					     (if (> (length lexed) 0)
+					     (if (and (> (length lexed) 0)
+						      (not (eq? (string-ref (car lexed) 0) #\#)))
 						 (append lines (list lexed))
 						 lines)) p))))))
     (catch 'system-error
