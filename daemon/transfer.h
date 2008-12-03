@@ -62,7 +62,7 @@ struct transfer
     wchar_t *path;
     uid_t owner;
     int state, dir, error;
-    off_t size, curpos, endpos;
+    off_t size, curpos, endpos, localpos;
     struct fnetnode *fn;
     struct socket *localend, *datapipe;
     struct wcspair *args;

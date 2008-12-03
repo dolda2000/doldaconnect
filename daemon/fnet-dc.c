@@ -2762,6 +2762,7 @@ static void peerdetach(struct dcpeer *peer)
 {
     CBUNREG(peer->transfer, trans_filterout, peer);
     CBUNREG(peer->transfer, trans_destroy, peer);
+    peer->trpipe->pnext = NULL;
     closesock(peer->trpipe);
     quitsock(peer->trpipe);
     peer->trpipe = NULL;
@@ -2828,6 +2829,7 @@ static void transwrite(struct socket *sk, struct dcpeer *peer)
 	return;
     }
     dctransgotdata(peer->transfer, peer);
+    sockread(peer->trpipe);
 }
 
 static void trpiperead(struct socket *sk, struct dcpeer *peer)
@@ -2854,6 +2856,7 @@ static struct socket *mktrpipe(struct dcpeer *peer)
     struct socket *sk;
     
     sk = netsockpipe();
+    sk->pnext = peer->sk;
     sk->data = peer;
     sk->readcb = (void (*)(struct socket *, void *))trpiperead;
     sk->writecb = (void (*)(struct socket *, void *))trpipewrite;

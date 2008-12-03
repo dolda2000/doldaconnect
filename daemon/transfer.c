@@ -130,16 +130,21 @@ static void localread(struct socket *sk, struct transfer *transfer)
 {
     void *buf;
     size_t blen;
+    off_t curpos;
     
     if((transfer->datapipe != NULL) && (sockqueueleft(transfer->datapipe) > 0)) {
 	buf = sockgetinbuf(sk, &blen);
-	if((transfer->endpos >= 0) && (transfer->curpos + blen > transfer->endpos))
-	    blen = transfer->endpos - transfer->curpos;
+	if((transfer->endpos >= 0) && (transfer->localpos + blen > transfer->endpos))
+	    blen = transfer->endpos - transfer->localpos;
 	sockqueue(transfer->datapipe, buf, blen);
 	free(buf);
 	time(&transfer->activity);
-	transfer->curpos += blen;
+	transfer->localpos += blen;
 	bytesupload += blen;
+    }
+    curpos = transfer->localpos - socktqueuesize(transfer->datapipe);
+    if(curpos != transfer->curpos) {
+	transfer->curpos = curpos;
 	CBCHAINDOCB(transfer, trans_p, transfer);
     }
 }
@@ -306,7 +311,7 @@ static void transexpire(int cancelled, struct transfer *transfer)
 void transferprepul(struct transfer *transfer, off_t size, off_t start, off_t end, struct socket *lesk)
 {
     transfersetsize(transfer, size);
-    transfer->curpos = start;
+    transfer->curpos = transfer->localpos = start;
     transfer->endpos = end;
     transfersetlocalend(transfer, lesk);
 }

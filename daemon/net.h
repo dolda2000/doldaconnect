@@ -114,5 +114,6 @@ int getucred(struct socket *sk, uid_t *uid, gid_t *gid);
 int sockfamily(struct socket *sk);
 void quitsock(struct socket *sk);
 void socksetdebug(struct socket *sk, int level, char *nm, ...);
+void sockread(struct socket *sk);
 
 #endif
