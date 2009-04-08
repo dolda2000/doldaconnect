@@ -46,6 +46,29 @@ int running(char *pf)
     return(!kill(pid, 0));
 }
 
+int haveprogram(char *name)
+{
+    char buf[1024];
+    char *p, *p2;
+    
+    p = getenv("PATH");
+    while(p != NULL) {
+	if((p2 = strchr(p, ':')) != NULL) {
+	    memcpy(buf, p, p2 - p);
+	    buf[p2 - p] = 0;
+	    p = p2 + 1;
+	} else {
+	    strcpy(buf, p);
+	    p = NULL;
+	}
+	strcat(buf, "/");
+	strcat(buf, name);
+	if(!access(buf, X_OK))
+	    return(1);
+    }
+    return(0);
+}
+
 int main(int argc, char **argv)
 {
     int c;
@@ -63,6 +86,8 @@ int main(int argc, char **argv)
 	    printf("\tor does not contain a valid PID, dolcon-launch will run\n");
 	    printf("\tdoldacond-shell. Otherwise, dolcon-launch will run dolcon. All\n");
 	    printf("\tthese programs must be somewhere in $PATH for dolcon-launch to work.\n");
+	    printf("\n");
+	    printf("\tIf doldacond is not in $PATH, only running dolcon is attempted.\n");
 	    exit(0);
 	case 'V':
 	    printf("%s", RELEASEINFO);
@@ -72,22 +97,27 @@ int main(int argc, char **argv)
 	    exit(1);
 	}
     }
-    if(getenv("HOME") != NULL)
-	snprintf(cf, sizeof(cf), "%s/.doldacond.conf", getenv("HOME"));
-    else
-	snprintf(cf, sizeof(cf), "%s/.doldacond.conf", getpwuid(getuid())->pw_dir);
-    if(getenv("HOME") != NULL)
-	snprintf(pf, sizeof(pf), "%s/.doldacond.pid", getenv("HOME"));
-    else
-	snprintf(pf, sizeof(pf), "%s/.doldacond.pid", getpwuid(getuid())->pw_dir);
-    if(access(cf, F_OK)) {
-	execlp("dolconf", "dolconf", "-a", NULL);
-	perror("dolconf");
-    } else if(access(pf, F_OK) || !running(pf)) {
-	execlp("doldacond-shell", "doldacond-shell", NULL);
-	perror("doldacond-shell");
+    if(haveprogram("doldacond")) {
+	if(getenv("HOME") != NULL)
+	    snprintf(cf, sizeof(cf), "%s/.doldacond.conf", getenv("HOME"));
+	else
+	    snprintf(cf, sizeof(cf), "%s/.doldacond.conf", getpwuid(getuid())->pw_dir);
+	if(getenv("HOME") != NULL)
+	    snprintf(pf, sizeof(pf), "%s/.doldacond.pid", getenv("HOME"));
+	else
+	    snprintf(pf, sizeof(pf), "%s/.doldacond.pid", getpwuid(getuid())->pw_dir);
+	if(access(cf, F_OK)) {
+	    execlp("dolconf", "dolconf", "-a", NULL);
+	    perror("dolconf");
+	} else if(access(pf, F_OK) || !running(pf)) {
+	    execlp("doldacond-shell", "doldacond-shell", NULL);
+	    perror("doldacond-shell");
+	} else {
+	    execlp("dolcon", "dolcon", "-l", NULL);
+	    perror("dolcon");
+	}
     } else {
-	execlp("dolcon", "dolcon", "-l", NULL);
+	execlp("dolcon", "dolcon", NULL);
 	perror("dolcon");
     }
     return(127);
