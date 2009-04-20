@@ -3218,7 +3218,7 @@ static void hubdestroy(struct fnetnode *fn)
     struct qcommand *qcmd;
     
     hub = (struct dchub *)fn->data;
-    putsock(hub->sk);
+    quitsock(hub->sk);
     while((qcmd = ulqcmd(&hub->queue)) != NULL)
 	freeqcmd(qcmd);
     if(hub->supports != NULL)
