@@ -142,7 +142,8 @@ static void localread(struct socket *sk, struct transfer *transfer)
 	transfer->localpos += blen;
 	bytesupload += blen;
     }
-    curpos = transfer->localpos - socktqueuesize(transfer->datapipe);
+    if((curpos = transfer->localpos - socktqueuesize(transfer->datapipe)) < 0)
+	curpos = 0;
     if(curpos != transfer->curpos) {
 	transfer->curpos = curpos;
 	CBCHAINDOCB(transfer, trans_p, transfer);
