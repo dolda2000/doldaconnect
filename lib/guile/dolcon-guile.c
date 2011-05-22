@@ -190,7 +190,7 @@ static SCM scm_dc_intresp(SCM scm_resp)
 	    ret = scm_cons(scm_from_double(ires->argv[i].val.flnum), ret);
 	    break;
 	case 4:
-	    ret = scm_cons(scm_from_int64(ires->argv[i].val.num), ret);
+	    ret = scm_cons(scm_from_int64(ires->argv[i].val.lnum), ret);
 	    break;
 	}
     }
