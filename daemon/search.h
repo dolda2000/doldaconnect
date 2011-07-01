@@ -64,7 +64,7 @@ struct sexpr
 	    int inited;
 	} re;
 	wchar_t *s;
-	int n;
+	off_t sz;
 	struct hash *hash;
     } d;
 };

@@ -664,7 +664,7 @@ struct sexpr *parsesexpr(int argc, wchar_t **argv)
 		    sexpr->op = SOP_SIZEEQ;
 		else
 		    sexpr->op = SOP_SIZEGT;
-		sexpr->d.n = wcstol(tok2->d.str + 2, NULL, 0);
+		sexpr->d.sz = wcstoll(tok2->d.str + 2, NULL, 0);
 		sexpr->cost = 0;
 		getsexpr(tok->d.se = sexpr);
 		freetok(tok2);
@@ -1110,11 +1110,11 @@ static int srisvalid(struct srchres *sr, struct sexpr *sexpr)
 	p = fnfilebasename(sr->filename);
 	return(wcsexists(p, sexpr->d.s));
     case SOP_SIZELT:
-	return(sr->size < sexpr->d.n);
+	return(sr->size < sexpr->d.sz);
     case SOP_SIZEEQ:
-	return(sr->size == sexpr->d.n);
+	return(sr->size == sexpr->d.sz);
     case SOP_SIZEGT:
-	return(sr->size > sexpr->d.n);
+	return(sr->size > sexpr->d.sz);
     case SOP_HASHIS:
 	if(sr->hash == NULL)
 	    return(0);

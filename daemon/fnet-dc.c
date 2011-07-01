@@ -2429,9 +2429,9 @@ static int hubsendchat(struct fnetnode *fn, int public, wchar_t *to, wchar_t *st
     return(0);
 }
 
-static void findsizelimit(struct sexpr *sexpr, int *min, int *max)
+static void findsizelimit(struct sexpr *sexpr, off_t *min, off_t *max)
 {
-    int minl, maxl, minr, maxr, retmin, retmax;
+    off_t minl, maxl, minr, maxr, retmin, retmax;
     
     switch(sexpr->op)
     {
@@ -2475,14 +2475,14 @@ static void findsizelimit(struct sexpr *sexpr, int *min, int *max)
 	}
     case SOP_SIZELT:
 	retmin = 0;
-	retmax = sexpr->d.n - 1;
+	retmax = sexpr->d.sz - 1;
 	break;
     case SOP_SIZEEQ:
-	retmin = sexpr->d.n;
-	retmax = sexpr->d.n;
+	retmin = sexpr->d.sz;
+	retmax = sexpr->d.sz;
 	break;
     case SOP_SIZEGT:
-	retmin = sexpr->d.n + 1;
+	retmin = sexpr->d.sz + 1;
 	retmax = -1;
 	break;
     default:
@@ -2533,7 +2533,7 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
     size_t sstrsize, sstrdata;
     struct sockaddr *name;
     socklen_t namelen;
-    int minsize, maxsize;
+    off_t minsize, maxsize;
     struct hash *hash;
     
     hub = fn->data;
@@ -2566,10 +2566,10 @@ static int hubsearch(struct fnetnode *fn, struct search *srch, struct srchfnnlis
 	if(minsize != 0)
 	{
 	    sizebuf2(sstr, sstrdata + 32, 1);
-	    sstrdata += snprintf(sstr + sstrdata, sstrsize - sstrdata, "T?F?%i?1?", minsize);
+	    sstrdata += snprintf(sstr + sstrdata, sstrsize - sstrdata, "T?F?%ji?1?", (intmax_t)minsize);
 	} else if(maxsize != -1) {
 	    sizebuf2(sstr, sstrdata + 32, 1);
-	    sstrdata += snprintf(sstr + sstrdata, sstrsize - sstrdata, "T?T?%i?1?", maxsize);
+	    sstrdata += snprintf(sstr + sstrdata, sstrsize - sstrdata, "T?T?%ji?1?", (intmax_t)maxsize);
 	} else {
 	    bufcat(sstr, "F?F?0?1?", 8);
 	}
