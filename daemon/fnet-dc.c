@@ -553,6 +553,8 @@ static char **parseadc(char *args)
 		state = 3;
 	    else if(*args != ' ')
 		state = 1;
+	    else
+		args++;
 	    break;
 	case 1:
 	    if((*args == ' ') || (*args == 0))
