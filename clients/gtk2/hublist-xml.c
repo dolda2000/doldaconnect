@@ -175,12 +175,18 @@ int pubhubxmlhandler(int op, char *buf, size_t len)
 		attr = (char *)xmlGetProp(n, (xmlChar *)names[i]);
 		if(attr != NULL)
 		{
-		    if(types[i] == G_TYPE_STRING)
+		    if(!strcmp(names[i], "Address")) {
+			if(!strncmp(attr, "dchub://", 8))
+			    gtk_list_store_set(model, &iter, i, attr + 8, -1);
+			else
+			    gtk_list_store_set(model, &iter, i, attr, -1);
+		    } else if(types[i] == G_TYPE_STRING) {
 			gtk_list_store_set(model, &iter, i, attr, -1);
-		    else if(types[i] == G_TYPE_INT)
+		    } else if(types[i] == G_TYPE_INT) {
 			gtk_list_store_set(model, &iter, i, atoi(attr), -1);
-		    else if(types[i] == G_TYPE_INT64)
+		    } else if(types[i] == G_TYPE_INT64) {
 			gtk_list_store_set(model, &iter, i, strtoll(attr, NULL, 0), -1);
+		    }
 		    xmlFree(attr);
 		}
 	    }
