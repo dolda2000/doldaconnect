@@ -1618,7 +1618,7 @@ static void cmd_direction(struct socket *sk, struct dcpeer *peer, char *cmd, cha
 	if(peer->direction == TRNSD_DOWN)
 	    requestfile(peer);
     } else {
-	if(peer->wcsname == NULL)
+	if((peer->wcsname == NULL) || (peer->transfer != NULL))
 	{
 	    peer->close = 1;
 	    return;
