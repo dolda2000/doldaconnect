@@ -1125,7 +1125,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     int minsize, maxsize;
     int dotth;
     size_t buflen;
-    int termnum, satisfied, skipcheck;
+    int termnum, satisfied, matches, skipcheck, proper;
     int level, tersat[32];
     wchar_t *terms[32], *lname;
     char hashtth[24];
@@ -1194,6 +1194,7 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
     termnum = 0;
     p2 = p;
     done = 0;
+    proper = 0;
     while(!done)
     {
 	if((*p2 == 0) || (*p2 == '$'))
@@ -1217,6 +1218,8 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		} else {
 		    if((terms[termnum] = icmbstowcs(p, hub->charset)) != NULL) {
 			wcslower(terms[termnum]);
+			if(wcslen(terms[termnum]) > 1)
+			    proper = 1;
 			termnum++;
 		    }
 		}
@@ -1227,12 +1230,15 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 	}
 	p2++;
     }
+    if(!proper)
+	goto out;
     
     node = shareroot->child;
     level = 0;
     for(i = 0; i < termnum; i++)
 	tersat[i] = -1;
     satisfied = 0;
+    matches = 0;
     while(1)
     {
 	skipcheck = 0;
@@ -1279,6 +1285,8 @@ static void cmd_search(struct socket *sk, struct fnetnode *fn, char *cmd, char *
 		    qstrf(dsk, "%s%s\005%ji%s%s%s", prefix, buf, (intmax_t)node->size, infix, hub->nativename, postfix);
 		}
 		free(buf);
+		if(++matches >= 20)
+		    break;
 	    }
 	}
 	if((!skipcheck && (satisfied == termnum)) || (node->child == NULL))
