@@ -55,7 +55,7 @@ AC_DEFUN([DOLDA_ENABLE],[dnl
 AC_ARG_ENABLE([$1], [$2])
 if test "[$enable_][$1]" = yes; then
    	for var in [$4]; do
-	    	if test "${!var}" != yes; then
+	    	if test "$(eval "echo \$$var")" != yes; then
 		   	AC_MSG_ERROR([*** cannot enable $1 without $var])
 		fi
 	done
@@ -63,7 +63,7 @@ elif test -z "[$enable_][$1]"; then
 	ifelse([$3], yes, [dnl
 	[enable_][$1]=yes
 	for var in [$4]; do
-	    	if test "${!var}" != yes; then
+	    	if test "$(eval "echo \$$var")" != yes; then
 		   	[enable_][$1]=no
 			break
 		fi
