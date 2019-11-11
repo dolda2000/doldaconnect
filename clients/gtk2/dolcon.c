@@ -421,7 +421,7 @@ void transspeedinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel 
 void transerrorinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel *model, GtkTreeIter *iter, gpointer data)
 {
     int error;
-    time_t errortime;
+    gint64 errortime;
     char finbuf[64], tbuf[64], *errstr;
     
     gtk_tree_model_get(model, iter, 10, &error, 11, &errortime, -1);
@@ -431,7 +431,7 @@ void transerrorinfo(GtkTreeViewColumn *col, GtkCellRenderer *rend, GtkTreeModel 
 	    errstr = _("Not found");
 	else if(error == DC_TRNSE_NOSLOTS)
 	    errstr = _("No slots");
-	strftime(tbuf, 64, _("%H:%M:%S"), localtime(&errortime));
+	strftime(tbuf, 64, _("%H:%M:%S"), localtime((const time_t[]){errortime}));
 	snprintf(finbuf, 64, _("%s (reported at %s)"), errstr, tbuf);
     } else {
 	*finbuf = 0;
@@ -480,8 +480,7 @@ void updatetransferlists(void)
     char *buf;
     char *peerid, *peernick, *path, *hash;
     int state, dir, error;
-    gint64 size, curpos;
-    time_t errortime;
+    gint64 size, curpos, errortime;
     GtkListStore *stores[3];
     
     for(transfer = dc_transfers; transfer != NULL; transfer = transfer->next)
@@ -570,7 +569,7 @@ void updatetransferlists(void)
 				   8, gettrstatestock(transfer->state),
 				   9, 0.0,
 				   10, transfer->error,
-				   11, transfer->errortime,
+				   11, (gint64)transfer->errortime,
 				   12, hash,
 				   -1);
 		free(peerid);
@@ -2288,7 +2287,7 @@ int main(int argc, char **argv)
 				 G_TYPE_STRING,  /* stock */
 				 G_TYPE_FLOAT,   /* percentage */
 				 G_TYPE_INT,     /* error */
-				 G_TYPE_INT,     /* errortime */
+				 G_TYPE_INT64,   /* errortime */
 				 G_TYPE_STRING); /* hash */
     gtk_tree_view_set_model(GTK_TREE_VIEW(main_downloads), GTK_TREE_MODEL(dlmodel));
 
