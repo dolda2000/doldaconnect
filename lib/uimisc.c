@@ -237,6 +237,7 @@ static void process_krb5(struct dc_response *resp, struct logindata *data)
     krb5_data k5d;
     krb5_ap_rep_enc_part *repl;
     char *buf;
+    size_t kdl;
     
     krb = data->mechdata;
     switch(resp->code)
@@ -257,7 +258,8 @@ static void process_krb5(struct dc_response *resp, struct logindata *data)
 	case 1:
 	    if((ires = dc_interpret(resp)) != NULL)
 	    {
-		k5d.data = hexdecode(icswcstombs(ires->argv[0].val.str, NULL, NULL), &k5d.length);
+		k5d.data = hexdecode(icswcstombs(ires->argv[0].val.str, NULL, NULL), &kdl);
+		k5d.length = kdl;
 		if(!krb->valid)
 		{
 		    if((ret = krb5_rd_rep(krb->context, krb->authcon, &k5d, &repl)) != 0)
