@@ -148,7 +148,7 @@ static void fdcb(gpointer data, gint source, GdkInputCondition cond)
 		    bzs->avail_out = mybufsize - mybufdata;
 		    bzret = BZ2_bzDecompress(bzs);
 		    if((bzret != BZ_OK) && (bzret != BZ_STREAM_END)) {
-			msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not decompress hublist (%i)"), hret);
+			msgbox(GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _("Could not decompress hublist (%i)"), bzret);
 			aborthublist();
 			return;
 		    }
