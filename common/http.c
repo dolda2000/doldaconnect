@@ -224,8 +224,8 @@ static void consreq(struct htconn *cn)
     }
     if(*(cn->url->query)) {
 	addtobuf(cn->outbuf, '?');
-	for(p = cn->url->path; *p; p++) {
-	    if(!(*p & 0x80) && (safechars[(int)*p] || (*p == '&')))
+	for(p = cn->url->query; *p; p++) {
+	    if(!(*p & 0x80) && (safechars[(int)*p] || (*p == '&') || (*p == '=')))
 		addtobuf(cn->outbuf, *p);
 	    else
 		bprintf(cn->outbuf, "%%%02X", *p);
