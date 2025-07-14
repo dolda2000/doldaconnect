@@ -41,7 +41,7 @@ void inittiger(struct tigerhash *th)
     th->len = 0;
 }
 
-static void round(unsigned long long *a, unsigned long long *b, unsigned long long *c, unsigned long long x, int mul)
+static void thround(unsigned long long *a, unsigned long long *b, unsigned long long *c, unsigned long long x, int mul)
 {
     *c ^= x;
     *a -= table[((*c >> 0) & 0xff) + 0x0000] ^ table[((*c >> 16) & 0xff) + 0x0100] ^ table[((*c >> 32) & 0xff) + 0x0200] ^ table[((*c >> 48) & 0xff) + 0x0300];
@@ -51,14 +51,14 @@ static void round(unsigned long long *a, unsigned long long *b, unsigned long lo
 
 static void pass(unsigned long long *a, unsigned long long *b, unsigned long long *c, unsigned long long *x, int mul)
 {
-    round(a, b, c, x[0], mul);
-    round(b, c, a, x[1], mul);
-    round(c, a, b, x[2], mul);
-    round(a, b, c, x[3], mul);
-    round(b, c, a, x[4], mul);
-    round(c, a, b, x[5], mul);
-    round(a, b, c, x[6], mul);
-    round(b, c, a, x[7], mul);
+    thround(a, b, c, x[0], mul);
+    thround(b, c, a, x[1], mul);
+    thround(c, a, b, x[2], mul);
+    thround(a, b, c, x[3], mul);
+    thround(b, c, a, x[4], mul);
+    thround(c, a, b, x[5], mul);
+    thround(a, b, c, x[6], mul);
+    thround(b, c, a, x[7], mul);
 }
 
 static void key_schedule(unsigned long long *x)
