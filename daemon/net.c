@@ -348,10 +348,9 @@ static struct socket *mksock(int domain, int type)
 struct socket *wrapsock(int fd)
 {
     struct socket *sk;
-    struct ufd *ufd;
     
     sk = sockpair(0);
-    ufd = mkufd(fd, UFD_PIPE, sk->back);
+    mkufd(fd, UFD_PIPE, sk->back);
     sksetstate(sk, SOCK_EST);
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
     return(sk);

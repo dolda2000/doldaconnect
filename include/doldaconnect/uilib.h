@@ -41,7 +41,7 @@ struct dc_intresp
     } *argv;
 };
 
-char *dc_srv_local;
+extern char *dc_srv_local;
 
 int dc_init(void);
 void dc_cleanup(void);

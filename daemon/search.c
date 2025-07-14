@@ -407,7 +407,7 @@ static struct reinfo analyzere(wchar_t *re, wchar_t **endret, wchar_t endc)
 	{
 	    if(ret.begstr != NULL)
 	    {
-		for(i = 0; (sinf.begstr[i] != L'\0') && (ret.begstr != L'\0') && (ret.begstr[i] == sinf.begstr[i]); i++);
+		for(i = 0; (sinf.begstr[i] != L'\0') && (ret.begstr[i] != L'\0') && (ret.begstr[i] == sinf.begstr[i]); i++);
 		if(i == 0) {
 		    free(ret.begstr);
 		    ret.begstr = NULL;

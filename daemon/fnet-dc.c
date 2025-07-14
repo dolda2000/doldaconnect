@@ -1044,11 +1044,9 @@ static void cmd_myinfo(struct socket *sk, struct fnetnode *fn, char *cmd, char *
  * us. */
 static void cmd_forcemove(struct socket *sk, struct fnetnode *fn, char *cmd, char *args)
 {
-    struct dchub *hub;
     struct fnetnode *newfn;
     int freeargs;
     
-    hub = fn->data;
     if(strchr(args, ':') == NULL)
     {
 	args = strcpy(smalloc(strlen(args) + 5), args);
@@ -1388,11 +1386,9 @@ static void cmd_revconnecttome(struct socket *sk, struct fnetnode *fn, char *cmd
 
 static void cmd_getnetinfo(struct socket *sk, struct fnetnode *fn, char *cmd, char *args)
 {
-    struct dchub *hub;
     struct fnetnode *node;
     int numhubs;
     
-    hub = fn->data;
     numhubs = 0;
     for(node = fnetnodes; node != NULL; node = node->next)
     {
@@ -1524,9 +1520,7 @@ static void cmd_getpass(struct socket *sk, struct fnetnode *fn, char *cmd, char 
 
 static void cmd_logedin(struct socket *sk, struct fnetnode *fn, char *cmd, char *args)
 {
-    struct dchub *hub;
     
-    hub = fn->data;
     fn->regstatus = FNNS_OP;
     hubhandleaction(sk, fn, cmd, args);
 }

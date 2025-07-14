@@ -146,7 +146,7 @@ static int conf_share(int argc, wchar_t **argv)
     return(0);
 }
 
-static void dumpsharecache(struct sharecache *node, int l)
+static void __attribute__((unused)) dumpsharecache(struct sharecache *node, int l)
 {
     int i;
     
