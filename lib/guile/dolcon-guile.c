@@ -149,18 +149,18 @@ static SCM scm_dc_extract(SCM scm_resp)
     SCM_ASSERT(SCM_SMOB_PREDICATE(resptype, scm_resp), scm_resp, SCM_ARG1, "dc-extract");
     resp = ((struct respsmob *)SCM_SMOB_DATA(scm_resp))->resp;
     ret = SCM_EOL;
-    ret = scm_cons(scm_cons(scm_str2symbol("cmd"), scm_makfrom0str(icswcstombs(resp->cmdname, "UTF-8", NULL))), ret);
-    ret = scm_cons(scm_cons(scm_str2symbol("code"), scm_from_int(resp->code)), ret);
-    ret = scm_cons(scm_cons(scm_str2symbol("tag"), scm_from_int(resp->tag)), ret);
+    ret = scm_cons(scm_cons(scm_from_utf8_symbol("cmd"), scm_from_utf8_string(icswcstombs(resp->cmdname, "UTF-8", NULL))), ret);
+    ret = scm_cons(scm_cons(scm_from_utf8_symbol("code"), scm_from_int(resp->code)), ret);
+    ret = scm_cons(scm_cons(scm_from_utf8_symbol("tag"), scm_from_int(resp->tag)), ret);
     l = SCM_EOL;
     for(i = resp->numlines - 1; i >= 0; i--)
     {
 	w = SCM_EOL;
 	for(o = resp->rlines[i].argc - 1; o >= 0; o--)
-	    w = scm_cons(scm_makfrom0str(icswcstombs(resp->rlines[i].argv[o], "UTF-8", NULL)), w);
+	    w = scm_cons(scm_from_utf8_string(icswcstombs(resp->rlines[i].argv[o], "UTF-8", NULL)), w);
 	l = scm_cons(w, l);
     }
-    ret = scm_cons(scm_cons(scm_str2symbol("resp"), l), ret);
+    ret = scm_cons(scm_cons(scm_from_utf8_symbol("resp"), l), ret);
     return(ret);
 }
 
@@ -181,7 +181,7 @@ static SCM scm_dc_intresp(SCM scm_resp)
 	switch(ires->argv[i].type)
 	{
 	case 1:
-	    ret = scm_cons(scm_makfrom0str(icswcstombs(ires->argv[i].val.str, "UTF-8", NULL)), ret);
+	    ret = scm_cons(scm_from_utf8_string(icswcstombs(ires->argv[i].val.str, "UTF-8", NULL)), ret);
 	    break;
 	case 2:
 	    ret = scm_cons(scm_from_int(ires->argv[i].val.num), ret);
@@ -228,9 +228,9 @@ static SCM scm_dc_qcmd(SCM argv, SCM callback)
     SCM port;
     struct scmcb *scmcb;
     
-    SCM_ASSERT(SCM_CONSP(argv), argv, SCM_ARG1, "dc-qcmd");
+    SCM_ASSERT(scm_is_pair(argv), argv, SCM_ARG1, "dc-qcmd");
     if(callback != SCM_UNDEFINED)
-	SCM_ASSERT(SCM_CLOSUREP(callback), callback, SCM_ARG2, "dc-qcmd");
+	SCM_ASSERT(scm_is_true(scm_procedure_p(callback)), callback, SCM_ARG2, "dc-qcmd");
     cmd = NULL;
     toks = NULL;
     tokssize = toksdata = 0;
@@ -267,9 +267,9 @@ static SCM scm_dc_qcmd(SCM argv, SCM callback)
 	free(cmd);
     if(tag == -1) {
 	if(errno == ENOSYS) {
-	    scm_error(scm_str2symbol("no-such-cmd"), "dc-qcmd", "Invalid command name", SCM_EOL, SCM_BOOL_F);
+	    scm_error(scm_from_utf8_symbol("no-such-cmd"), "dc-qcmd", "Invalid command name", SCM_EOL, SCM_BOOL_F);
 	} else if(errno == EINVAL) {
-	    scm_error(scm_str2symbol("illegal-escape"), "dc-qcmd", "Invalid escape sequence", SCM_EOL, SCM_BOOL_F);
+	    scm_error(scm_from_utf8_symbol("illegal-escape"), "dc-qcmd", "Invalid escape sequence", SCM_EOL, SCM_BOOL_F);
 	} else {
 	    scm_syserror("dc-qcmd");
 	}
@@ -285,25 +285,25 @@ static void login_scmcb(int err, wchar_t *reason, struct scmcb *scmcb)
     switch(err)
     {
     case DC_LOGIN_ERR_SUCCESS:
-	errsym = scm_str2symbol("success");
+	errsym = scm_from_utf8_symbol("success");
 	break;
     case DC_LOGIN_ERR_NOLOGIN:
-	errsym = scm_str2symbol("nologin");
+	errsym = scm_from_utf8_symbol("nologin");
 	break;
     case DC_LOGIN_ERR_SERVER:
-	errsym = scm_str2symbol("server");
+	errsym = scm_from_utf8_symbol("server");
 	break;
     case DC_LOGIN_ERR_USER:
-	errsym = scm_str2symbol("user");
+	errsym = scm_from_utf8_symbol("user");
 	break;
     case DC_LOGIN_ERR_CONV:
-	errsym = scm_str2symbol("conv");
+	errsym = scm_from_utf8_symbol("conv");
 	break;
     case DC_LOGIN_ERR_AUTHFAIL:
-	errsym = scm_str2symbol("authfail");
+	errsym = scm_from_utf8_symbol("authfail");
 	break;
     }
-    scm_apply(scmcb->subr, scm_cons(errsym, scm_cons((reason == NULL)?SCM_BOOL_F:scm_makfrom0str(icswcstombs(reason, "UTF-8", NULL)), SCM_EOL)), SCM_EOL);
+    scm_apply(scmcb->subr, scm_cons(errsym, scm_cons((reason == NULL)?SCM_BOOL_F:scm_from_utf8_string(icswcstombs(reason, "UTF-8", NULL)), SCM_EOL)), SCM_EOL);
     scm_gc_unprotect_object(scmcb->subr);
     free(scmcb);
 }
@@ -313,7 +313,7 @@ static SCM scm_dc_loginasync(SCM callback, SCM useauthless, SCM username)
     struct scmcb *scmcb;
     char *un;
     
-    SCM_ASSERT(SCM_CLOSUREP(callback), callback, SCM_ARG1, "dc-loginasync");
+    SCM_ASSERT(scm_is_true(scm_procedure_p(callback)), callback, SCM_ARG1, "dc-loginasync");
     scmcb = scm_malloc(sizeof(*scmcb));
     scm_gc_protect_object(scmcb->subr = callback);
     if(scm_is_string(username))
@@ -340,7 +340,7 @@ static SCM scm_dc_lexsexpr(SCM sexpr)
     if(arr != NULL)
     {
 	for(ap = arr; *ap != NULL; ap++)
-	    ret = scm_cons(scm_makfrom0str(icswcstombs(*ap, "UTF-8", NULL)), ret);
+	    ret = scm_cons(scm_from_utf8_string(icswcstombs(*ap, "UTF-8", NULL)), ret);
 	dc_freewcsarr(arr);
     }
     return(scm_reverse(ret));
