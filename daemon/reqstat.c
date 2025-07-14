@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
+#include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

@@ -19,6 +19,7 @@
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip6.h>

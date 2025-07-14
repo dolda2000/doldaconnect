@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdint.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <wctype.h>
